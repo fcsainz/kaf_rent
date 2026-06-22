@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/Users/fcsainz/**)",
+      "Read(//c/Users/fcsai/**)",
+      "Bash(git config *)",
+      "Bash(xargs wc -l)",
+      "Bash(mkdir -p \"\\\\\\\\\\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\fcsainz\\\\\\\\dev-fcsainz\\\\\\\\KAF_App_Rent\\\\\\\\docs\\\\\\\\discovery\")",
+      "Bash(mkdir -p /home/fcsainz/dev-fcsainz/KAF_App_Rent/docs/discovery && echo \"OK\")"
+    ],
+    "additionalDirectories": [
+      "\\\\wsl.localhost\\Ubuntu\\home\\fcsainz\\dev-fcsainz\\KAF_App_Rent\\docs",
+      "\\home\\fcsainz\\dev-fcsainz\\KAF_App_Rent\\docs"
+    ]
+  }
+}
