@@ -1,8 +1,8 @@
-# Roadmap & Sprint Plan — KAF App Rent
+# Roadmap & Sprint Plan — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Scrum — Sprint Planning  
 
 ---
@@ -25,8 +25,8 @@
 │         FASE 1 — MVP            │    │          FASE 2 — Viajeros           │
 │    (Sprints 1 a 5 — 10 sem.)   │    │         (Sprints 6+ — TBD)           │
 │                                 │    │                                      │
-│  S1: Setup + Auth + Dashboard   │    │  S6: Formulario registro viajeros    │
-│  S2: Dashboard + Crear Res. I   │    │  S7: Integración SES.Hospedajes      │
+│  S1: Setup + Auth + Inicio      │    │  S6: Formulario registro viajeros    │
+│  S2: Inicio + Crear Res. I      │    │  S7: Integración SES.Hospedajes      │
 │  S3: Crear Reserva II + Valid.  │    │                                      │
 │  S4: Gestionar Reserva + Audit  │    │  Fecha inicio: TBD (post Fase 1)     │
 │  S5: Informes + UAT + Deploy    │    │                                      │
@@ -40,7 +40,7 @@
 ### Sprint 1 — Infraestructura, Autenticación y Shell de la App
 
 **Duración:** 2 semanas  
-**Objetivo del sprint:** Tener la estructura base del proyecto en pie, con autenticación funcionando y el shell del dashboard visible para un usuario autorizado.
+**Objetivo del sprint:** Tener la estructura base del proyecto en pie, con autenticación funcionando y el shell del Inicio visible para un usuario autorizado.
 
 **Historias incluidas:**
 
@@ -49,37 +49,40 @@
 | US-001 | Login con Google | Must |
 | US-002 | Verificación de acceso por lista autorizada | Must |
 | US-003 | Identificación automática del usuario activo | Must |
+| *(técnica)* | Configurar la cuenta operativa `operaciontangai@gmail.com` (Sheet, Drive, Calendar) y desplegar la Web App ejecutándose como ella | Must |
 | *(técnica)* | Setup del proyecto GAS + clasp + estructura de ficheros | Must |
 | *(técnica)* | Crear estructura de la hoja Google Sheets (todas las hojas con cabeceras) | Must |
 | *(técnica)* | Shell del HTML (navegación entre secciones con show/hide) | Must |
 
-**Milestone M1:** Autenticación funcionando en Google — un usuario autorizado ve el dashboard (vacío); uno no autorizado ve la pantalla de denegación.
+**Milestone M1:** Autenticación funcionando en Google — un usuario autorizado ve el Inicio (vacío); uno no autorizado ve la pantalla de denegación.
 
 **Criterio de salida del sprint:**
-- El co-propietario desarrollador puede acceder con su cuenta Google y ve el dashboard
+- El co-propietario desarrollador puede acceder con su cuenta Google y ve el Inicio
 - Si intenta con una cuenta no autorizada, se muestra "Acceso denegado"
 - El intento no autorizado queda registrado en la hoja `Logs`
 
 ---
 
-### Sprint 2 — Dashboard con Datos y Formulario de Reserva (Parte I)
+### Sprint 2 — Inicio (Hub) y Formulario de Reserva (Parte I)
 
 **Duración:** 2 semanas  
-**Objetivo del sprint:** El dashboard muestra reservas reales de Sheets. El formulario de creación muestra los campos estáticos y carga los catálogos.
+**Objetivo del sprint:** El Inicio muestra los tres accesos y la tabla de últimas 5 reservas reales de Sheets. El formulario de creación muestra los campos estáticos y carga los catálogos.
 
 **Historias incluidas:**
 
 | Story | Descripción | Prioridad |
 |---|---|---|
-| US-004 | Ver tabla de reservas por espacio en el dashboard | Must |
-| US-005 | Navegar a las acciones principales (botones Generar / Gestionar) | Must |
+| US-004 | Inicio (hub): 3 botones + tabla de últimas 5 reservas ordenable | Must |
+| US-005 | Navegar entre las tres secciones (Crear / Gestionar / Estadísticas) | Must |
+| US-022 | Buscar Reserva por nombre y/o fecha (subsección de Crear Reserva) | Must |
 | US-006 | Seleccionar espacio con filtrado en cascada | Must |
 | US-007 | Seleccionar canal y autocomplete de comisión | Must |
-| US-010 | Introducir datos de personas y servicios | Must |
+| US-010 | Introducir datos de personas y servicios (con coste/precio snapshot) | Must |
 | US-011 | Introducir datos de contacto del huésped | Must |
 
 **Criterio de salida del sprint:**
-- El dashboard muestra las reservas que haya en Sheets, organizadas por espacio
+- El Inicio muestra los 3 botones y la tabla de últimas 5 reservas (ordenable) con datos reales
+- "Buscar Reserva" devuelve reservas por nombre y/o fecha
 - El formulario carga los catálogos y el filtrado en cascada (espacio → canal + servicios) funciona
 - Se pueden rellenar todos los campos estáticos del formulario
 
@@ -99,6 +102,7 @@
 | US-012 | Validación de solapamiento de reservas (bloqueo duro) | Must |
 | US-013 | Guardar reserva con estado inicial automático | Must |
 | US-014 | Notificación de cierre de canales al crear reserva | Must |
+| US-025 | Email de confirmación de reserva generada (a los tres) | Should |
 
 **Milestone M2:** Primera reserva creada end-to-end — desde el formulario hasta la hoja Sheets, con email de cierre de canales recibido.
 
@@ -119,12 +123,14 @@
 
 | Story | Descripción | Prioridad |
 |---|---|---|
+| US-023 | Lista de reservas activas con filtros (fechas rápidas + nombre) | Must |
 | US-015 | Editar campos de una reserva existente + registro de auditoría | Must |
-| US-016 | Ciclo de vida automático del estado de reserva | Must |
+| US-016 | Ciclo de vida automático del estado (incl. Incidencia_Resuelta) | Must |
 | US-017 | Subir contrato a Google Drive | Must |
 | US-018 | Cancelar una reserva con confirmación | Must |
 | US-019 | Ver historial de cambios de una reserva | Should |
 | US-020 | Notificación de reapertura de canales al cancelar | Must |
+| US-026 | Evento de Google Calendar (crear/actualizar/eliminar) y calendario de ocupación | Must |
 
 **Milestone M3:** Primera reserva completada con ciclo de vida completo — creada, cobrada, contrato subido, estado "Completada" calculado automáticamente.
 
@@ -137,17 +143,19 @@
 
 ---
 
-### Sprint 5 — Informes Trimestrales + Bug Fixes + UAT + Deploy
+### Sprint 5 — Informes, Estadísticas + Bug Fixes + UAT + Deploy
 
 **Duración:** 2 semanas  
-**Objetivo del sprint:** Completar la funcionalidad de informes, corregir bugs encontrados, hacer UAT con los tres usuarios y hacer el deploy final.
+**Objetivo del sprint:** Completar informes y estadísticas, corregir bugs encontrados, hacer UAT con los tres usuarios y hacer el deploy final.
 
 **Historias incluidas:**
 
 | Story | Descripción | Prioridad |
 |---|---|---|
-| US-021 | Informe trimestral automático por email | Should |
-| *(técnica)* | Trigger programado en GAS para informe trimestral | Should |
+| US-024 | Sección Estadísticas (3 zonas) con cálculo cacheado diario | Should |
+| US-021 | Informes mensual y trimestral automáticos por email | Should |
+| *(técnica)* | Triggers programados en GAS para los informes mensual y trimestral | Should |
+| *(técnica)* | Trigger diario a las 03:00 que recalcula `Estadisticas_Cache` | Should |
 | *(técnica)* | Revisión y corrección de bugs encontrados | Must |
 | *(técnica)* | UAT con Ana y Luis (User Acceptance Testing) | Must |
 | *(técnica)* | Configuración de todos los parámetros reales en `Config` | Must |
@@ -161,6 +169,14 @@
 - Todos los criterios de la [Definition of Done — Nivel Release](07_definition_of_done.md) están cumplidos
 - Los tres usuarios han probado los flujos principales y han dado su aprobación
 - Los catálogos y la configuración tienen los datos reales de Calle 16
+
+---
+
+### Sprint 6 (Fase 1) — Módulo de Gastos y reparto IRPF
+
+**Historias:** US-027 (registrar gastos), US-028 (resumen fiscal por ejercicio y comunero).
+
+**Estado:** En scope de Fase 1. Caso simple (rendimiento del capital inmobiliario, sin actividad económica/IAE/IVA; reparto a partes iguales 33,33 %) definido en [ADR-0012](../solution/0012-modulo-gastos-irpf.md), con el objetivo de deducir todo lo legalmente posible (incluida la amortización). Antes de implementar el cálculo conviene **confirmar con el gestor** la deducibilidad y proporción de los gastos y los datos de amortización. Añade alcance y plazo a la Fase 1 respecto al plan original de 5 sprints.
 
 ---
 

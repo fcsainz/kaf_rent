@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/fcsainz/Workspace/kaf_rent status --short)",
+      "Bash(git -C /home/fcsainz/Workspace/kaf_rent diff --stat)",
+      "Bash(git -C /home/fcsainz/Workspace/kaf_rent diff --stat docs/discovery/01_product_vision.md docs/discovery/02_personas.md)",
+      "Bash(git -C /home/fcsainz/Workspace/kaf_rent diff docs/discovery/02_personas.md)",
+      "Bash(git -C /home/fcsainz/Workspace/kaf_rent diff --stat -- docs/)",
+      "Bash(sed -i 's/KAF App Rent/KAF Rent/g' docs/discovery/*.md CLAUDE.md)",
+      "WebSearch",
+      "WebFetch(domain:sede.agenciatributaria.gob.es)"
+    ]
+  }
+}

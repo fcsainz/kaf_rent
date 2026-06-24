@@ -1,8 +1,8 @@
-# Product Vision — KAF App Rent
+# Product Vision — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Roman Pichler — Product Vision Board  
 
 ---
@@ -17,11 +17,11 @@
 
 | Sección | Contenido |
 |---|---|
-| **Producto** | KAF App Rent — webapp de gestión de alquileres sobre Google Apps Script |
+| **Producto** | KAF Rent — webapp de gestión de alquileres sobre Google Apps Script |
 | **Target Group** | Los 3 co-propietarios de los espacios de alquiler de Calle 16 |
-| **Needs** | Un único punto de gestión sin riesgo de solapamiento, con historial de cambios y avisos automáticos de cierre/apertura de canales |
-| **Key Features** | Crear reservas, gestionar estado, subir contratos, auditoría campo a campo, notificaciones de canal |
-| **Business Goals** | Eliminar reservas dobles, reducir tiempo de gestión, obtener visibilidad completa del estado de todos los alquileres |
+| **Needs** | Un único punto de gestión sin riesgo de solapamiento, con historial de cambios, gestión de economicas y datos de las resevas, así como avisos automáticos de cierre/apertura de canales |
+| **Key Features** | Crear reservas, gestionar estado, subir contratos, registrar datos de reservas, así como servicios extras, auditoría campo a campo, notificaciones de canal |
+| **Business Goals** | Eliminar reservas dobles, reducir tiempo de gestión, obtener visibilidad completa del estado de todos los alquileres, tener datos centralizados y usarlos para analisis y mejorar la gestión de las reservas. Para maximizar el rendimiento económico de los espacios para alquiler de Calle 16 |
 
 ---
 
@@ -38,14 +38,14 @@ Los co-propietarios gestionan actualmente dos tipos de espacios de alquiler a tr
 
 ## Propuesta de Valor
 
-KAF App Rent es la única herramienta que los co-propietarios de Calle 16 necesitan para gestionar el ciclo de vida completo de sus alquileres con:
+KAF Rent es la única herramienta que los co-propietarios de Calle 16 necesitan para gestionar el ciclo de vida completo de sus alquileres con:
 
 - **Coste cero** de infraestructura (Google Apps Script + Google Sheets + Drive + Gmail)
 - **Acceso unificado** con la cuenta Google personal que ya tienen
 - **Bloqueo automático** de solapamientos entre canales antes de confirmar cualquier reserva
 - **Auditoría completa** de todos los cambios realizados sobre cada reserva
 - **Alertas automáticas** por email para sincronización manual de canales al crear o cancelar una reserva
-
+- **Datos Centralizados** usar la cantidad de datos que se genera en una reserva para poder tanto en la hora de gestión y ejecución de los alquiler tener mejor gestionado y posteriormente poder analizar y sacar puntos de mejora.
 ---
 
 ## Espacios gestionados y modos de reserva
@@ -65,7 +65,7 @@ Cada espacio puede tener múltiples canales de venta activos (plataformas de alq
 |---|---|
 | Reservas registradas en el sistema | 100% de las reservas reales |
 | Reservas dobles por solapamiento | 0 |
-| Tiempo medio para crear una reserva | < 3 minutos |
+| Tiempo medio para crear una reserva | < 5 minutos |
 | Notificaciones de cierre de canal enviadas | 100% automático en cada reserva creada |
 | Cambios sobre reservas auditados | 100% de las ediciones registradas en historial |
 | Disponibilidad de la aplicación | > 99% (gestionado por Google infrastructure) |
@@ -89,24 +89,23 @@ Cada espacio puede tener múltiples canales de venta activos (plataformas de alq
 ### En scope — Fase 1 (MVP)
 
 - Autenticación con Google + control de acceso por lista en Sheet `Usuarios_Autorizados`
-- Dashboard principal con tablas de reservas por espacio (Piscina/Jardín y Habitación Interior)
+- Pantalla de Inicio (hub) con accesos a Crear / Gestionar / Estadísticas y tabla de las últimas reservas
 - Formulario dinámico de creación de reservas con campos dependientes y validación de solapamientos
 - Pantalla de gestión de reservas con edición de todos los campos y auditoría campo a campo
 - Ciclo de vida automático del estado de reserva (`Abierta` / `Completada` / `Cancelada`)
 - Subida de contratos (JPG, PNG, PDF) a Google Drive con enlace en la reserva
 - Notificaciones email de cierre de canales al crear una reserva
+- Notificación email de reserva generada
 - Notificaciones email de reapertura de canales al cancelar una reserva
-- Informe trimestral automático por email
+- Informe mensual y trimestral automático por email
+- Calendario de ocupación en Google Calendar (evento por reserva en la cuenta operativa)
+- Gestión de gastos / cálculo compartido de IRPF *(pendiente de discovery detallado)*
 
 ### Fuera de scope — Fase 1
 
 - Registro de viajeros (SES.Hospedajes) → diferido a Fase 2
-- Calendario visual de ocupación → diferido a Fase 2
 - Integración API con plataformas de alquiler (Airbnb, Booking, etc.) → futuro
-- Gestión de gastos / cálculo compartido de IRPF → futuro
 - Bot de Telegram para alertas → futuro
-- Control de acceso por roles → futuro (campo reservado)
-- Soporte multi-cuenta Google / Workspace → futuro
 
 ---
 
@@ -115,7 +114,6 @@ Cada espacio puede tener múltiples canales de venta activos (plataformas de alq
 1. Los 3 usuarios disponen de cuenta Google personal activa (gmail.com)
 2. El co-propietario desarrollador es el único responsable del mantenimiento técnico
 3. El volumen de reservas y usuarios no superará los límites de cuota de Google Apps Script
-4. La sincronización con canales de alquiler seguirá siendo manual (sin API de channel manager)
-5. Los contratos se recibirán en formato JPG, PNG o PDF únicamente
-6. El acceso principal será desde Chrome en escritorio; soporte móvil deseable pero no crítico en Fase 1
-7. Los datos de huéspedes se gestionan bajo base legal de gestión contractual (GDPR)
+4. Los contratos se recibirán en formato JPG, PNG o PDF únicamente
+5. El acceso principal será desde Chrome en escritorio y móvil deseable 
+6. Los datos de huéspedes se gestionan bajo base legal de gestión contractual (GDPR)

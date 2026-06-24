@@ -1,8 +1,8 @@
-# User Stories & Acceptance Criteria — KAF App Rent
+# User Stories & Acceptance Criteria — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** INVEST + BDD/Gherkin (Given/When/Then)  
 
 ---
@@ -58,7 +58,7 @@ Scenario: Usuario autorizado accede correctamente
   Given que el usuario ha completado el login con Google
   And su email figura como activo en la hoja Usuarios_Autorizados
   When el sistema verifica el acceso
-  Then se muestra el Dashboard principal
+  Then se muestra la pantalla de Inicio
 
 Scenario: Usuario no autorizado es rechazado
   Given que el usuario ha completado el login con Google
@@ -94,66 +94,105 @@ Scenario: Campo Modificado_Por al editar reserva
 
 ---
 
-## Epic E-02: Dashboard Principal
+## Epic E-02: Inicio (Hub) y Navegación
 
-> Referencia: [ADR-0002](../solution/0002-estructura-interfaz-principal.md)
+> Referencia: [ADR-0008](../solution/0008-reestructuracion-navegacion-tres-secciones.md)
 
 ---
 
-### US-004 — Ver tabla de reservas por espacio
+### US-004 — Pantalla de Inicio con las últimas 5 reservas
 
 **Prioridad:** M | **Estimación:** M
 
-Como co-propietario, quiero ver en el dashboard una tabla por cada espacio (Piscina/Jardín y Habitación Interior) con las reservas activas para tener visibilidad inmediata al abrir la app.
+Como co-propietario, quiero que al entrar la app me muestre los tres accesos principales y una tabla con las últimas reservas para orientarme de un vistazo y elegir tarea.
 
 **Criterios de aceptación:**
 
 ```gherkin
-Scenario: Dashboard carga con datos actualizados
+Scenario: Inicio carga con accesos y últimas reservas
   Given que el usuario está autenticado y autorizado
-  When se carga el Dashboard
-  Then se muestran dos tablas: una para Piscina/Jardín y otra para Habitación Interior
-  And cada tabla muestra las reservas en estado "Abierta" con sus datos principales
-  And las reservas "Cancelada" o "Completada" no aparecen en el dashboard (o están filtradas/diferenciadas visualmente)
+  When se carga el Inicio
+  Then se muestran tres botones: "Crear Reserva", "Gestionar Reserva" y "Estadísticas"
+  And debajo, bajo el rótulo "5 Últimas Reservas", una tabla con las 5 reservas más recientes (por Fecha_Registro)
+  And la tabla muestra las columnas: Espacio, Fecha Inicio, Fecha Fin, Nombre, Importe Neto
 
-Scenario: Sin reservas activas
-  Given que no hay reservas activas para un espacio
-  When se carga el Dashboard
-  Then la tabla de ese espacio muestra un mensaje de "Sin reservas activas"
+Scenario: Ordenar la tabla de últimas reservas
+  Given que el Inicio muestra la tabla de últimas 5 reservas
+  When el usuario hace click en la cabecera de una columna
+  Then la tabla se reordena por esa columna, alternando ascendente y descendente
+
+Scenario: Sin reservas registradas
+  Given que no existe ninguna reserva
+  When se carga el Inicio
+  Then la tabla muestra el mensaje "No hay reservas registradas"
 ```
 
 ---
 
-### US-005 — Navegar a las acciones principales
+### US-005 — Navegar entre las tres secciones
 
 **Prioridad:** M | **Estimación:** XS
 
-Como co-propietario, quiero tener botones claros de "Generar Reserva" y "Gestionar Reserva" en el dashboard para acceder rápidamente a las acciones más frecuentes.
+Como co-propietario, quiero botones claros de "Crear Reserva", "Gestionar Reserva" y "Estadísticas" para acceder rápidamente a cada tarea.
 
 **Criterios de aceptación:**
 
 ```gherkin
-Scenario: Navegar al formulario de creación
-  Given que el usuario está en el Dashboard
-  When hace click en "Generar Reserva"
-  Then se muestra el formulario de creación de reservas
+Scenario: Navegar a Crear Reserva
+  Given que el usuario está en el Inicio
+  When hace click en "Crear Reserva"
+  Then se muestra la sección Crear Reserva (Buscar Reserva + formulario de creación)
 
-Scenario: Navegar a gestión de reserva
-  Given que el usuario está en el Dashboard
+Scenario: Navegar a Gestionar Reserva
+  Given que el usuario está en el Inicio
   When hace click en "Gestionar Reserva"
-  Then se muestra la pantalla de búsqueda/selección de reserva
+  Then se muestra la lista de reservas activas con sus filtros
 
-Scenario: Volver al Dashboard desde cualquier pantalla
-  Given que el usuario está en cualquier pantalla de la app
+Scenario: Navegar a Estadísticas
+  Given que el usuario está en el Inicio
+  When hace click en "Estadísticas"
+  Then se muestra la sección de estadísticas por zona
+
+Scenario: Volver al Inicio desde cualquier sección
+  Given que el usuario está en cualquier sección de la app
   When pulsa el botón o enlace de "Volver" / "Cancelar"
-  Then regresa al Dashboard sin perder los datos guardados
+  Then regresa al Inicio sin perder los datos guardados
 ```
 
 ---
 
 ## Epic E-03: Crear Reserva
 
-> Referencia: [ADR-0003](../solution/0003-formulario-generar-reserva-catalogos.md)
+> Referencia: [ADR-0003](../solution/0003-formulario-generar-reserva-catalogos.md) | [ADR-0008](../solution/0008-reestructuracion-navegacion-tres-secciones.md)
+
+---
+
+### US-022 — Buscar Reserva por nombre y/o fecha
+
+**Prioridad:** M | **Estimación:** M
+
+Como co-propietario, quiero buscar reservas por nombre y/o fecha desde la sección Crear Reserva para comprobar la disponibilidad antes de registrar una nueva.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Búsqueda con resultados
+  Given que el usuario está en la subsección "Buscar Reserva"
+  When introduce un nombre y/o una fecha y pulsa "Buscar"
+  Then se muestran las reservas activas que coinciden por nombre y/o que ocupan la fecha indicada
+       (Fecha_Hora_Inicio <= fecha <= Fecha_Hora_Fin)
+  And las reservas en estado "Cancelada" no se incluyen
+
+Scenario: Búsqueda con un solo campo
+  Given que el usuario rellena solo el nombre o solo la fecha
+  When pulsa "Buscar"
+  Then la búsqueda se ejecuta con el campo informado (ninguno de los dos es obligatorio)
+
+Scenario: Búsqueda sin resultados
+  Given que ninguna reserva activa coincide con los criterios
+  When el usuario pulsa "Buscar"
+  Then se muestra el mensaje "No hay reservas registradas"
+```
 
 ---
 
@@ -167,7 +206,7 @@ Como co-propietario, quiero que al seleccionar un espacio se filtren automática
 
 ```gherkin
 Scenario: Carga inicial del formulario
-  Given que el usuario abre el formulario de "Generar Reserva"
+  Given que el usuario abre el formulario de "Crear Reserva"
   When el formulario carga
   Then el dropdown de Espacio muestra solo los espacios marcados como activos en Catálogo_Espacios
   And los campos de Canal, Servicios y Fecha están deshabilitados o vacíos hasta seleccionar espacio
@@ -290,11 +329,18 @@ Scenario: Número de menores opcional
   When guarda la reserva
   Then el campo Menores se guarda como 0 sin error
 
-Scenario: Selección de servicios extra opcionales
-  Given que hay servicios extra activos para el espacio seleccionado
-  When el usuario marca uno o varios checkboxes
-  Then esos servicios se guardan en el campo Servicios_Extra de la reserva
-  And si no se selecciona ninguno, el campo queda vacío sin error
+Scenario: Selección de servicios extra con cantidad, coste y precio
+  Given que hay servicios extra activos para el espacio seleccionado (cada uno con coste y precio unitarios en Catálogo_Servicios_Extra)
+  When el usuario selecciona uno o varios servicios e indica una cantidad (entero ≥ 1) para cada uno
+  Then por cada servicio se crea una línea en Reserva_Servicios con su Cantidad y el coste y el precio unitarios vigentes (snapshot)
+  And se actualizan los totales de la reserva: Servicios_Precio_Total y Servicios_Coste_Total como suma de (Cantidad × unitario), y Margen_Servicios
+  And si no se selecciona ninguno, esos totales quedan a 0 sin error
+
+Scenario: Servicios extra añadidos durante la gestión
+  Given que la reserva ya existe y se gestiona desde "Gestionar Reserva"
+  When el usuario añade un servicio extra con su cantidad
+  Then se crea su línea en Reserva_Servicios con la Cantidad y el snapshot de coste/precio del momento
+  And los totales de la reserva se recalculan
 ```
 
 ---
@@ -409,9 +455,94 @@ Scenario: Sin notificación con un solo canal activo
 
 ---
 
+### US-025 — Email de confirmación de reserva generada
+
+**Prioridad:** S | **Estimación:** S
+
+> Referencia: [ADR-0006](../solution/0006-aviso-cierre-reapertura-canales.md)
+
+Como co-propietario, quiero recibir un email cuando se registra una reserva en el sistema para estar al tanto de la actividad aunque no la haya creado yo.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Email al crear una reserva
+  Given que una reserva se guarda correctamente
+  When termina el registro
+  Then el sistema envía un email a los tres co-propietarios (Config)
+  And el email resume: espacio, fechas, canal, huésped e importe de la reserva
+```
+
+---
+
+### US-026 — Evento de Google Calendar y calendario de ocupación
+
+**Prioridad:** M | **Estimación:** L
+
+> Referencia: [ADR-0010](../solution/0010-integracion-google-calendar.md)
+
+Como co-propietario, quiero que cada reserva aparezca como evento en un calendario de ocupación para ver de un vistazo qué está ocupado y cuándo.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Crear evento al registrar la reserva
+  Given que una reserva se guarda correctamente
+  When termina el registro
+  Then se crea un evento en el Google Calendar de la cuenta operativa con el espacio, las fechas y el huésped
+  And el ID del evento se guarda en Calendar_Event_Id de la reserva
+
+Scenario: Actualizar el evento al editar la reserva
+  Given que se editan las fechas, el espacio o el huésped de una reserva
+  When se guardan los cambios
+  Then el evento de Calendar asociado se actualiza en consecuencia
+
+Scenario: Eliminar el evento al cancelar
+  Given que una reserva se cancela
+  When se confirma la cancelación
+  Then el evento de Calendar asociado se elimina
+
+Scenario: La sincronización no bloquea el guardado
+  Given que la llamada a Google Calendar falla
+  When se guarda/edita/cancela una reserva
+  Then la operación sobre la reserva se completa igualmente
+  And el fallo se registra en la hoja Errores para reconciliar después
+```
+
+---
+
 ## Epic E-04: Gestionar Reserva y Auditoría
 
-> Referencia: [ADR-0004](../solution/0004-ciclo-vida-estado-reserva.md) | [ADR-0005](../solution/0005-pantalla-gestionar-reserva-auditoria.md)
+> Referencia: [ADR-0004](../solution/0004-ciclo-vida-estado-reserva.md) | [ADR-0005](../solution/0005-pantalla-gestionar-reserva-auditoria.md) | [ADR-0008](../solution/0008-reestructuracion-navegacion-tres-secciones.md) | [ADR-0010](../solution/0010-integracion-google-calendar.md)
+
+---
+
+### US-023 — Lista de reservas activas con filtros
+
+**Prioridad:** M | **Estimación:** M
+
+Como co-propietario, quiero que la sección Gestionar Reserva muestre las reservas que requieren seguimiento y poder filtrarlas, para localizar rápido la que necesito.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Vista estándar de reservas activas
+  Given que el usuario entra en "Gestionar Reserva"
+  When se carga la lista
+  Then se muestran las reservas en estado "Abierta" (todas, aunque su fecha de fin esté vencida)
+  And las reservas "Completada" cuya Fecha_Hora_Fin no haya vencido (Fecha_Hora_Fin >= ahora)
+  And nunca se muestran las reservas "Cancelada"
+
+Scenario: Filtro rápido por fecha
+  Given que el usuario está en la lista de Gestionar Reserva
+  When selecciona la opción "Próxima Semana" o "Próximo Mes"
+  Then la lista se acota a las reservas cuyas fechas caen en ese rango
+
+Scenario: Búsqueda por nombre
+  Given que el usuario está en la lista de Gestionar Reserva
+  When escribe un texto en el campo de búsqueda por nombre
+  Then la lista se acota a las reservas cuyo Nombre_Huesped coincide con el texto
+```
 
 ---
 
@@ -461,22 +592,23 @@ Scenario: Reserva pasa a "Completada" sin incidencias
   When el usuario guarda los cambios
   Then Estado_Reserva se calcula automáticamente como "Completada"
 
-Scenario: Reserva pasa a "Completada" con incidencias compensadas
+Scenario: Reserva pasa a "Completada" con incidencia resuelta
   Given que una reserva tiene Estado_Cobro = "Ingresado"
   And Incidencias = "Con incidentes"
-  And Compensación_Daños = "Recibida"
+  And Incidencia_Resuelta = "Sí"
   When el usuario guarda los cambios
   Then Estado_Reserva se calcula automáticamente como "Completada"
+  And la reserva se completa con independencia de si Compensación_Daños es "Recibida" o "No recibida"
 
 Scenario: Reserva permanece "Abierta" con cobro pendiente
   Given que una reserva tiene Estado_Cobro = "No ingresado"
   When el usuario guarda los cambios
   Then Estado_Reserva permanece como "Abierta"
 
-Scenario: Reserva permanece "Abierta" con incidencia sin compensar
+Scenario: Reserva permanece "Abierta" con incidencia sin resolver
   Given que una reserva tiene Estado_Cobro = "Ingresado"
   And Incidencias = "Con incidentes"
-  And Compensación_Daños = "No recibida"
+  And Incidencia_Resuelta = "No"
   When el usuario guarda los cambios
   Then Estado_Reserva permanece como "Abierta"
 
@@ -484,7 +616,7 @@ Scenario: El estado calculado se muestra con información de qué falta
   Given que una reserva está en estado "Abierta"
   When el usuario visualiza la reserva en "Gestionar Reserva"
   Then el sistema muestra qué condición falta para llegar a "Completada"
-  (ej. "Pendiente de cobro" o "Pendiente de compensación por daños")
+  (ej. "Pendiente de cobro" o "Pendiente de resolver la incidencia")
 ```
 
 ---
@@ -600,31 +732,116 @@ Scenario: Sin notificación si solo hay un canal
 
 ---
 
-## Epic E-05: Informes y Reportes
+## Epic E-05: Informes y Estadísticas
+
+> Referencia: [ADR-0009](../solution/0009-estadisticas-calculo-cacheado-diario.md)
 
 ---
 
-### US-021 — Informe trimestral automático por email
+### US-024 — Ver estadísticas por espacio
 
 **Prioridad:** S | **Estimación:** L
 
-Como co-propietario, quiero recibir automáticamente un informe trimestral por email con el resumen de reservas, ingresos y ocupación por espacio y canal para tener visibilidad del rendimiento sin tener que generarlo manualmente.
+Como co-propietario, quiero ver en la sección Estadísticas un resumen anual por espacio para conocer el rendimiento del negocio sin generar nada manualmente.
 
 **Criterios de aceptación:**
 
 ```gherkin
-Scenario: Envío automático del informe trimestral
-  Given que ha finalizado un trimestre natural
-  When se ejecuta el trigger programado de Google Apps Script
+Scenario: Tres zonas de estadísticas
+  Given que el usuario entra en la sección "Estadísticas"
+  When se carga la pantalla
+  Then se muestran tres zonas: "Todos los alquileres", "Piscina/Jardín" y "Habitación"
+  And cada zona muestra el total de reservas del año natural y los ingresos netos
+
+Scenario: Origen de los datos cacheados
+  Given que el usuario visualiza las estadísticas
+  Then los valores se leen de Estadisticas_Cache (no se recalculan al vuelo)
+  And la pantalla muestra el texto "Las estadísticas se actualizan cada 24 horas" y la fecha de última actualización
+
+Scenario: Recálculo diario automático
+  Given que es la hora programada (03:00)
+  When se ejecuta el trigger temporal de Apps Script
+  Then se recalculan los agregados de las tres zonas (reservas no canceladas con Fecha_Hora_Inicio dentro del año natural)
+  And se sobrescriben en Estadisticas_Cache con la marca de tiempo de la actualización
+```
+
+---
+
+### US-021 — Informes mensual y trimestral automáticos por email
+
+**Prioridad:** S | **Estimación:** L
+
+Como co-propietario, quiero recibir automáticamente informes **mensuales y trimestrales** por email con el resumen de reservas, ingresos y ocupación por espacio y canal para tener visibilidad del rendimiento sin generarlos manualmente.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Envío automático del informe mensual
+  Given que ha finalizado un mes natural
+  When se ejecuta el trigger programado mensual de Google Apps Script
   Then el sistema genera un resumen con: número de reservas, importe bruto, comisiones, importe neto y % ocupación por espacio y canal
-  And envía el informe por email a los destinatarios configurados en Config
+  And envía el informe por email a los tres co-propietarios (Config)
   And guarda el resumen en la hoja Histórico_Informes
 
-Scenario: Contenido mínimo del informe
-  Given que el informe trimestral se genera
+Scenario: Envío automático del informe trimestral
+  Given que ha finalizado un trimestre natural
+  When se ejecuta el trigger programado trimestral
+  Then se genera y envía el informe trimestral a los tres y se archiva en Histórico_Informes
+
+Scenario: Contenido mínimo de cada informe
+  Given que un informe (mensual o trimestral) se genera
   Then incluye al menos:
-    - Periodo del informe (trimestre y año)
+    - Periodo del informe (mes/trimestre y año)
     - Resumen por espacio y canal
     - Totales: reservas, ingresos brutos, comisiones, ingresos netos
     - Reservas completadas vs canceladas
+```
+
+---
+
+## Epic E-06: Gestión de Gastos y Reparto (IRPF)
+
+> Referencia: [ADR-0012](../solution/0012-modulo-gastos-irpf.md). **En scope Fase 1.** El marco fiscal y el modelo de datos están definidos; **los detalles fiscales concretos (régimen de la renta, IAE, IVA, amortización y prorrateo) quedan pendientes de validar con un asesor** antes de implementar el cálculo.
+
+---
+
+### US-027 — Registrar gastos del negocio
+
+**Prioridad:** S | **Estimación:** L
+
+Como co-propietario, quiero registrar los gastos del negocio con su justificante para tener centralizado todo lo necesario para desgravar.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Registrar un gasto con justificante
+  Given que el usuario está en la pantalla de Gastos
+  When introduce fecha, concepto, categoría (de Catálogo_Categorias_Gasto), espacio, importe, quién lo pagó y adjunta el justificante
+  Then el gasto se guarda en la hoja Gastos con el enlace al documento en Drive
+  And se marca como Deducible según la categoría (editable)
+```
+
+---
+
+### US-028 — Resumen fiscal por ejercicio (reparto a tercios)
+
+**Prioridad:** S | **Estimación:** L
+
+Como co-propietario, quiero un resumen anual que reparta ingresos y gastos a partes iguales entre los tres para llevar cada uno su tercio al IRPF, deduciendo todo lo posible dentro de la ley.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Resumen fiscal de un ejercicio
+  Given que existen reservas y gastos de un ejercicio
+  When el usuario consulta el resumen fiscal de ese año
+  Then el sistema agrega por espacio: ingresos íntegros, gastos deducibles por categoría (incluida la amortización) y rendimiento neto
+  And muestra el tercio (33,33 %) que corresponde a cada copropietario
+
+Scenario: Amortización deducible disponible
+  Given que en Config están los datos de amortización (valor de construcción y proporción alquilada)
+  When se calcula el resumen fiscal
+  Then se incluye la amortización (≈3 %) como gasto deducible para reducir el rendimiento neto
+
+# Nota: qué gastos son deducibles y en qué proporción lo confirma el gestor (ADR-0012); el sistema solo registra y agrega.
 ```

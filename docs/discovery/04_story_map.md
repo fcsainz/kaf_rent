@@ -1,8 +1,8 @@
-# Story Map — KAF App Rent
+# Story Map — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Jeff Patton — User Story Mapping  
 
 ---
@@ -18,7 +18,7 @@
 ## Backbone — Actividades del Usuario
 
 ```
-[AUTENTICARSE] → [VER DASHBOARD] → [CREAR RESERVA] → [GESTIONAR RESERVA] → [CONSULTAR INFORMES]
+[AUTENTICARSE] → [INICIO (HUB)] → [CREAR RESERVA] → [GESTIONAR RESERVA] → [VER ESTADÍSTICAS E INFORMES] → [GESTIONAR GASTOS]
 ```
 
 ---
@@ -37,15 +37,14 @@
 
 ---
 
-### Actividad 2: VER DASHBOARD
+### Actividad 2: INICIO (HUB)
 
 | Tarea | Release 1 — MVP | Release 2 | Futuro |
 |---|---|---|---|
-| Ver reservas Piscina/Jardín | Tabla con reservas activas del espacio | | |
-| Ver reservas Habitación Interior | Tabla con reservas activas del espacio | | |
-| Navegar a crear reserva | Botón "Generar Reserva" | | |
-| Navegar a gestionar reserva | Botón "Gestionar Reserva" | | |
-| Ver disponibilidad visual | | Calendario de ocupación por espacio | |
+| Elegir tarea | Tres botones: "Crear Reserva", "Gestionar Reserva", "Estadísticas" | | |
+| Ver últimas 5 reservas | Tabla de las 5 más recientes: Espacio, Fecha Inicio, Fecha Fin, Nombre, Importe Neto | | |
+| Ordenar la tabla | Orden ascendente/descendente por cualquier columna | | |
+| Ver calendario de ocupación | Enlace/embed del Google Calendar de la cuenta operativa | | |
 | Ver alertas y tareas pendientes | | Badge/panel de pendientes | |
 
 ---
@@ -54,18 +53,22 @@
 
 | Tarea | Release 1 — MVP | Release 2 | Futuro |
 |---|---|---|---|
+| Buscar reserva (disponibilidad) | Subsección "Buscar Reserva": por nombre y/o fecha + botón "Buscar" | | |
+| Estado vacío de la búsqueda | Mensaje "No hay reservas registradas" | | |
 | Seleccionar espacio | Dropdown con espacios activos del catálogo | | |
 | Seleccionar canal | Dropdown filtrado por espacio seleccionado | | |
 | Introducir fechas modo Día+Hora | Date picker + hora entrada + hora salida | | |
 | Introducir fechas modo Rango | Date picker check-in + date picker check-out | | |
 | Indicar número de adultos | Campo numérico ≥ 1 | | |
 | Indicar número de menores | Campo numérico ≥ 0 | | |
-| Seleccionar servicios extra | Checkboxes filtrados por espacio | | |
+| Seleccionar servicios extra | Lista filtrada por espacio, con cantidad por servicio | | |
 | Introducir nombre del huésped | Campo texto obligatorio | | |
 | Introducir teléfono del huésped | Campo opcional con validación de formato | | |
 | Introducir email del huésped | Campo opcional con validación de formato | | |
 | Validar solapamientos | Bloqueo automático si el espacio ya está reservado | | |
 | Confirmar y guardar reserva | Guardado con ID, metadatos y estado inicial | | |
+| Crear evento en Calendar | Evento de ocupación en el Google Calendar de la cuenta operativa | | |
+| Recibir email de confirmación de reserva | Aviso a los tres de que se ha registrado una reserva | | |
 | Recibir email de cierre de canales | Notificación automática si 2+ canales activos | | |
 
 ---
@@ -74,18 +77,22 @@
 
 | Tarea | Release 1 — MVP | Release 2 | Futuro |
 |---|---|---|---|
-| Buscar/localizar reserva | Por ID de reserva *(criterio de búsqueda TBD)* | Búsqueda por nombre/fecha/canal | |
+| Ver lista de reservas activas | Abiertas (todas) + Completadas no vencidas; nunca Canceladas | | |
+| Filtrar por fecha rápida | Opciones "Próxima Semana" / "Próximo Mes" | | |
+| Buscar por nombre | Campo de texto libre | | |
 | Ver detalle completo | Todos los campos de la reserva visibles | | |
 | Editar datos básicos | Espacio, canal, fechas, personas, contacto | | |
-| Registrar importe y comisión | Importe bruto, % comisión, gastos asociados | | |
+| Registrar importe y servicios | Importe alquiler, % comisión, servicios extra (coste/precio snapshot) → neto/margen | | |
 | Registrar estado de cobro | "No ingresado" → "Ingresado" | | |
 | Subir contrato | Upload JPG/PNG/PDF → almacenado en Drive | | |
 | Registrar incidencia | "Sin incidentes" / "Con incidentes" | | |
 | Registrar comunicación de incidencia | Check si se comunicó al canal | | |
-| Registrar compensación por daños | "No recibida" / "Recibida" | | |
+| Marcar incidencia resuelta | "Sí" / "No" — condición de cierre (compensada o no) | | |
+| Registrar compensación por daños | "No recibida" / "Recibida" — informativo | | |
 | Ver estado calculado de la reserva | Abierta / Completada / Cancelada + motivo | | |
 | Ver qué falta para completar | Indicador de acciones pendientes | | |
 | Cancelar reserva | Botón dedicado con confirmación modal | | |
+| Sincronizar evento de Calendar | Actualizar el evento al editar; eliminarlo al cancelar | | |
 | Recibir email de reapertura de canales | Notificación automática al cancelar | | |
 | Ver historial de cambios | Tabla: fecha, usuario, campo, valor anterior, nuevo | | |
 | Añadir notas libres | Campo de texto libre | | |
@@ -93,14 +100,29 @@
 
 ---
 
-### Actividad 5: CONSULTAR INFORMES
+### Actividad 5: VER ESTADÍSTICAS E INFORMES
 
 | Tarea | Release 1 — MVP | Release 2 | Futuro |
 |---|---|---|---|
-| Recibir informe trimestral | Email automático con resumen por espacio/canal | | |
+| Ver estadísticas por zona | 3 zonas (Todos / Piscina-Jardín / Habitación): total reservas año natural + ingresos netos | | |
+| Refresco diario de estadísticas | Trigger 03:00 → `Estadisticas_Cache`; UI "Las estadísticas se actualizan cada 24 horas" | | |
+| Recibir informe mensual y trimestral | Email automático con resumen por espacio/canal (dos cadencias) | | |
+| Ampliar métricas de estadísticas | | Nuevas métricas por zona | |
 | Ver informe en app | | Vista in-app de informes históricos | |
 | Exportar datos | | | Export a Excel/CSV |
 | Informe anual de cierre | | | Generación manual |
+
+---
+
+### Actividad 6: GESTIONAR GASTOS Y REPARTO (IRPF)
+
+> **En scope Fase 1, pendiente de discovery detallado** (estructura de datos, reglas de reparto y cálculo de IRPF).
+
+| Tarea | Release 1 — MVP | Release 2 | Futuro |
+|---|---|---|---|
+| Registrar un gasto | Fecha, concepto, categoría, importe, pagado_por (hoja `Gastos`) | | |
+| Ver/repartir gastos entre los tres | Reparto y cálculo de IRPF *(reglas pendientes de definir)* | | |
+| Exportar para declaración | | | Export a Excel/CSV |
 
 ---
 
@@ -109,32 +131,34 @@
 ### Must Have *(imprescindible para el lanzamiento)*
 
 - Autenticación con Google + verificación de acceso por lista
-- Dashboard con tablas de reservas por espacio
-- Formulario de creación de reservas completo (todos los campos)
+- Inicio (hub) con tres botones (Crear / Gestionar / Estadísticas) y tabla de las 5 últimas reservas, ordenable
+- Sección Crear Reserva con "Buscar Reserva" (nombre y/o fecha) + formulario de creación completo
 - Validación automática de solapamientos (bloqueo duro)
-- Gestión de reservas: edición de todos los campos
+- Sección Gestionar Reserva: lista de activas (Abiertas + Completadas no vencidas) con filtros (fechas rápidas + nombre) y edición de todos los campos
 - Ciclo de vida automático del estado (`Abierta` / `Completada` / `Cancelada`)
 - Subida de contrato a Google Drive con cambio automático de estado
 - Auditoría campo a campo en `Historial_Cambios`
 - Email de cierre de canales al crear reserva (si 2+ canales activos)
 - Email de reapertura de canales al cancelar reserva (si 2+ canales activos)
+- Email de confirmación de reserva generada (a los tres)
+- Sincronización con Google Calendar (evento por reserva) y calendario de ocupación
 
 ### Should Have *(muy importante, incluir si el tiempo lo permite)*
 
-- Informe trimestral automático por email
+- Informes mensual y trimestral automáticos por email
 - Vista de historial de cambios en la pantalla "Gestionar Reserva"
 - Indicador claro de qué falta para que una reserva pase a "Completada"
+- Sección Estadísticas (3 zonas) con cálculo cacheado diario (trigger 03:00)
+- Módulo de Gastos / reparto IRPF *(pendiente de discovery detallado)*
 
 ### Could Have *(deseable, no crítico)*
 
-- Búsqueda de reservas por nombre de huésped o fecha
 - Recordatorios automáticos de tareas pendientes (cobro, contrato)
 - Validación de solapamientos en tiempo real (antes de guardar, al cambiar fechas)
 
 ### Won't Have en Fase 1 *(explícitamente excluido)*
 
 - Formulario de registro de viajeros (SES.Hospedajes) → Fase 2
-- Calendario visual de ocupación → Fase 2
 - Integración API con plataformas de alquiler → Futuro
 - Control de acceso por roles → Futuro
 - Bot de Telegram → Futuro
@@ -154,16 +178,25 @@ Carga de la app (URL pública)
         └── Email autorizado →
                     │
                     ▼
-            [Dashboard]
-            ├── Tabla Piscina/Jardín (reservas activas)
-            ├── Tabla Habitación Interior (reservas activas)
-            ├── [Botón: Generar Reserva]
-            │       └── [Formulario Crear Reserva]
-            │               └── Guardar → vuelta a Dashboard
+            [Inicio (hub)]
+            ├── 3 botones: Crear Reserva · Gestionar Reserva · Estadísticas
+            ├── Tabla "5 Últimas Reservas" (Espacio, Fecha Inicio, Fecha Fin, Nombre, Importe Neto — ordenable)
+            ├── Enlace/embed → [Calendario de ocupación] (Google Calendar)
             │
-            └── [Botón: Gestionar Reserva]
-                    └── [Búsqueda/Selección de Reserva]
-                            └── [Formulario Gestionar Reserva]
-                                    ├── Guardar cambios → vuelta a Dashboard
-                                    └── Cancelar reserva → confirmar → vuelta a Dashboard
+            ├── [Crear Reserva]
+            │       ├── [Buscar Reserva] (nombre y/o fecha + "Buscar")
+            │       └── [Formulario Crear Reserva]
+            │               └── Guardar → crea evento en Calendar + email a los tres → vuelta al Inicio
+            │
+            ├── [Gestionar Reserva]
+            │       ├── Lista de activas + filtros (Próxima Semana / Próximo Mes · nombre)
+            │       └── [Editar Reserva]
+            │               ├── Guardar cambios → actualiza evento de Calendar → vuelta al Inicio
+            │               └── Cancelar reserva → confirmar → elimina evento de Calendar → vuelta al Inicio
+            │
+            ├── [Estadísticas]
+            │       └── 3 zonas (lee de Estadisticas_Cache)
+            │
+            └── [Gestionar Gastos] (ubicación en la navegación pendiente de diseño)
+                    └── Registro de gastos + reparto IRPF (pendiente de detallar)
 ```

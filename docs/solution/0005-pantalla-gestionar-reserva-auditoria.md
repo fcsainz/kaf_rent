@@ -4,7 +4,7 @@
 Aceptado
 
 ## Contexto
-- La pantalla "Generar Reserva" (ADR-0003) crea la reserva con sus valores iniciales; "Gestionar Reserva" es donde se completan y corrigen los datos a lo largo de la vida de la reserva: marcar el cobro como ingresado, subir el contrato, registrar incidencias, corregir un dato mal introducido, o cancelar la reserva.
+- La pantalla "Crear Reserva" (ADR-0003) crea la reserva con sus valores iniciales; "Gestionar Reserva" es donde se completan y corrigen los datos a lo largo de la vida de la reserva: marcar el cobro como ingresado, subir el contrato, registrar incidencias, corregir un dato mal introducido, o cancelar la reserva.
 - Requisito explícito: se debe poder editar casi cualquier valor de la reserva desde esta pantalla.
 - Requisito explícito: cada cambio debe quedar registrado.
 - `Estado_Reserva` es un campo calculado (ver ADR-0004): "Completada" nunca se marca a mano, y "Cancelada" es la única transición manual posible; conviene protegerlo de una edición libre que rompa esa regla.

@@ -1,8 +1,8 @@
-# Risk Register — KAF App Rent
+# Risk Register — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** PMI/PMBOK — Risk Register  
 
 ---
@@ -168,6 +168,51 @@
 
 ---
 
+### R-11 — Formulario público de registro de viajeros: datos sensibles sin autenticación
+
+| Campo | Valor |
+|---|---|
+| **Categoría** | Legal / Compliance — Seguridad |
+| **Descripción** | El registro de viajeros (ADR-0007, Fase 2) expone un formulario **público sin login** que almacena datos personales de terceros (huéspedes) y **fotos de sus documentos de identidad** en el mismo Google Sheet del proyecto. Al no haber enlace único por reserva, cualquiera puede enviar datos (envíos espurios), y la categoría de datos (documentos de identidad) es más sensible que la del resto del sistema. |
+| **Probabilidad** | M — Un formulario público recibe inevitablemente envíos no deseados; el tratamiento de documentos de identidad es intrínseco a la funcionalidad |
+| **Impacto** | A — Brecha de datos especialmente protegidos (documentos de identidad) con exposición RGPD elevada, más allá de la del resto de datos de huéspedes (R-03) |
+| **Exposición** | **Alta** |
+| **Mitigación** | Validar cada envío contra una reserva activa real (nombre + ambas fechas) y descartar/aislar los que no casen. Definir política de conservación y borrado de las fotos de documento. Restringir el acceso a la hoja `Registro_Viajeros` y a la carpeta de Drive de los documentos. Incluir aviso de privacidad en el formulario. Revisión legal/RGPD antes de implementar (consulta profesional). |
+| **Contingencia** | Si se detecta acceso indebido o envío masivo espurio, despublicar el deployment público del formulario y revisar/limpiar los datos recibidos. |
+| **Estado** | Abierto (funcionalidad diferida a Fase 2) |
+
+---
+
+### R-12 — El trigger diario de estadísticas no se ejecuta
+
+| Campo | Valor |
+|---|---|
+| **Categoría** | Técnico — Plataforma |
+| **Descripción** | La sección Estadísticas (ADR-0009) lee de un cache que recalcula un trigger temporal a las 03:00. Si el trigger falla o no se dispara (cuota, error, desactivación accidental), las estadísticas quedan desactualizadas sin que sea evidente. |
+| **Probabilidad** | B |
+| **Impacto** | B — Solo afecta a la vista de estadísticas (informativa); el resto del sistema funciona |
+| **Exposición** | Baja |
+| **Mitigación** | Mostrar en la pantalla la marca de tiempo de la última actualización efectiva. Ofrecer un recálculo manual. Capturar y registrar en `Errores` cualquier fallo de la ejecución programada. |
+| **Contingencia** | Lanzar el recálculo manualmente desde el editor de Apps Script o desde un botón, hasta restablecer el trigger. |
+| **Estado** | Abierto |
+
+---
+
+### R-13 — Cuenta operativa única como punto central
+
+| Campo | Valor |
+|---|---|
+| **Categoría** | Seguridad / Operativo |
+| **Descripción** | Toda la infraestructura (proyecto Apps Script, Sheet, Drive, Calendar, envío de email) reside en una única cuenta de Gmail operativa (`operaciontangai@gmail.com`, ADR-0001). Si esa cuenta se compromete o se pierde el acceso, queda afectado **todo** el sistema y los datos. Al ser una cuenta compartida operativamente, la credencial puede acabar siendo conocida por varias personas. |
+| **Probabilidad** | B |
+| **Impacto** | A — Compromiso o pérdida = acceso total a datos personales y parada del sistema |
+| **Exposición** | Media |
+| **Mitigación** | Activar verificación en dos pasos (2FA) en la cuenta operativa y custodiar bien la credencial y los códigos de recuperación. No compartir la contraseña por canales inseguros. Revisar periódicamente la actividad de la cuenta. Mantener copias de seguridad de la Sheet (ver R-08). |
+| **Contingencia** | Si se sospecha compromiso, cambiar la contraseña y revisar accesos/permisos de Drive y del despliegue de la Web App. |
+| **Estado** | Abierto |
+
+---
+
 ## Resumen de exposición
 
 | ID | Riesgo | Exposición | Estado |
@@ -182,3 +227,6 @@
 | R-08 | Pérdida datos Sheets | **Media** | Abierto |
 | R-09 | Compromiso cuenta Google | **Media** | Abierto |
 | R-10 | Baja adopción usuarios | **Media** | Abierto |
+| R-11 | Form público viajeros + documentos identidad | **Alta** | Abierto (Fase 2) |
+| R-12 | Trigger diario de estadísticas no se ejecuta | Baja | Abierto |
+| R-13 | Cuenta operativa única (compromiso/pérdida) | **Media** | Abierto |

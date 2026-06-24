@@ -1,8 +1,8 @@
-# Personas & User Journeys — KAF App Rent
+# Personas & User Journeys — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Nielsen Norman Group — Persona Template  
 
 ---
@@ -26,7 +26,7 @@
 | Atributo | Valor |
 |---|---|
 | Perfil técnico | Alto — construye y mantiene la aplicación |
-| Dispositivo principal | Portátil, Chrome en escritorio |
+| Dispositivo principal | PC sobremesa, chrome, vs code, warp |
 | Cuenta Google | Personal (gmail.com) |
 | Frecuencia de uso | Diaria (gestión) + esporádica (mantenimiento técnico) |
 | Acciones principales | Crear reservas, gestionar estado completo, subir contratos, revisar historial, mantener catálogos |
@@ -145,15 +145,17 @@
 Recibe reserva confirmada por un canal externo
         │
         ▼
-Abre KAF App Rent → Login con Google → Dashboard
+Abre KAF Rent → Login con Google → Inicio
         │
         ▼
-Consulta la tabla del espacio correspondiente
-        │  ¿Hay disponibilidad visual en las fechas?
-        ├── No disponible → No crea la reserva
+Click "Crear Reserva" → subsección "Buscar Reserva"
+        │  Introduce nombre y/o fecha → "Buscar"
+        ├── Devuelve reservas → el espacio está ocupado → no crea la reserva
+        │
+        └── "No hay reservas registradas" → procede a crear
         │
         ▼
-Click "Generar Reserva"
+Subsección "Crear Reserva" (formulario)
         │
         ▼
 Selecciona Espacio → se filtran Canal y Servicios automáticamente
@@ -189,7 +191,7 @@ Click "Guardar"
 ### Journey 2 — Completar el ciclo de vida de una reserva (Carlos)
 
 ```
-Reserva en estado "Abierta" en el Dashboard
+Reserva en estado "Abierta" en la lista de Gestionar Reserva
         │
         ▼
 "Gestionar Reserva" → busca y abre la reserva
@@ -210,7 +212,8 @@ Sin incidencias:
         ▼
 Con incidencia:
 → Registra "Con incidentes" + comunica al canal
-→ Recibe compensación → Cambia Compensación_Daños = "Recibida"
+→ (Opcional) Recibe compensación → Compensación_Daños = "Recibida"
+→ Marca Incidencia_Resuelta = "Sí" (compensada o no)
 → Sistema calcula Estado_Reserva = "Completada"
 ```
 
@@ -219,7 +222,7 @@ Con incidencia:
 ### Journey 3 — Cancelar una reserva (Carlos o Ana)
 
 ```
-Reserva activa en el Dashboard
+Reserva activa en la lista de Gestionar Reserva
         │
         ▼
 "Gestionar Reserva" → abre la reserva
@@ -239,7 +242,7 @@ Modal de confirmación: "¿Seguro que quieres cancelar esta reserva?"
             [Si 2+ canales activos] → Email automático de reapertura de canales
                     │
                     ▼
-            Regresa al Dashboard
+            Regresa al Inicio
 ```
 
 ---
@@ -258,4 +261,25 @@ Fecha | Usuario | Campo | Valor anterior | Valor nuevo
         │
         ▼
 Identifica el cambio y el responsable
+```
+
+---
+
+### Journey 5 — Buscar una reserva por fecha o nombre (cualquiera)
+
+```
+Quiere saber si un espacio está ocupado un día concreto
+        │
+        ▼
+Inicio → "Crear Reserva" → subsección "Buscar Reserva"
+        │
+        ▼
+Introduce nombre y/o fecha → "Buscar"
+        │
+        ├── Hay reservas → se muestran (el espacio está ocupado)
+        │
+        └── No hay reservas → mensaje "No hay reservas registradas"
+                    │
+                    ▼
+            Procede a "Crear Reserva" (formulario)
 ```

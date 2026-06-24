@@ -4,13 +4,16 @@
 Aceptado
 
 ## Contexto
-- El proyecto se ejecuta sobre una cuenta personal de Gmail (no Google Workspace), por lo que no existe el control nativo de "compartir solo con usuarios de mi dominio" que sí tienen las cuentas corporativas.
-- La webapp la usarán tres personas, todas con cuenta de Google, con el mismo nivel de permisos.
+- El proyecto se monta sobre una **cuenta de Gmail operativa dedicada** (`operaciontangai@gmail.com`), distinta de las cuentas personales de los tres usuarios. Esa cuenta es la **propietaria de toda la infraestructura**: el proyecto de Apps Script, el Google Sheet (base de datos), la carpeta de Drive (contratos), el Calendar (ocupación) y el buzón desde el que se envían los emails.
+- Al ser una cuenta personal de Gmail (no Google Workspace), no existe el control nativo de "compartir solo con usuarios de mi dominio" que sí tienen las cuentas corporativas.
+- La webapp la usarán tres personas, cada una con **su propia cuenta de Google personal**, con el mismo nivel de permisos. No comparten la cuenta operativa; se autentican con la suya.
 - Requisito explícito: que nadie más, aparte de esas tres personas, pueda acceder a la aplicación.
 - Requisito explícito: poder saber qué persona registró o modificó cada reserva (trazabilidad).
 - Restricción del proyecto: coste de infraestructura cero.
 
 ## Decisión
+- Toda la infraestructura (proyecto Apps Script, Sheet, Drive, Calendar) es **propiedad** de la cuenta operativa `operaciontangai@gmail.com`, y esos recursos se **comparten** (editor) con las tres cuentas personales.
+- La Web App se despliega con acceso "Cualquiera con cuenta de Google" y **ejecutándose como el usuario que accede** (`executeAs: USER_ACCESSING`). Es necesario para que `Session.getActiveUser().getEmail()` devuelva el correo de cada usuario: con cuentas personales (no Workspace), ejecutar "como propietario" devolvería el correo **en blanco**, impidiendo el control de acceso y la auditoría.
 - La Web App de Apps Script se despliega con acceso "Cualquier persona con cuenta de Google", de forma que Google exige login antes de poder cargar la interfaz.
 - En cada `doGet`, el script obtiene el correo de la persona que ha iniciado sesión mediante `Session.getActiveUser().getEmail()`.
 - Ese correo se compara contra una hoja `Usuarios_Autorizados` en el Google Sheet, con columnas Email y Activo (se deja la columna Rol prevista para el futuro, aunque hoy los tres comparten el mismo nivel de acceso).
@@ -32,6 +35,7 @@ Aceptado
 - No hay contraseñas que gestionar, resetear ni proteger.
 
 **Negativas / riesgos**
+- Al ejecutarse "como el usuario que accede", los recursos (Sheet/Drive/Calendar) deben compartirse con las tres cuentas, y los **emails interactivos** salen desde la cuenta del usuario que ejecuta la acción (los **programados** —informes, estadísticas— salen desde la cuenta operativa, que es quien crea los triggers). A revisar si se quiere un remitente único.
 - Si una de las tres personas pierde el acceso a su cuenta de Google, pierde el acceso a la app; la recuperación depende enteramente de Google, no hay mecanismo propio.
 - La comprobación de autorización se hace en cada carga de la interfaz; a tres usuarios es irrelevante en términos de rendimiento, pero si la lista creciera mucho en el futuro habría que revisar el enfoque.
 - Es necesario verificar en el despliegue real que `Session.getActiveUser().getEmail()` devuelve el correo esperado (y no vacío) en el contexto concreto de Web App, ya que su comportamiento puede variar según la configuración de permisos de la implementación.

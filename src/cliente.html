@@ -1,0 +1,14 @@
+<script>
+  // Navegación entre secciones a nivel de cliente (HTML Service no tiene enrutado nativo, ver ADR-0008).
+  function navegar(seccion) {
+    document.querySelectorAll('.seccion').forEach(function (s) {
+      s.classList.toggle('activa', s.id === 'seccion-' + seccion);
+    });
+    document.querySelectorAll('.btn-nav').forEach(function (b) {
+      var activo = b.dataset.seccion === seccion;
+      b.classList.toggle('activo', activo);
+      b.classList.toggle('btn-primario', activo);
+      b.classList.toggle('btn-secundario', !activo);
+    });
+  }
+</script>

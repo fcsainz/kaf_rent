@@ -1,8 +1,8 @@
-# Definition of Done (DoD) — KAF App Rent
+# Definition of Done (DoD) — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Scrum Guide — Definition of Done  
 
 ---
@@ -41,6 +41,10 @@ Cada historia de usuario se considera **Done** cuando:
 - [ ] No hay errores en el log de ejecución de Google Apps Script
 - [ ] Los datos se guardan correctamente en las hojas de Google Sheets correspondientes
 - [ ] Los mensajes al usuario (éxito, error) son claros y accionables
+
+**UX/UI**
+- [ ] La interfaz cumple los Estándares de UX/UI ([CLAUDE.md](../../CLAUDE.md) §4): jerarquía visual clara, estados de carga/error/vacío resueltos, confirmación en acciones destructivas y accesibilidad básica (contraste, foco, etiquetas)
+- [ ] El flujo se puede completar sin formación por un usuario no técnico (validado contra los User Journeys de [02_personas.md](02_personas.md))
 
 **Regresión**
 - [ ] El flujo que existía antes de este cambio sigue funcionando (no se rompió nada que ya funcionaba)

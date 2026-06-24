@@ -1,16 +1,19 @@
 # SDD — Documento de Diseño del Sistema
 ## Webapp de gestión de alquileres — Calle 16
 
-> Documento vivo: se va ampliando a medida que se cierran nuevas pantallas y funcionalidades. Las decisiones con alternativas relevantes tienen su propio ADR en `docs/adr/`; aquí se recoge el diseño consolidado.
+> Documento vivo: se va ampliando a medida que se cierran nuevas pantallas y funcionalidades. Las decisiones con alternativas relevantes tienen su propio ADR en `docs/solution/`; aquí se recoge el diseño consolidado.
 
 ## 1. Visión general
 Webapp única para gestionar dos tipos de alquiler — Piscina/Jardín y Habitación Interior — sustituyendo procesos dispersos por una sola interfaz. Sin coste de infraestructura, usando exclusivamente recursos de una cuenta de Google personal (gmail.com).
 
 ## 2. Arquitectura
-- **Plataforma**: Google Apps Script, usando el HTML Service para servir la interfaz (ver ADR-0002).
+- **Cuenta operativa**: la cuenta de Gmail dedicada `operaciontangai@gmail.com` es **propietaria** del proyecto Apps Script, el Sheet, la carpeta de Drive y el Calendar; estos recursos se **comparten** (editor) con las tres cuentas personales. La Web App se ejecuta **como el usuario que accede** (`executeAs: USER_ACCESSING`) para poder identificarlo (ver ADR-0001).
+- **Plataforma**: Google Apps Script, usando el HTML Service para servir la interfaz (ver ADR-0008; ADR-0002 documenta la estructura original, ya superseded).
 - **Base de datos**: Google Sheet, con hojas separadas para datos transaccionales, catálogos de configuración, control de acceso, logs/errores e histórico de informes.
+- **Calendario**: Google Calendar de la cuenta operativa, donde cada reserva genera un evento de ocupación (ver ADR-0010).
 - **Desarrollo**: código escrito y versionado en VS Code, desplegado mediante `clasp`; control de versiones con Git.
-- **Acceso**: login obligatorio con cuenta de Google; el script verifica el correo de la sesión contra `Usuarios_Autorizados` (ver ADR-0001). Los tres usuarios tienen el mismo nivel de permisos.
+- **Acceso**: login obligatorio con la cuenta de Google **personal** de cada usuario; el script verifica el correo de la sesión contra `Usuarios_Autorizados` (ver ADR-0001). Los tres usuarios tienen el mismo nivel de permisos.
+- **Notificaciones**: todos los emails del sistema (avisos de canal, confirmación de reserva, informes) se envían a los **tres** usuarios, a las direcciones configuradas en `Config`.
 
 ## 3. Modelo de datos (hojas del Google Sheet)
 
@@ -27,20 +30,25 @@ Webapp única para gestionar dos tipos de alquiler — Piscina/Jardín y Habitac
 | Email_Huesped | Texto | Opcional. Validado: formato básico usuario@dominio.algo |
 | Adultos | Entero | ≥ 1 |
 | Menores | Entero | ≥ 0 |
-| Servicios_Extra | Texto/lista | Servicios marcados, desde `Catálogo_Servicios_Extra` |
-| Importe_Bruto | Número | |
-| %_Comisión | Número | Se autocompleta desde el Canal, editable |
-| Importe_Comisión | Número | Calculado |
-| Gastos_Asociados | Número | |
-| Importe_Neto | Número | Calculado |
+| Servicios_Extra | Texto/lista | Resumen legible de los servicios contratados; el detalle con coste/precio vive en `Reserva_Servicios` |
+| Importe_Alquiler | Número | Precio del alquiler del espacio, sin servicios |
+| Servicios_Precio_Total | Número | Calculado — suma de (Cantidad × precio snapshot) de los servicios contratados |
+| Servicios_Coste_Total | Número | Calculado — suma de (Cantidad × coste snapshot) de los servicios contratados |
+| Importe_Bruto | Número | Calculado — `Importe_Alquiler + Servicios_Precio_Total` (total que paga el huésped) |
+| %_Comisión | Número | Se autocompleta desde el Canal, editable; puede ser 0 (alquiler sin plataforma) |
+| Importe_Comisión | Número | Calculado — `Importe_Bruto × %_Comisión / 100` |
+| Margen_Servicios | Número | Calculado — `Servicios_Precio_Total − Servicios_Coste_Total` |
+| Importe_Neto | Número | Calculado — `Importe_Bruto − Importe_Comisión − Servicios_Coste_Total` |
 | Estado_Cobro | Texto | No ingresado / Ingresado (ver ADR-0004) |
 | Contrato_Estado | Texto | Gestionado por canal / Pendiente / Firmado (ver ADR-0004) |
 | Contrato_Archivo | URL | Enlace al documento en Drive, si aplica |
 | Incidencias | Texto | Sin incidentes / Con incidentes (ver ADR-0004) |
 | Incidente_Comunicado | Booleano | Solo si hay incidencias |
-| Compensación_Daños | Texto | No recibida / Recibida — solo si hay incidencias |
+| Compensación_Daños | Texto | No recibida / Recibida — solo si hay incidencias; informativo, no condiciona el cierre |
+| Incidencia_Resuelta | Texto | Sí / No — solo si hay incidencias; condición de cierre a Completada (ver ADR-0004) |
 | Estado_Reserva | Texto | Abierta / Completada / Cancelada — calculado, ver ADR-0004 |
 | Registro_Viajeros_Estado | Texto | Pendiente / Completado — solo Habitación, calculado, ver ADR-0007 |
+| Calendar_Event_Id | Texto | ID del evento de Google Calendar asociado (ver ADR-0010); vacío si no se pudo crear |
 | Notas | Texto | |
 | Registrado_Por | Email | Automático |
 | Fecha_Registro | Fecha+Hora | Automático |
@@ -54,19 +62,19 @@ Nombre_Espacio, Activo, Modo_Fecha (`Dia_y_Hora` \| `Rango_Dias`). Ver ADR-0003.
 Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato (`Automática` \| `Manual`). Ver ADR-0003 y ADR-0004.
 
 ### 3.4 `Catálogo_Servicios_Extra`
-Espacio, Nombre_Servicio, Activo. Ver ADR-0003.
+Espacio, Nombre_Servicio, Activo, Coste_Unitario (lo que nos cuesta), Precio_Unitario (lo que paga el huésped). Ver ADR-0003.
 
 ### 3.5 `Config`
-Variables clave-valor: emails de aviso (cierre/reapertura de canales, informes trimestrales), mensaje de bloqueo por solapamiento, hora de check-in/check-out por defecto para espacios en modo `Rango_Dias`, etc.
+Variables clave-valor: emails de aviso (cierre/reapertura de canales, confirmación de reserva, informes), mensaje de bloqueo por solapamiento, hora de check-in/check-out por defecto para espacios en modo `Rango_Dias`, y los parámetros de **amortización** del IRPF (`Valor_Construccion` y `Proporcion_Alquilada`, ver ADR-0012), etc.
 
 ### 3.6 `Usuarios_Autorizados`
-Email, Activo, Rol (previsto para el futuro, hoy sin uso real). Ver ADR-0001.
+Email, Activo, Rol (previsto para el futuro, hoy sin uso real). Ver ADR-0001. *(El reparto del IRPF es a partes iguales, 33,33 % cada uno; no requiere campo de porcentaje — ver ADR-0012.)*
 
 ### 3.7 `Logs` / `Errores`
 Registro de eventos del sistema y errores, incluyendo intentos de acceso denegado.
 
 ### 3.8 `Historico_Informes`
-Resumen agregado por periodo (trimestre), con ingresos brutos/netos, comisiones, nº de reservas y ocupación por Espacio y Canal. Alimenta tanto el informe trimestral por email como un futuro cierre anual.
+Resumen agregado por periodo (mes/trimestre), con ingresos brutos/netos, comisiones, nº de reservas y ocupación por Espacio y Canal. Alimenta los informes mensual y trimestral por email y un futuro cierre anual. Histórico append-only; distinto de `Estadisticas_Cache` (snapshot diario sobrescrito).
 
 ### 3.9 `Historial_Cambios`
 Fecha_Hora, Usuario, ID_Reserva, Campo, Valor_Anterior, Valor_Nuevo. Una fila por cada campo modificado desde "Gestionar Reserva", independiente de `Logs`/`Errores`. Ver ADR-0005.
@@ -74,47 +82,109 @@ Fecha_Hora, Usuario, ID_Reserva, Campo, Valor_Anterior, Valor_Nuevo. Una fila po
 ### 3.10 `Registro_Viajeros`
 Datos de cada viajero alojado en una reserva de Habitación, exigidos por la normativa de registro de viajeros (SES.Hospedajes): ID_Reserva (vínculo), nombre completo, tipo y número de documento, número de soporte, nacionalidad, fecha de nacimiento, dirección, teléfono, email, parentesco con el titular, fotos del documento (anverso/reverso). Se rellena por el propio huésped desde un formulario público independiente de la webapp interna. Ver ADR-0007 — **funcionalidad documentada, implementación diferida a una fase posterior**.
 
-## 4. Pantallas
+### 3.11 `Reserva_Servicios`
+Una fila por cada servicio extra contratado en una reserva (la lista de servicios crece, por lo que no escala como columnas fijas en `Reservas`): ID_Reserva (vínculo), Nombre_Servicio, **Cantidad**, Coste_Unitario_Snapshot, Precio_Unitario_Snapshot. Los valores de coste y precio se copian del `Catálogo_Servicios_Extra` en el momento de añadir el servicio (snapshot), de modo que un cambio futuro de tarifas no altera reservas pasadas. Los totales agregados se consolidan en `Reservas`: `Servicios_Precio_Total` = suma de (Cantidad × Precio_Unitario_Snapshot) y `Servicios_Coste_Total` = suma de (Cantidad × Coste_Unitario_Snapshot). Ver ADR-0003.
 
-### 4.1 Panel principal
-Ver ADR-0002: tres zonas (acciones rápidas, tabla Piscina/Jardín, tabla Habitación). Columnas exactas de las tablas: **pendiente**.
+### 3.12 `Estadisticas_Cache`
+Snapshot de los agregados de la sección Estadísticas (por zona: Todos / Piscina-Jardín / Habitación → total de reservas del año natural e ingresos netos), recalculado a diario por un trigger a las 03:00 y sobrescrito en cada ejecución. Incluye la marca de tiempo de la última actualización. La pantalla de Estadísticas solo lee de aquí. Ver ADR-0009.
 
-### 4.2 Generar Reserva
-Formulario personalizado con campos dependientes según el Espacio elegido. Ver ADR-0003 (estructura del formulario y catálogos) y ADR-0004 (campos que se inicializan automáticamente tras la creación: Cobro, Contrato, Incidencias, Estado_Reserva).
+### 3.13 `Gastos`
+Registro de gastos del negocio para que los tres copropietarios desgraven su parte en el IRPF (rendimiento del capital inmobiliario; ver **ADR-0012**). Campos:
 
-Validación de solapamientos: al guardar, si la franja de Fecha_Hora_Inicio/Fin se cruza con otra reserva activa del mismo Espacio (en cualquier canal), se bloquea el guardado con el mensaje configurado en `Config`.
+| Campo | Tipo | Notas |
+|---|---|---|
+| ID_Gasto | Texto | Autogenerado |
+| Fecha | Fecha | Fecha del gasto |
+| Ejercicio | Entero | Año fiscal — calculado de Fecha |
+| Concepto | Texto | Descripción del gasto |
+| Categoria | Texto | Desde `Catálogo_Categorias_Gasto` |
+| Espacio | Texto | Piscina/Jardín \| Habitación \| Común (los comunes se reparten entre ambos) |
+| Importe | Número | Importe del gasto (IVA incluido; el alquiler está exento de IVA) |
+| Deducible | Texto | Sí / No |
+| Pagado_Por | Texto | Cuenta operativa o comunero (A/B/C) |
+| Justificante | URL | Enlace a la factura/recibo en Drive |
+| Notas | Texto | |
 
-Avisos automáticos: si el Espacio tiene más de un canal activo, al registrar la reserva se envía un email avisando qué canales cerrar para esa franja; al cancelarse, se envía el aviso inverso para reabrir disponibilidad.
+### 3.14 `Catálogo_Categorias_Gasto`
+Categorías de gasto deducible del capital inmobiliario, lo más completo posible para maximizar la deducción legal (art. 23 LIRPF). Campos: `Nombre_Categoria`, `Descripcion` (ejemplos), `Activo`, `Deducible_Default`, `Es_Amortizacion`. Datos semilla:
 
-### 4.3 Gestionar Reserva
-Pantalla de edición de una reserva existente. Se pueden editar casi todos los campos de `Reservas`, salvo `ID_Reserva`, `Registrado_Por`, `Fecha_Registro` (inmutables) y `Estado_Reserva` (calculado, ver ADR-0004). Cada campo modificado queda registrado en `Historial_Cambios` con su valor anterior y nuevo. La cancelación se hace con un botón dedicado que pide confirmación y dispara el aviso de reapertura de canales. La subida del contrato (foto JPG/PNG o PDF) se archiva en Drive y enlaza en `Contrato_Archivo`. Ver ADR-0005.
+| Nombre_Categoria | Descripción / ejemplos | Deducible_Default | Es_Amortizacion |
+|---|---|---|---|
+| Intereses y financiación | Intereses de hipoteca/préstamo de adquisición o mejora, comisiones bancarias asociadas | Sí | No |
+| Conservación y reparación | Pintura, fontanería, electricidad, sustitución de caldera, reparaciones de la piscina (no mejoras) | Sí | No |
+| Tributos y tasas no estatales | IBI, tasa de basuras, alcantarillado, vado | Sí | No |
+| Comunidad de propietarios | Cuotas ordinarias de comunidad | Sí | No |
+| Seguros | Hogar, responsabilidad civil, impago de alquiler | Sí | No |
+| Suministros | Agua, luz, gas, internet (si los paga el arrendador) | Sí | No |
+| Servicios y administración | Limpieza, jardinería, gestoría/administrador, publicidad, comisiones de plataformas | Sí | No |
+| Saldos de dudoso cobro | Impagos (con las condiciones legales) | Sí | No |
+| Amortización inmueble | 3 % del valor de construcción (excluido el suelo) | Sí | Sí |
+| Amortización muebles | Muebles y electrodomésticos cedidos (≈10 %/año según tablas) | Sí | Sí |
 
-### 4.4 Calendario visual de ocupación
+Cada gasto se registra en `Gastos` (§3.13) con su categoría → el **desglose por categoría** del ejercicio (lo que se lleva a la declaración) se obtiene agregando `Gastos` por `Categoria` en `Resumen_Fiscal` (§3.15). Ver ADR-0012.
+
+### 3.15 `Resumen_Fiscal` *(opcional)*
+Agregado por Ejercicio y Espacio: ingresos íntegros, gastos deducibles por categoría y rendimiento neto, mostrando el **tercio (33,33 %)** que corresponde a cada copropietario. Puede calcularse al vuelo o almacenarse aquí. Ver ADR-0012.
+
+## 4. Modelo de importes y rentabilidad
+- `Importe_Bruto = Importe_Alquiler + Servicios_Precio_Total` — total que paga el huésped.
+- `Importe_Comisión = Importe_Bruto × %_Comisión / 100` — comisión de la plataforma (`%_Comisión` puede ser 0 si el alquiler no se hace por plataforma).
+- `Importe_Neto = Importe_Bruto − Importe_Comisión − Servicios_Coste_Total` — ganancia real de la reserva.
+- `Margen_Servicios = Servicios_Precio_Total − Servicios_Coste_Total` — rentabilidad aislada de los servicios extra, para análisis.
+
+La comisión de plataforma se aplica sobre el **total** (`Importe_Bruto`), es decir, también sobre los servicios extra.
+
+## 5. Pantallas
+
+### 5.1 Inicio (hub)
+Pantalla de entrada. Ver ADR-0008. Arriba, el título de la app y tres botones/categorías —**Crear Reserva**, **Gestionar Reserva**, **Estadísticas**— para elegir tarea. Debajo, bajo el rótulo "5 Últimas Reservas", una tabla con las **5 reservas más recientes** (por `Fecha_Registro`), **ordenable ascendente/descendente por cualquier columna**: **Espacio**, **Fecha Inicio**, **Fecha Fin**, **Nombre** (= `Nombre_Huesped`), **Importe Neto**.
+
+### 5.2 Crear Reserva
+Sección con dos acciones (ver ADR-0008):
+- **Buscar Reserva**: campo Nombre y campo Fecha (ninguno obligatorio) + botón "Buscar". Devuelve las reservas que coincidan, para comprobar disponibilidad antes de crear; si no hay coincidencias, muestra "No hay reservas registradas".
+- **Crear Reserva**: formulario personalizado con campos dependientes según el Espacio elegido. Ver ADR-0003 (estructura del formulario y catálogos) y ADR-0004 (campos que se inicializan automáticamente: Cobro, Contrato, Incidencias, Estado_Reserva). Validación de solapamientos: al guardar, si la franja de `Fecha_Hora_Inicio`/`Fin` se cruza con otra reserva activa del mismo Espacio (en cualquier canal), se bloquea el guardado con el mensaje configurado en `Config`. Avisos automáticos: si el Espacio tiene más de un canal activo, al registrar la reserva se envía un email **a los tres** avisando qué canales cerrar para esa franja; al cancelarse, el aviso inverso para reabrir disponibilidad.
+
+### 5.3 Gestionar Reserva
+Sección con la **lista de reservas activas** y la **edición** de una reserva concreta (ver ADR-0008 y ADR-0005).
+- **Lista (vista estándar)**: muestra las reservas **Abiertas** (todas, aunque la fecha esté vencida) y las **Completadas cuya `Fecha_Hora_Fin` no haya vencido** (`Fecha_Hora_Fin >= ahora`); nunca **Canceladas**. Encima de la tabla, área de filtros: fechas con opciones rápidas "Próxima Semana" / "Próximo Mes" y búsqueda por nombre de reserva (texto libre).
+- **Edición de una reserva**: se pueden editar casi todos los campos de `Reservas`, salvo `ID_Reserva`, `Registrado_Por`, `Fecha_Registro` (inmutables) y `Estado_Reserva` (calculado, ver ADR-0004). Cada campo modificado queda registrado en `Historial_Cambios` con su valor anterior y nuevo. La cancelación se hace con un botón dedicado que pide confirmación y dispara el aviso de reapertura de canales. La subida del contrato (foto JPG/PNG o PDF) se archiva en Drive y enlaza en `Contrato_Archivo`. Ver ADR-0005.
+
+### 5.4 Estadísticas
+Tres zonas —Todos los alquileres, Piscina/Jardín, Habitación—, cada una con el total de reservas del año natural y los ingresos netos. Datos precalculados a diario (trigger a las 03:00) y leídos de `Estadisticas_Cache`; la UI muestra el texto fijo "Las estadísticas se actualizan cada 24 horas". Ver ADR-0009.
+
+### 5.5 Calendario de ocupación
+El calendario de ocupación es el **Google Calendar de la cuenta operativa**: cada reserva genera un evento (creado/actualizado/eliminado automáticamente según el ciclo de vida). Se consulta en Calendar (web/móvil) y, opcionalmente, se embebe en la app como vista de solo lectura. Ver ADR-0010. Pendiente: un calendario por espacio vs. colores por espacio, y embeber vs. enlazar.
+
+### 5.6 Recordatorios automáticos
 **Pendiente de diseño.**
 
-### 4.5 Recordatorios automáticos
-**Pendiente de diseño.**
+### 5.7 Gestión de incidencias/mantenimiento
+Los campos de incidencias por reserva (Incidencias, Incidente_Comunicado, Compensación_Daños, Incidencia_Resuelta) están definidos en ADR-0004. El flujo completo de gestión (pantalla, si hay mantenimiento independiente de una reserva concreta) **está pendiente de diseño**.
 
-### 4.6 Gestión de incidencias/mantenimiento
-Los campos de incidencias por reserva (Incidencias, Incidente_Comunicado, Compensación_Daños) están definidos en ADR-0004. El flujo completo de gestión (pantalla, si hay mantenimiento independiente de una reserva concreta) **está pendiente de diseño**.
+### 5.8 Gestión de gastos y reparto (IRPF)
+Pantalla para registrar gastos del negocio (con justificante en Drive) y obtener el resumen fiscal por ejercicio y espacio, mostrando el **tercio (33,33 %)** que corresponde a cada copropietario para su IRPF (rendimiento del capital inmobiliario; no es actividad económica). El objetivo es **deducir todo lo posible dentro de la ley**, incluida la amortización. Marco y reglas en **ADR-0012**; datos en `Gastos` (§3.13), `Catálogo_Categorias_Gasto` (§3.14) y `Resumen_Fiscal` (§3.15). **Pendiente de confirmar con el gestor** qué gastos son deducibles y en qué proporción.
 
-### 4.7 Registro de viajeros (formulario público para el huésped)
+### 5.9 Registro de viajeros (formulario público para el huésped)
 Formulario público, sin login, independiente de la webapp interna, donde el huésped de una reserva de Habitación introduce sus datos y los de sus acompañantes (incluyendo fotos de DNI/NIF) para cumplir con la normativa de registro de viajeros. Identificación de la reserva por nombre + fechas de estancia, no por ID. Ver ADR-0007. **Diseñado, implementación diferida a una fase posterior.**
 
-## 5. Automatizaciones
-- Validación de solapamientos (bloqueo duro, ver 4.2).
-- Avisos de cierre/reapertura de canales (ver 4.2).
-- Informe trimestral por email con KPIs y gráficas (servicio Charts de Apps Script), archivando solo los datos agregados en `Historico_Informes`.
+## 6. Automatizaciones
+- Validación de solapamientos (bloqueo duro, ver 5.2).
+- Avisos de cierre/reapertura de canales a los tres co-propietarios (ver 5.2).
+- **Email de confirmación de reserva generada** a los tres, al crear una reserva (resumen de la reserva).
+- **Sincronización con Google Calendar**: crear/actualizar/eliminar el evento de ocupación según el ciclo de vida de la reserva (ver ADR-0010).
+- Informes por email a los tres, con KPIs y gráficas (servicio Charts de Apps Script), archivando los datos agregados en `Historico_Informes`, con **dos cadencias**: **mensual** y **trimestral** (triggers programados).
+- Recálculo diario de estadísticas: trigger temporal a las 03:00 que recalcula los agregados por zona y los sobrescribe en `Estadisticas_Cache` (ver ADR-0009).
 
-## 6. Pendiente general
-- Columnas exactas de las tablas del panel principal.
-- Diseño visual/disposición de los campos en "Gestionar Reserva".
+## 7. Pendiente general
+- Columnas exactas y orden por defecto de la tabla de Gestionar Reserva (las de la tabla de últimas 5 del Inicio ya están definidas en ADR-0008).
+- Diseño visual/disposición de los campos en la edición de "Gestionar Reserva".
 - Tamaño máximo de archivo para la subida del contrato.
-- Calendario visual de ocupación.
+- **Módulo de Gastos / reparto IRPF:** caso simple (capital inmobiliario, reparto a tercios) definido en ADR-0012; pendiente de **confirmar con el gestor** la deducibilidad y la proporción de cada gasto, los datos de amortización y el criterio de prorrateo de gastos comunes.
+- Calendario de ocupación: un calendario por espacio vs. colores; embeber vs. enlazar (ADR-0010).
 - Recordatorios automáticos.
 - Flujo completo de incidencias/mantenimiento.
+- Sistema de diseño visual (paleta, tipografía, componentes) — sesión de diseño.
 
-## 7. Fuera de alcance de la primera versión (fase 2)
-- Módulo de gastos / reparto IRPF entre los tres.
+## 8. Fuera de alcance de la primera versión (fase 2)
 - Registro de viajeros (Guardia Civil / SES.Hospedajes): construcción del formulario público y la hoja `Registro_Viajeros` (diseño ya cerrado en ADR-0007).
 - Investigación de la API de SES.Hospedajes para automatizar el envío.

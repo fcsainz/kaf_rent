@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <?!= include('estilos'); ?>
+</head>
+<body>
+  <div class="denegado">
+    <div class="icono">🔒</div>
+    <h1>Acceso denegado</h1>
+    <p>La cuenta <strong><?= datos.email ?></strong> no está autorizada para usar KAF Rent.</p>
+    <p>Si crees que es un error, pide a un administrador que te dé de alta en la lista de usuarios autorizados.</p>
+  </div>
+</body>
+</html>

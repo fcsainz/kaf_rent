@@ -1,8 +1,8 @@
-# Problem Statement — KAF App Rent
+# Problem Statement — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** Lean UX — Problem Statement  
 
 ---

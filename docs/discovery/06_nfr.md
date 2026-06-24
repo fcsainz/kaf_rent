@@ -1,8 +1,8 @@
-# Non-Functional Requirements (NFR) — KAF App Rent
+# Non-Functional Requirements (NFR) — KAF Rent
 
-**Versión:** 0.1-draft  
-**Fecha:** 2026-06-22  
-**Estado:** Draft — pendiente de revisión  
+**Versión:** 0.5  
+**Fecha:** 2026-06-24  
+**Estado:** En diseño — revisado  
 **Framework:** ISO/IEC 25010 — Software Quality Model  
 
 ---
@@ -19,11 +19,12 @@ Los requisitos no funcionales definen **cómo** debe comportarse el sistema, má
 
 | Requisito | Valor objetivo | Prioridad |
 |---|---|---|
-| Carga inicial de la webapp (Dashboard) | < 3 segundos en conexión estándar | Must |
+| Carga inicial de la webapp (Inicio) | < 3 segundos en conexión estándar | Must |
 | Guardado de una nueva reserva (incluye validación de solapamientos) | < 5 segundos | Must |
 | Carga del formulario de creación con catálogos | < 2 segundos | Should |
 | Envío de email de notificación (proceso en servidor) | < 30 segundos (asíncrono, no bloquea la UI) | Should |
 | Carga del historial de cambios de una reserva | < 3 segundos | Should |
+| Carga de la sección Estadísticas (lee de `Estadisticas_Cache`, sin recalcular) | < 1 segundo | Should |
 
 ### NFR-01.2 — Límites de cuota de Google Apps Script
 
@@ -34,6 +35,8 @@ Google Apps Script impone cuotas de ejecución que condicionan el diseño del si
 | Tiempo máximo de ejecución por función | 6 minutos | Ninguna operación puede superar este límite; dividir si es necesario |
 | Tiempo total de ejecución diario (cuenta personal) | 90 minutos/día | El volumen de operaciones diarias debe estar muy por debajo de este límite |
 | Emails enviados por día (cuenta personal) | 100 emails/día | Suficiente para el volumen esperado; monitorizar si se escala |
+| Triggers temporales por script | ~20 triggers | Los triggers diario (estadísticas, 03:00), mensual y trimestral (informes) caben de sobra; su ejecución cuenta dentro del tiempo total diario |
+| Llamadas a `CalendarApp` | Sujetas al tiempo total diario | La sincronización con Google Calendar (crear/actualizar/eliminar evento por reserva) añade carga; agrupar y no bloquear el guardado de la reserva (ver ADR-0010) |
 | Tamaño máximo de respuesta HTML | 32 MB | No aplica para el volumen de datos de este proyecto |
 | Accesos a Spreadsheet por iteración | Sin límite documentado, pero latencia por llamada | Minimizar llamadas individuales; leer en bloque cuando sea posible |
 

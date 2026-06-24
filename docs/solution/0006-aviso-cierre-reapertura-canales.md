@@ -11,7 +11,7 @@ Aceptado
 - Restricción del proyecto: coste de infraestructura cero.
 
 ## Decisión
-El aviso se envía únicamente por **email** (vía `MailApp`/`GmailApp`, el mismo mecanismo ya usado para el informe trimestral), a la dirección o direcciones configuradas en `Config` (p. ej. `Email_Aviso_Canales`).
+El aviso se envía únicamente por **email** (vía `MailApp`/`GmailApp`, el mismo mecanismo ya usado para el informe trimestral), a los **tres** co-propietarios. Las direcciones se leen de `Config` (p. ej. `Email_Aviso_Canales`), de modo que la lista de destinatarios se ajusta sin tocar código.
 
 Disparadores:
 - **Al registrar con éxito una reserva** en un Espacio cuyo `Catálogo_Canales` tenga más de un canal activo: email indicando qué canales hay que cerrar para esa franja.
@@ -44,4 +44,3 @@ Se descarta WhatsApp como canal de aviso, por las razones detalladas en "Alterna
 
 ## Pendiente
 - Redactar el texto definitivo de la plantilla del email (la propuesta de campos queda arriba, el wording exacto se puede ajustar más adelante desde `Config`).
-- Confirmar si el aviso llega a las tres personas o solo a una persona designada para gestionar el cierre de canales.

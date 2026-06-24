@@ -1,4 +1,4 @@
-# Discovery Documentation — KAF App Rent
+# Discovery Documentation — KAF Rent
 
 Documentación de discovery generada siguiendo el estándar de **PRD ágil** (Product Requirements Document), organizada en 9 documentos interconectados.
 
@@ -31,5 +31,5 @@ Ambas carpetas son complementarias y deben mantenerse alineadas.
 
 ## Estado
 
-Todos los documentos están en estado **Draft v0.1** — generados a partir de los ADRs y el SDD existentes.  
-Pendientes de revisión y validación con los co-propietarios.
+Todos los documentos están en estado **v0.5 — En diseño / revisado** (2026-06-24).  
+Revisados y alineados con los ADRs y el SDD; pendientes de validación final con los co-propietarios.

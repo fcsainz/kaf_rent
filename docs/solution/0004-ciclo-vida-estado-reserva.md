@@ -13,10 +13,10 @@ Aceptado
 Se unifica todo en un único campo `Estado_Reserva`, con tres valores posibles:
 
 - **Abierta**: valor por defecto al crear la reserva.
-- **Completada**: nunca se marca a mano; el sistema la calcula automáticamente cuando se cumplen a la vez: `Estado_Cobro = "Ingresado"` y (`Incidencias = "Sin incidentes"` o `Compensación_Daños = "Recibida"`).
+- **Completada**: nunca se marca a mano; el sistema la calcula automáticamente cuando se cumplen a la vez: `Estado_Cobro = "Ingresado"` y (`Incidencias = "Sin incidentes"` o `Incidencia_Resuelta = "Sí"`). La incidencia se considera cerrada cuando se marca como resuelta, **se haya compensado o no**; `Compensación_Daños` pasa a ser un dato informativo (si se recibió o no compensación) y deja de ser condición de cierre.
 - **Cancelada**: se marca manualmente desde "Gestionar Reserva"; al cancelarse dispara el aviso de reapertura de disponibilidad en los demás canales (ya definido para espacios con más de un canal activo).
 
-Campos asociados, todos gestionados después de la creación —no en el formulario "Generar Reserva", que solo fija sus valores iniciales por defecto—:
+Campos asociados, todos gestionados después de la creación —no en el formulario "Crear Reserva", que solo fija sus valores iniciales por defecto—:
 
 | Campo | Valor inicial | Quién/cuándo lo cambia |
 |---|---|---|
@@ -24,7 +24,8 @@ Campos asociados, todos gestionados después de la creación —no en el formula
 | `Contrato_Estado` | "Gestionado por canal" si `Gestión_Contrato` del canal es Automática; "Pendiente" si es Manual | Manualmente, subiendo el documento (foto o archivo digital) a una carpeta de Drive desde "Gestionar Reserva" |
 | `Incidencias` | Sin incidentes | Manualmente, si ocurre algo durante la estancia |
 | `Incidente_Comunicado` | (solo aplica si Incidencias = Con incidentes) | Sí/No, manual |
-| `Compensación_Daños` | No recibida (solo aplica si Incidencias = Con incidentes) | Manualmente, cuando se recibe |
+| `Compensación_Daños` | No recibida (solo aplica si Incidencias = Con incidentes) | Manualmente, cuando se recibe — informativo, no condiciona el cierre |
+| `Incidencia_Resuelta` | No (solo aplica si Incidencias = Con incidentes) | Manualmente, al dar por cerrada la incidencia (compensada o no); es la condición que permite completar la reserva |
 
 ## Alternativas consideradas
 - **Mantener `Estado` (Confirmada/Cancelada/Pendiente) y `Estado_Reserva` (Abierta/Completada) como campos separados**: descartado, dos campos de estado pueden acabar contradiciéndose (p. ej. "Cancelada" en uno y "Completada" en otro) y complica la lógica sin necesidad real.

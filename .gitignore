@@ -1,0 +1,11 @@
+# clasp — credenciales y configuración local (no versionar)
+.clasp.json
+.clasprc.json
+
+# Node (por si se usa clasp vía npm)
+node_modules/
+
+# SO / editor
+.DS_Store
+Thumbs.db
+*.Zone.Identifier

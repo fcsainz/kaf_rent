@@ -1,4 +1,4 @@
-# CLAUDE.md — KAF App Rent
+# CLAUDE.md — KAF Rent
 
 Guía de estándares y convenciones para el desarrollo del proyecto. Claude debe seguir estas reglas en todas las interacciones con este repositorio.
 
@@ -6,7 +6,7 @@ Guía de estándares y convenciones para el desarrollo del proyecto. Claude debe
 
 ## Proyecto
 
-**KAF App Rent** — Webapp de gestión de alquileres sobre Google Apps Script + Google Sheets.  
+**KAF Rent** — Webapp de gestión de alquileres sobre Google Apps Script + Google Sheets.  
 **Stack:** Google Apps Script (`.gs` = JavaScript), HTML Service, Google Sheets como base de datos, Google Drive, Gmail.  
 **Desarrollador único:** co-propietario técnico. Los otros dos usuarios son no técnicos.
 
@@ -428,7 +428,75 @@ const reserva = reservas.find(r => r.id === idBuscado);
 
 ---
 
-## 4. Reglas generales para Claude
+## 4. Estándares de UX/UI
+
+Estos estándares aplican a **toda interfaz** servida con HTML Service. La referencia de usuario es **Ana y Luis** (no técnicos): si ellos no lo entienden a la primera y sin formación, la interfaz está mal. Se apoyan en las **heurísticas de usabilidad de Nielsen** y en patrones de **Material Design** adaptados a la simplicidad del proyecto. El prototipo de una pantalla fija su estructura; estos estándares fijan su comportamiento, su estilo y su accesibilidad.
+
+> **Tokens concretos:** los valores exactos de color, tipografía, espaciado, radios, sombras y componentes están en [docs/solution/design-system.md](docs/solution/design-system.md) (decisión en [ADR-0011](docs/solution/0011-sistema-diseno-visual.md)). Este §4 fija los **principios**; ese documento fija los **tokens** — al generar interfaz, usar siempre esas variables, no colores/medidas sueltas.
+
+### 4.1 Principios UX
+
+- **Claridad sobre densidad** — Mostrar lo justo para la tarea. Si una pantalla intenta hacer de todo, dividirla (ver el patrón hub + secciones de ADR-0008).
+- **Mínimo esfuerzo** — La tarea frecuente (crear/gestionar una reserva) se completa en los menos pasos y clics posibles. Autocompletar y filtrar en cascada en lugar de pedir datos redundantes.
+- **Guiar, no asumir** — El usuario no técnico debe saber siempre dónde está, qué puede hacer y cómo volver. Nada de flujos implícitos.
+- **Prevención de errores** — Es mejor impedir el error que avisar después: deshabilitar lo no válido, validar en el momento, no ofrecer opciones incompatibles.
+- **Confirmación en acciones destructivas** — Toda acción irreversible (cancelar reserva, borrar) exige confirmación explícita en un modal.
+- **Feedback inmediato** — Cada acción del usuario produce una respuesta visible (éxito, error o progreso). Nunca un clic sin reacción.
+- **Consistencia** — Mismos componentes, etiquetas, colores y posiciones para las mismas cosas en toda la app.
+
+### 4.2 Layout y jerarquía visual
+
+- **Patrón hub + secciones**: pantalla de Inicio con accesos claros y una sección por tarea (ADR-0008). Una tarea principal por pantalla.
+- **Jerarquía visual clara**: título de la pantalla → acciones primarias → contenido → acciones secundarias. Lo importante, arriba y a la vista sin scroll.
+- **Una acción primaria por pantalla**, destacada visualmente; el resto, secundarias.
+- **Responsive**: usable en tablet y móvil (Ana usa móvil/tablet, Luis móvil). Nada que requiera horizontalidad de escritorio para funcionar.
+- **Espacio en blanco**: agrupar lo relacionado y separar lo distinto con espaciado, no con líneas y cajas innecesarias.
+
+### 4.3 Patrones de componentes
+
+- **Botones**: etiqueta con verbo de acción del dominio ("Crear Reserva", "Guardar", no "Aceptar"/"OK"). Distinguir primario (relleno) de secundario (contorno). Deshabilitar el botón mientras una llamada está en vuelo (ya en §2.7) para evitar dobles envíos.
+- **Tablas**: cabeceras descriptivas, columnas ordenables cuando aporte, filas legibles. Estado de carga y estado vacío explícitos.
+- **Formularios**: etiqueta visible sobre cada campo (no solo placeholder), campos obligatorios marcados, agrupación lógica, validación **en línea y en dos capas** (cliente para inmediatez, servidor autoritativo — §2.8). El foco entra en el primer campo relevante.
+- **Estados vacíos accionables**: cuando no hay datos, mensaje claro + acción para avanzar (p. ej. "No hay reservas registradas" + botón "Crear Reserva"). Nunca una pantalla en blanco.
+- **Modales de confirmación**: para acciones irreversibles, con texto que explique la consecuencia y dos opciones claras (confirmar / volver), sin ambigüedad sobre cuál es la destructiva.
+
+### 4.4 Sistema visual
+
+- **Paleta semántica con roles** (primario, éxito, error, aviso, neutro), definida una vez y reutilizada. El color **nunca** es el único portador de significado (acompañar de texto o icono) — por accesibilidad.
+- **Tipografía**: una sola familia, jerarquía por tamaño y peso, tamaño base legible (≥ 16 px en cuerpo).
+- **Espaciado por escala** consistente (no valores arbitrarios sueltos).
+- **Estados de interacción** visibles para todo elemento interactivo: `hover`, `focus` (foco visible siempre), `active`, `disabled`.
+- **Iconografía** solo de apoyo y acompañada de texto; nunca un icono solo para una acción importante.
+
+### 4.5 Accesibilidad
+
+- **Contraste WCAG 2.1 AA** (mínimo 4.5:1 en texto normal).
+- **Áreas táctiles** cómodas (objetivo ≥ 44×44 px), pensando en uso desde móvil.
+- **Labels asociadas** a cada input; **navegación por teclado** completa y **foco visible**.
+- Texto alternativo en imágenes con significado; no transmitir información solo por color o posición.
+
+### 4.6 Feedback y estados del sistema
+
+- **Carga**: indicador visible en operaciones que tarden (servidor GAS puede tardar segundos); no dejar la UI congelada sin señal.
+- **Éxito / error siempre comunicados**: tras cada operación, mensaje claro. Los errores son **accionables** (qué falló y cómo resolverlo — §2.5), nunca un "Error" genérico.
+- **Sin fallo silencioso**: si algo falla en el servidor, el usuario lo sabe (alineado con `withFailureHandler`, §2.7).
+
+### 4.7 Microcopy
+
+- **Español claro y cercano**, sin jerga técnica ni nombres internos de campos/hojas.
+- **Mensajes de error**: qué ha pasado + cómo solucionarlo, en una frase. Ej.: "La fecha de salida debe ser posterior a la de entrada".
+- **Etiquetas consistentes con el dominio** (Espacio, Reserva, Canal, Huésped…) y con el resto de la app.
+
+### 4.8 Flujos UX
+
+- Cada pantalla sigue: **entrada → acción → confirmación → retorno claro**. Siempre hay una salida visible ("Volver" / "Cancelar").
+- **No perder datos** al navegar: al volver o cancelar, no se pierde lo ya guardado; avisar si hay cambios sin guardar.
+- **Evitar dobles envíos** y acciones duplicadas (botón en vuelo deshabilitado).
+- El flujo del usuario no técnico se valida contra los **User Journeys** del discovery ([02_personas.md](docs/discovery/02_personas.md)); si un journey no se puede completar sin ayuda, el diseño se corrige.
+
+---
+
+## 5. Reglas generales para Claude
 
 - Antes de crear un fichero nuevo, verificar si ya existe uno donde encaje mejor el código.
 - Preferir editar ficheros existentes antes de crear nuevos.
@@ -438,3 +506,4 @@ const reserva = reservas.find(r => r.id === idBuscado);
 - Cuando se genera una User Story, incluir siempre: formato `Como/quiero/para`, criterios de aceptación Gherkin, prioridad MoSCoW y estimación en talla de camiseta.
 - Cuando se identifica un riesgo nuevo durante el desarrollo, añadirlo al `08_risk_register.md`.
 - Cuando una decisión de diseño cambia durante la implementación, actualizar el ADR correspondiente antes de continuar.
+- Cuando se diseñe o genere cualquier interfaz o flujo de usuario, seguir los **Estándares de UX/UI** (§4); un prototipo fija la estructura, pero el estilo, el comportamiento y la accesibilidad los marca §4.
