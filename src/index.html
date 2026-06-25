@@ -40,7 +40,120 @@
     </section>
 
     <section id="seccion-crear" class="seccion">
-      <div class="panel"><h2>Crear Reserva</h2><p class="vacio">Pendiente (Sprint 2–3).</p></div>
+      <div class="panel">
+        <h2>Crear Reserva</h2>
+
+        <form id="form-reserva" novalidate>
+          <div class="form-grupo">
+            <label for="campo-espacio">Espacio <span class="obligatorio">*</span></label>
+            <select id="campo-espacio">
+              <option value="">Selecciona un espacio…</option>
+            </select>
+          </div>
+
+          <div id="bloque-dependiente" hidden>
+            <div class="form-grupo">
+              <label for="campo-canal">Canal de reserva <span class="obligatorio">*</span></label>
+              <select id="campo-canal">
+                <option value="">Selecciona un canal…</option>
+              </select>
+              <p class="ayuda-campo" id="ayuda-canal" hidden>No hay canales configurados para este espacio. Añádelos en la hoja «Catálogo_Canales».</p>
+            </div>
+
+            <div class="form-grupo">
+              <label for="campo-comision">% Comisión del canal</label>
+              <input type="number" id="campo-comision" min="0" max="100" step="0.01" inputmode="decimal">
+              <p class="ayuda-campo">Se rellena solo al elegir canal; puedes ajustarlo.</p>
+            </div>
+
+            <div id="fechas-dia-hora" class="fechas-modo" hidden>
+              <div class="form-grupo">
+                <label for="campo-fecha-unica">Fecha <span class="obligatorio">*</span></label>
+                <input type="date" id="campo-fecha-unica">
+              </div>
+              <div class="campo-fila">
+                <div class="form-grupo">
+                  <label for="campo-hora-llegada">Hora de llegada</label>
+                  <input type="time" id="campo-hora-llegada">
+                </div>
+                <div class="form-grupo">
+                  <label for="campo-hora-salida">Hora de salida</label>
+                  <input type="time" id="campo-hora-salida">
+                </div>
+              </div>
+            </div>
+
+            <div id="fechas-rango" class="fechas-modo" hidden>
+              <div class="campo-fila">
+                <div class="form-grupo">
+                  <label for="campo-fecha-entrada">Fecha de entrada <span class="obligatorio">*</span></label>
+                  <input type="date" id="campo-fecha-entrada">
+                </div>
+                <div class="form-grupo">
+                  <label for="campo-fecha-salida">Fecha de salida <span class="obligatorio">*</span></label>
+                  <input type="date" id="campo-fecha-salida">
+                </div>
+              </div>
+            </div>
+
+            <div class="campo-fila">
+              <div class="form-grupo">
+                <label for="campo-adultos">Adultos <span class="obligatorio">*</span></label>
+                <input type="number" id="campo-adultos" min="1" step="1" value="1" inputmode="numeric">
+              </div>
+              <div class="form-grupo">
+                <label for="campo-menores">Menores</label>
+                <input type="number" id="campo-menores" min="0" step="1" value="0" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="form-grupo">
+              <span class="etiqueta-bloque">Servicios extra</span>
+              <div id="lista-servicios" class="lista-servicios"></div>
+              <p class="ayuda-campo" id="ayuda-servicios" hidden>No hay servicios configurados para este espacio.</p>
+            </div>
+
+            <div class="form-grupo">
+              <label for="campo-importe-alquiler">Importe del alquiler (€) <span class="obligatorio">*</span></label>
+              <input type="number" id="campo-importe-alquiler" min="0" step="0.01" inputmode="decimal" placeholder="0,00">
+              <p class="ayuda-campo">Lo que paga el huésped por el espacio, sin contar los servicios extra.</p>
+            </div>
+
+            <div class="resumen-importe" id="resumen-importe" aria-live="polite">
+              <div class="resumen-linea"><span>Alquiler</span><span id="res-alquiler">0,00 €</span></div>
+              <div class="resumen-linea"><span>Servicios extra</span><span id="res-servicios">0,00 €</span></div>
+              <div class="resumen-linea resumen-subtotal"><span>Importe bruto</span><span id="res-bruto">0,00 €</span></div>
+              <div class="resumen-linea"><span>Comisión del canal</span><span id="res-comision">0,00 €</span></div>
+              <div class="resumen-linea"><span>Coste de servicios</span><span id="res-coste">0,00 €</span></div>
+              <div class="resumen-linea resumen-total"><span>Importe neto</span><span id="res-neto">0,00 €</span></div>
+              <p class="ayuda-campo">Cálculo orientativo; el importe definitivo se confirma al guardar.</p>
+            </div>
+
+            <fieldset class="bloque-contacto">
+              <legend>Datos del huésped</legend>
+              <div class="form-grupo">
+                <label for="campo-nombre">Nombre y apellido <span class="obligatorio">*</span></label>
+                <input type="text" id="campo-nombre" autocomplete="name">
+              </div>
+              <div class="campo-fila">
+                <div class="form-grupo">
+                  <label for="campo-telefono">Teléfono</label>
+                  <input type="tel" id="campo-telefono" inputmode="numeric" autocomplete="tel" placeholder="9 dígitos">
+                </div>
+                <div class="form-grupo">
+                  <label for="campo-email">Email</label>
+                  <input type="email" id="campo-email" autocomplete="email">
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="form-acciones">
+              <button type="button" class="btn btn-secundario" onclick="navegar('inicio')">Cancelar</button>
+              <button type="submit" class="btn btn-primario" id="btn-guardar-reserva">Guardar Reserva</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </section>
 
     <section id="seccion-gestionar" class="seccion">

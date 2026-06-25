@@ -11,4 +11,260 @@
       b.classList.toggle('btn-secundario', !activo);
     });
   }
+
+  // ----- Formulario Crear Reserva: catálogos en cascada y validación (ADR-0003, US-006/007/010/011) -----
+  const RE_TELEFONO = /^\d{9}$/;
+  const RE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  let espaciosCatalogo = [];
+  let canalesCatalogo = [];
+
+  const $ = (id) => document.getElementById(id);
+
+  const formatearEuros = (importe) =>
+    Number(importe || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+
+  const inicializarFormularioReserva = () => {
+    const selEspacio = $('campo-espacio');
+    if (!selEspacio) return;
+
+    const hoy = new Date().toISOString().slice(0, 10);
+    ['campo-fecha-unica', 'campo-fecha-entrada', 'campo-fecha-salida'].forEach((id) => {
+      $(id).min = hoy;
+    });
+
+    selEspacio.addEventListener('change', alCambiarEspacio);
+    $('campo-canal').addEventListener('change', alCambiarCanal);
+    $('campo-comision').addEventListener('input', recalcularImportes);
+    $('campo-importe-alquiler').addEventListener('input', recalcularImportes);
+    $('form-reserva').addEventListener('submit', alEnviarFormulario);
+    cargarEspacios();
+  };
+
+  const cargarEspacios = () => {
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        espaciosCatalogo = res.data;
+        const sel = $('campo-espacio');
+        res.data.forEach((esp) => {
+          const opt = document.createElement('option');
+          opt.value = esp.nombre;
+          opt.textContent = esp.nombre;
+          sel.appendChild(opt);
+        });
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar los espacios. Inténtalo de nuevo.', 'error'))
+      .cargarEspaciosFormulario();
+  };
+
+  const alCambiarEspacio = (evento) => {
+    const nombre = evento.target.value;
+    resetearCamposDependientes();
+    if (!nombre) { $('bloque-dependiente').hidden = true; return; }
+
+    const espacio = espaciosCatalogo.find((esp) => esp.nombre === nombre);
+    mostrarCamposFecha(espacio ? espacio.modoFecha : '');
+    $('bloque-dependiente').hidden = false;
+    cargarOpcionesDeEspacio(nombre);
+  };
+
+  const cargarOpcionesDeEspacio = (espacio) => {
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        rellenarCanales(res.data.canales);
+        rellenarServicios(res.data.servicios);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar las opciones del espacio. Inténtalo de nuevo.', 'error'))
+      .cargarOpcionesEspacio(espacio);
+  };
+
+  const rellenarCanales = (canales) => {
+    canalesCatalogo = canales;
+    const sel = $('campo-canal');
+    sel.length = 1;
+    canales.forEach((canal) => {
+      const opt = document.createElement('option');
+      opt.value = canal.nombre;
+      opt.textContent = canal.nombre;
+      sel.appendChild(opt);
+    });
+    $('ayuda-canal').hidden = canales.length > 0;
+  };
+
+  const alCambiarCanal = (evento) => {
+    const canal = canalesCatalogo.find((c) => c.nombre === evento.target.value);
+    $('campo-comision').value = (canal && canal.comision !== '') ? canal.comision : '';
+    recalcularImportes();
+  };
+
+  const rellenarServicios = (servicios) => {
+    const contenedor = $('lista-servicios');
+    contenedor.innerHTML = '';
+    servicios.forEach((servicio, indice) => contenedor.appendChild(crearItemServicio(servicio, indice)));
+    $('ayuda-servicios').hidden = servicios.length > 0;
+    recalcularImportes();
+  };
+
+  const crearItemServicio = (servicio, indice) => {
+    const item = document.createElement('div');
+    item.className = 'servicio-item';
+    const idCheck = 'srv-' + indice;
+
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.id = idCheck;
+    check.value = servicio.nombre;
+    check.dataset.coste = servicio.costeUnitario;
+    check.dataset.precio = servicio.precioUnitario;
+
+    const label = document.createElement('label');
+    label.setAttribute('for', idCheck);
+    label.className = 'servicio-nombre';
+    label.textContent = servicio.nombre + ' · ' + formatearEuros(servicio.precioUnitario) + '/ud';
+
+    const cantidad = document.createElement('input');
+    cantidad.type = 'number';
+    cantidad.className = 'servicio-cantidad';
+    cantidad.min = '1';
+    cantidad.step = '1';
+    cantidad.value = '1';
+    cantidad.hidden = true;
+    cantidad.setAttribute('aria-label', 'Cantidad de ' + servicio.nombre);
+
+    check.addEventListener('change', () => {
+      cantidad.hidden = !check.checked;
+      recalcularImportes();
+    });
+    cantidad.addEventListener('input', recalcularImportes);
+
+    item.append(check, label, cantidad);
+    return item;
+  };
+
+  const recalcularImportes = () => {
+    const alquiler = parseFloat($('campo-importe-alquiler').value) || 0;
+    const comisionPct = parseFloat($('campo-comision').value) || 0;
+
+    let serviciosPrecio = 0;
+    let serviciosCoste = 0;
+    document.querySelectorAll('#lista-servicios .servicio-item').forEach((item) => {
+      const check = item.querySelector('input[type="checkbox"]');
+      if (!check.checked) return;
+      const cantidad = parseInt(item.querySelector('.servicio-cantidad').value, 10) || 0;
+      serviciosPrecio += cantidad * (parseFloat(check.dataset.precio) || 0);
+      serviciosCoste += cantidad * (parseFloat(check.dataset.coste) || 0);
+    });
+
+    const bruto = alquiler + serviciosPrecio;
+    const comision = bruto * (comisionPct / 100);
+    const neto = bruto - comision - serviciosCoste;
+
+    $('res-alquiler').textContent = formatearEuros(alquiler);
+    $('res-servicios').textContent = formatearEuros(serviciosPrecio);
+    $('res-bruto').textContent = formatearEuros(bruto);
+    $('res-comision').textContent = '−' + formatearEuros(comision);
+    $('res-coste').textContent = '−' + formatearEuros(serviciosCoste);
+    $('res-neto').textContent = formatearEuros(neto);
+  };
+
+  const mostrarCamposFecha = (modo) => {
+    $('fechas-dia-hora').hidden = modo !== 'Dia_y_Hora';
+    $('fechas-rango').hidden = modo !== 'Rango_Dias';
+  };
+
+  const resetearCamposDependientes = () => {
+    $('campo-canal').selectedIndex = 0;
+    $('campo-comision').value = '';
+    $('lista-servicios').innerHTML = '';
+    $('ayuda-servicios').hidden = true;
+    $('ayuda-canal').hidden = true;
+    ['campo-fecha-unica', 'campo-hora-llegada', 'campo-hora-salida', 'campo-fecha-entrada', 'campo-fecha-salida']
+      .forEach((id) => { $(id).value = ''; });
+    limpiarErrores();
+    recalcularImportes();
+  };
+
+  const alEnviarFormulario = (evento) => {
+    evento.preventDefault();
+    limpiarErrores();
+    const errores = validarFormulario();
+    if (errores.length > 0) {
+      errores.forEach((err) => marcarError(err.campo, err.mensaje));
+      mostrarMensaje('Revisa los campos marcados.', 'error');
+      return;
+    }
+    mostrarMensaje('Datos válidos. El guardado con validación de solapamientos llega en el siguiente paso.', 'info');
+  };
+
+  const validarFormulario = () => {
+    const errores = [];
+    const espacio = $('campo-espacio').value;
+    if (!espacio) errores.push({ campo: 'campo-espacio', mensaje: 'Selecciona un espacio.' });
+    if (!$('campo-canal').value) errores.push({ campo: 'campo-canal', mensaje: 'Selecciona un canal.' });
+
+    const datosEspacio = espaciosCatalogo.find((esp) => esp.nombre === espacio);
+    const modo = datosEspacio ? datosEspacio.modoFecha : '';
+    if (modo === 'Dia_y_Hora' && !$('campo-fecha-unica').value) {
+      errores.push({ campo: 'campo-fecha-unica', mensaje: 'Indica la fecha.' });
+    }
+    if (modo === 'Rango_Dias') {
+      if (!$('campo-fecha-entrada').value) errores.push({ campo: 'campo-fecha-entrada', mensaje: 'Indica la fecha de entrada.' });
+      if (!$('campo-fecha-salida').value) errores.push({ campo: 'campo-fecha-salida', mensaje: 'Indica la fecha de salida.' });
+    }
+
+    const importeAlquiler = $('campo-importe-alquiler').value.trim();
+    if (importeAlquiler === '' || parseFloat(importeAlquiler) < 0) {
+      errores.push({ campo: 'campo-importe-alquiler', mensaje: 'Indica el importe del alquiler.' });
+    }
+
+    const adultos = parseInt($('campo-adultos').value, 10);
+    if (!(adultos >= 1)) errores.push({ campo: 'campo-adultos', mensaje: 'Debe haber al menos 1 adulto.' });
+
+    if (!$('campo-nombre').value.trim()) errores.push({ campo: 'campo-nombre', mensaje: 'El nombre del huésped es obligatorio.' });
+
+    const telefono = $('campo-telefono').value.trim();
+    if (telefono && !RE_TELEFONO.test(telefono)) errores.push({ campo: 'campo-telefono', mensaje: 'El teléfono debe tener 9 cifras.' });
+
+    const email = $('campo-email').value.trim();
+    if (email && !RE_EMAIL.test(email)) errores.push({ campo: 'campo-email', mensaje: 'Email con formato no válido (usuario@dominio.com).' });
+
+    return errores;
+  };
+
+  const marcarError = (idCampo, mensaje) => {
+    const campo = $(idCampo);
+    if (!campo) return;
+    campo.classList.add('invalido');
+    let error = campo.parentNode.querySelector('.error-campo');
+    if (!error) {
+      error = document.createElement('p');
+      error.className = 'error-campo';
+      campo.parentNode.appendChild(error);
+    }
+    error.textContent = mensaje;
+  };
+
+  const limpiarErrores = () => {
+    document.querySelectorAll('#form-reserva .invalido').forEach((el) => el.classList.remove('invalido'));
+    document.querySelectorAll('#form-reserva .error-campo').forEach((el) => el.remove());
+  };
+
+  let temporizadorToast = null;
+  const mostrarMensaje = (texto, tipo) => {
+    let toast = $('toast-global');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast-global';
+      document.body.appendChild(toast);
+    }
+    toast.className = 'toast toast-' + (tipo || 'info');
+    toast.textContent = texto;
+    toast.style.display = 'block';
+    if (temporizadorToast) clearTimeout(temporizadorToast);
+    temporizadorToast = setTimeout(() => { toast.style.display = 'none'; }, 4500);
+  };
+
+  inicializarFormularioReserva();
 </script>
