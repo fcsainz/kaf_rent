@@ -732,6 +732,63 @@ Scenario: Sin notificación si solo hay un canal
 
 ---
 
+### US-029 — Marcar checklists de check-in/check-out
+
+**Prioridad:** S | **Estimación:** S
+
+> Referencia: [ADR-0004](../solution/0004-ciclo-vida-estado-reserva.md) | [ADR-0005](../solution/0005-pantalla-gestionar-reserva-auditoria.md)
+
+Como co-propietario, quiero marcar en la reserva que he revisado el checklist de check-in y el de check-out para dejar constancia de que el espacio se preparó y se revisó tras la estancia.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Marcar check-in revisado
+  Given que el usuario está en "Gestionar Reserva"
+  When marca el checklist de check-in como revisado
+  Then Checkin_Revisado pasa de "Pendiente" a "Hecho"
+  And el cambio queda registrado en Historial_Cambios
+
+Scenario: Marcar check-out revisado
+  Given que el usuario está en "Gestionar Reserva"
+  When marca el checklist de check-out como revisado
+  Then Checkout_Revisado pasa de "Pendiente" a "Hecho"
+  And el cambio queda registrado en Historial_Cambios
+
+Scenario: Los checklists no condicionan el estado de la reserva
+  Given una reserva con Checkin_Revisado o Checkout_Revisado en "Pendiente"
+  When se cumplen las condiciones de cierre de ADR-0004 (cobro ingresado, sin incidencias abiertas)
+  Then Estado_Reserva puede pasar a "Completada" con independencia de los checklists
+```
+
+---
+
+### US-030 — Subir vídeos in/out a Drive
+
+**Prioridad:** S | **Estimación:** M
+
+> Referencia: [ADR-0014](../solution/0014-organizacion-drive-documentos-videos.md)
+
+Como co-propietario, quiero subir el vídeo grabado al terminar el check-in y el grabado antes del check-out a Drive, organizados por espacio y reserva, para tener constancia del estado del espacio sin saturar mi almacenamiento indefinidamente.
+
+**Criterios de aceptación:**
+
+```gherkin
+Scenario: Subida de vídeo in/out
+  Given que el usuario está en "Gestionar Reserva"
+  When sube el vídeo de check-in (o de check-out) de la reserva
+  Then el archivo se guarda en la carpeta Videos / {Espacio} / {reserva} de Drive
+  And el nombre sigue la convención "Video In|Out {NN-AA} {Nombre} {DDMMAA}.mp4"
+
+Scenario: Poda automática a los 180 días
+  Given vídeos in/out con más de Retencion_Videos_Dias (180) días de antigüedad
+  When se ejecuta el mantenimiento nocturno (ADR-0013)
+  Then esos vídeos se eliminan de Drive
+  And la carpeta de reserva se elimina si queda vacía
+```
+
+---
+
 ## Epic E-05: Informes y Estadísticas
 
 > Referencia: [ADR-0009](../solution/0009-estadisticas-calculo-cacheado-diario.md)

@@ -14,24 +14,27 @@ Aceptado — supersede a [ADR-0002](0002-estructura-interfaz-principal.md)
 La interfaz se organiza en una **pantalla de Inicio** que actúa de hub y **tres secciones** dedicadas.
 
 ### Pantalla de Inicio (hub)
-- Arriba, el título de la app y tres botones/categorías para elegir tarea: **Crear Reserva**, **Gestionar Reserva**, **Estadísticas**.
-- Debajo, bajo el rótulo "5 Últimas Reservas", una tabla con las **5 reservas más recientes** (por `Fecha_Registro`), **ordenable ascendente/descendente por cualquier columna**. Columnas: **Espacio**, **Fecha Inicio**, **Fecha Fin**, **Nombre** (= `Nombre_Huesped`), **Importe Neto**.
+- Arriba, el título de la app y los botones/categorías para elegir tarea: **Crear Reserva**, **Gestionar Reserva**, **Estadísticas**, **Gastos**.
+- Bajo el rótulo "5 Últimas Reservas", una tabla con las **5 reservas más recientes** (por `Fecha_Registro`), **ordenable ascendente/descendente por cualquier columna**. Columnas: **Espacio**, **Fecha Inicio**, **Fecha Fin**, **Nombre** (= `Nombre_Huesped`), **Importe Neto**.
+- **Buscar Reserva**: campo Nombre y campo Fecha (ninguno obligatorio) + botón **"Buscar"**, para comprobar si hay reservas de un huésped o una fecha. *(Decisión revisada en implementación 2026-06-29: este buscador estaba originalmente dentro de "Crear Reserva"; se traslada al Inicio porque resultaba confuso dentro del formulario de creación.)*
 
 ### Sección Crear Reserva
-Presenta dos acciones (ver también [ADR-0003](0003-formulario-generar-reserva-catalogos.md)):
-- **Buscar Reserva**: formulario con campo Nombre y campo Fecha (ninguno obligatorio) y un botón **"Buscar"** que ejecuta la consulta. Devuelve las reservas que coincidan, para comprobar disponibilidad antes de crear.
-- **Crear Reserva**: el formulario de creación. Su primer paso es comprobar que no haya reservas incompatibles (vía Buscar Reserva); en todo caso, la **validación dura de solapamientos al guardar** (US-012) sigue siendo la garantía autoritativa contra el overbooking.
+El **formulario de creación** (ver [ADR-0003](0003-formulario-generar-reserva-catalogos.md)). La **validación dura de solapamientos al guardar** (US-012) es la garantía autoritativa contra el overbooking; el buscador del Inicio es solo una comprobación previa opcional.
 
 ### Sección Gestionar Reserva
-- **Vista estándar**: tabla con las reservas **Abiertas** (todas, aunque su fecha de fin esté vencida — siguen requiriendo gestión) y las **Completadas cuya fecha de fin no haya vencido** (`Fecha_Hora_Fin >= ahora`). Nunca se muestran las **Canceladas**.
+- **Vista estándar**: tabla con **todas las reservas modificables**, es decir, las **no canceladas** (Abiertas y Completadas, sin importar la fecha). Las **Canceladas** no se muestran porque no se editan. *(Decisión revisada en implementación 2026-06-29: antes se ocultaban las Completadas ya vencidas; ahora se muestran todas las modificables.)*
+- Información en tres niveles, todo sin cambiar de pantalla:
+  - **Fila (Tier 1):** Estado (con color: Abierta = azul, Completada = verde, Cancelada = gris), Ref., Canal, Entrada, Salida, Adultos, Menores, Check-in, Check-out + dos botones **"Ver más"** y **"Modificar"**.
+  - **"Ver más" (Tier 2, solo lectura, se despliega bajo la fila):** ① Resumen económico, ② Documentos (contrato + vídeos in/out, con enlaces a Drive), ③ Resto de datos.
+  - **"Modificar" (Tier 3, se despliega bajo la fila):** formulario con todos los campos editables + subida de contrato/vídeos + historial. Guardar/Cerrar/Cancelar pliega la fila y refresca el listado.
 - Encima de la tabla, un **área de filtros**: filtro de fechas con opciones rápidas **"Próxima Semana"** y **"Próximo Mes"**, y **búsqueda por nombre de reserva** (texto libre).
-- Al abrir una reserva concreta se accede a su edición y auditoría (ver [ADR-0005](0005-pantalla-gestionar-reserva-auditoria.md)).
+- Al abrir una reserva concreta se accede a su edición y auditoría (ver [ADR-0005](0005-pantalla-gestionar-reserva-auditoria.md)). Al **guardar los cambios** se vuelve automáticamente al listado.
 
 ### Sección Estadísticas
 Resumen de negocio por espacio; su diseño y mecanismo de cálculo se detallan en [ADR-0009](0009-estadisticas-calculo-cacheado-diario.md).
 
 ### Navegación
-Como en ADR-0002, al no haber enrutado nativo en HTML Service, la navegación entre Inicio y las tres secciones (y entre las acciones de Crear Reserva) se resuelve a nivel de cliente (mostrar/ocultar secciones o cargar plantillas con `google.script.run`).
+Como en ADR-0002, al no haber enrutado nativo en HTML Service, la navegación entre Inicio y las secciones se resuelve a nivel de cliente (mostrar/ocultar secciones con `navegar(...)`).
 
 ## Alternativas consideradas
 - **Mantener el panel de dos tablas por espacio (ADR-0002)**: descartado; mezcla registrar/gestionar/analizar en una sola vista y no escala a medida que crece el uso. El desglose por espacio se conserva, pero como zonas de la sección Estadísticas (agregados), no como listados operativos.

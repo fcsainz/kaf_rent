@@ -50,7 +50,7 @@
 | US-002 | Verificación de acceso por lista autorizada | Must |
 | US-003 | Identificación automática del usuario activo | Must |
 | *(técnica)* | Configurar la cuenta operativa `operaciontangai@gmail.com` (Sheet, Drive, Calendar) y desplegar la Web App ejecutándose como ella | Must |
-| *(técnica)* | Setup del proyecto GAS + clasp + estructura de ficheros | Must |
+| *(técnica)* | Setup del proyecto GAS + estructura de ficheros (despliegue por copia/pega manual) | Must |
 | *(técnica)* | Crear estructura de la hoja Google Sheets (todas las hojas con cabeceras) | Must |
 | *(técnica)* | Shell del HTML (navegación entre secciones con show/hide) | Must |
 
@@ -126,11 +126,13 @@
 | US-023 | Lista de reservas activas con filtros (fechas rápidas + nombre) | Must |
 | US-015 | Editar campos de una reserva existente + registro de auditoría | Must |
 | US-016 | Ciclo de vida automático del estado (incl. Incidencia_Resuelta) | Must |
-| US-017 | Subir contrato a Google Drive | Must |
+| US-017 | Subir contrato a Google Drive (carpeta por Espacio/reserva, ADR-0014) | Must |
 | US-018 | Cancelar una reserva con confirmación | Must |
 | US-019 | Ver historial de cambios de una reserva | Should |
 | US-020 | Notificación de reapertura de canales al cancelar | Must |
 | US-026 | Evento de Google Calendar (crear/actualizar/eliminar) y calendario de ocupación | Must |
+| US-029 | Marcar checklists de check-in/check-out (`Checkin_Revisado` / `Checkout_Revisado`) | Should |
+| US-030 | Subir vídeos in/out a Drive (carpeta por Espacio/reserva, ADR-0014) | Should |
 
 **Milestone M3:** Primera reserva completada con ciclo de vida completo — creada, cobrada, contrato subido, estado "Completada" calculado automáticamente.
 
@@ -156,6 +158,7 @@
 | US-021 | Informes mensual y trimestral automáticos por email | Should |
 | *(técnica)* | Triggers programados en GAS para los informes mensual y trimestral | Should |
 | *(técnica)* | Trigger diario a las 03:00 que recalcula `Estadisticas_Cache` | Should |
+| *(técnica)* | Mantenimiento nocturno: copia de seguridad del Sheet (cada 2 días, 15 copias) y purga de `Logs`/`Errores`/vídeos (ADR-0013/0014) | Should |
 | *(técnica)* | Revisión y corrección de bugs encontrados | Must |
 | *(técnica)* | UAT con Ana y Luis (User Acceptance Testing) | Must |
 | *(técnica)* | Configuración de todos los parámetros reales en `Config` | Must |
@@ -176,7 +179,7 @@
 
 **Historias:** US-027 (registrar gastos), US-028 (resumen fiscal por ejercicio y comunero).
 
-**Estado:** En scope de Fase 1. Caso simple (rendimiento del capital inmobiliario, sin actividad económica/IAE/IVA; reparto a partes iguales 33,33 %) definido en [ADR-0012](../solution/0012-modulo-gastos-irpf.md), con el objetivo de deducir todo lo legalmente posible (incluida la amortización). Antes de implementar el cálculo conviene **confirmar con el gestor** la deducibilidad y proporción de los gastos y los datos de amortización. Añade alcance y plazo a la Fase 1 respecto al plan original de 5 sprints.
+**Estado:** **Implementado** (`gastos.gs` + sección "Gastos"). Caso simple (rendimiento del capital inmobiliario, sin actividad económica/IAE/IVA; reparto a partes iguales 33,33 %) definido en [ADR-0012](../solution/0012-modulo-gastos-irpf.md): registro de gastos con justificante en Drive y resumen fiscal por ejercicio/espacio con tercio por comunero, amortización desde `Config`. **Pendiente de validar con el gestor** la deducibilidad y proporción de los gastos y los datos de amortización antes de usarlo para una declaración real.
 
 ---
 

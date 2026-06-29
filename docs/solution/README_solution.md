@@ -27,6 +27,8 @@ Documentación de **solución**: el **cómo** se construye el sistema. Define la
 | [0010](0010-integracion-google-calendar.md) | Integración con Google Calendar (calendario de ocupación) | Aceptado |
 | [0011](0011-sistema-diseno-visual.md) | Sistema de diseño visual (paleta, tipografía, componentes) | Aceptado |
 | [0012](0012-modulo-gastos-irpf.md) | Módulo de Gastos y reparto para el IRPF (caso simple, capital inmobiliario) | Aceptado (diseño) |
+| [0013](0013-copias-seguridad-y-retencion-datos.md) | Copias de seguridad del Sheet y retención de datos (Logs, Errores, vídeos) | Aceptado |
+| [0014](0014-organizacion-drive-documentos-videos.md) | Organización de Drive (documentos, vídeos in/out) y referencia de reserva | Aceptado |
 
 ---
 

@@ -61,6 +61,7 @@
   .btn-secundario { background: transparent; color: var(--c-primary-700); border-color: var(--c-primary-500); }
   .btn-secundario:hover { background: var(--c-primary-50); }
   .btn-nav.activo { background: var(--c-primary-500); color: #fff; }
+  .btn-pequeno { padding: 6px 12px; font-size: 0.85rem; }
 
   .seccion { display: none; }
   .seccion.activa { display: block; }
@@ -79,6 +80,8 @@
     background: var(--c-surface-alt); padding: var(--space-3);
     border-bottom: 1px solid var(--c-border);
   }
+  thead th.orden { cursor: pointer; user-select: none; }
+  thead th.orden:hover { color: var(--c-primary-700); }
   tbody td { padding: var(--space-3); border-bottom: 1px solid var(--c-border); }
   tbody tr:hover { background: var(--c-primary-50); }
 
@@ -110,7 +113,66 @@
     outline: 2px solid var(--c-accent-500); outline-offset: 1px;
     border-color: var(--c-accent-500);
   }
+  textarea {
+    width: 100%; font-family: var(--font-body); font-size: 1rem;
+    padding: 11px var(--space-3); color: var(--c-text); background: var(--c-surface);
+    border: 1px solid var(--c-border-strong); border-radius: var(--radius-md); resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--c-accent-500); outline-offset: 1px; border-color: var(--c-accent-500); }
+  input[type="file"] { font-family: var(--font-body); font-size: 0.9rem; }
   input.invalido { border-color: var(--c-error); background: var(--c-error-bg); }
+
+  /* Modal de confirmación */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(42,36,32,.45);
+    display: flex; align-items: center; justify-content: center; z-index: 200; padding: var(--space-4);
+  }
+  .modal {
+    background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+    padding: var(--space-5); max-width: 420px; width: 100%;
+  }
+  .modal h3 { margin-bottom: var(--space-3); }
+  .modal p { color: var(--c-text-muted); margin: 0 0 var(--space-5); }
+
+  /* Estadísticas */
+  .stats-zonas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
+  .stat-card {
+    background: var(--c-surface-alt); border: 1px solid var(--c-border);
+    border-radius: var(--radius-md); padding: var(--space-4);
+  }
+  .stat-card h3 { font-size: 1rem; margin-bottom: var(--space-3); color: var(--c-primary-700); }
+  .stat-card .stat-num { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-card .stat-label { font-size: 0.8rem; color: var(--c-text-muted); }
+
+  /* Badge de estado de reserva */
+  .estado-badge {
+    display: inline-block; padding: 3px 12px; border-radius: var(--radius-pill);
+    font-size: 0.8rem; font-weight: 700; color: #000;
+  }
+  .estado-abierta { background: #7FD0F0; }
+  .estado-completada { background: #A6E08A; }
+  .estado-cancelada { background: #C9C2B8; }
+
+  /* Datos de la reserva (solo lectura) en la pantalla de edición */
+  .datos-reserva {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-3);
+    background: var(--c-surface-alt); border: 1px solid var(--c-border);
+    border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);
+  }
+  .datos-reserva > div { display: flex; flex-direction: column; gap: 2px; }
+  .dato-etq { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .02em; color: var(--c-text-muted); font-weight: 600; }
+
+  /* Fila desplegable con el panel de edición inline */
+  .fila-detalle > td { padding: 0; background: var(--c-bg); }
+  .fila-detalle .panel { margin: 0; border-radius: 0; box-shadow: none; border-left: none; border-right: none; }
+  .fila-detalle:hover { background: transparent; }
+  .acciones-fila { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
+  .tabla-scroll { overflow-x: auto; }
+  .cobro-ingresado { background: #A6E08A; }
+  .cobro-no { background: #F2A6A0; }
+  /* En PC la tabla se adapta (sin barra); en móvil las columnas no parten y aparece scroll horizontal. */
+  @media (max-width: 600px) { .tabla-ancha th, .tabla-ancha td { white-space: nowrap; } }
+  #detalle-gestion:empty { display: none; }
 
   .ayuda-campo { font-size: 0.8rem; color: var(--c-text-muted); margin: var(--space-2) 0 0; }
   .error-campo { font-size: 0.8rem; color: var(--c-error); font-weight: 600; margin: var(--space-2) 0 0; }

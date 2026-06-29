@@ -32,7 +32,7 @@ Antes de empezar a trabajar en una historia, debe cumplir estos criterios:
 Cada historia de usuario se considera **Done** cuando:
 
 **Funcionalidad**
-- [ ] El código que implementa la historia está escrito y desplegado en Google Apps Script vía `clasp push`
+- [ ] El código que implementa la historia está escrito y desplegado en Google Apps Script (copia/pega manual en el editor, ver DEVELOPMENT.md)
 - [ ] Todos los criterios de aceptación de la historia han sido verificados manualmente en el navegador
 - [ ] El flujo Happy Path (camino principal sin errores) funciona correctamente
 - [ ] Los casos de error contemplados en los criterios de aceptación también funcionan correctamente

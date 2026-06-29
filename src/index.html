@@ -20,22 +20,55 @@
       <button class="btn btn-secundario btn-nav" data-seccion="crear" onclick="navegar('crear')">Crear Reserva</button>
       <button class="btn btn-secundario btn-nav" data-seccion="gestionar" onclick="navegar('gestionar')">Gestionar Reserva</button>
       <button class="btn btn-secundario btn-nav" data-seccion="estadisticas" onclick="navegar('estadisticas')">Estadísticas</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="gastos" onclick="navegar('gastos')">Gastos</button>
     </nav>
 
     <section id="seccion-inicio" class="seccion activa">
       <div class="panel">
         <h2>5 Últimas Reservas</h2>
-        <table>
+        <table id="tabla-inicio">
           <thead>
-            <tr><th>Espacio</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Nombre</th><th>Importe Neto</th></tr>
+            <tr>
+              <th class="orden" data-clave="espacio" data-tipo="texto">Espacio</th>
+              <th class="orden" data-clave="inicioOrden" data-tipo="num">Fecha Inicio</th>
+              <th class="orden" data-clave="finOrden" data-tipo="num">Fecha Fin</th>
+              <th class="orden" data-clave="nombre" data-tipo="texto">Nombre</th>
+              <th class="orden" data-clave="neto" data-tipo="num">Importe Neto</th>
+            </tr>
           </thead>
           <tbody id="tabla-ultimas">
-            <tr><td colspan="5" class="vacio">Sin reservas todavía.</td></tr>
+            <tr><td colspan="5" class="vacio">Cargando…</td></tr>
           </tbody>
         </table>
         <p style="margin-top:var(--space-4)">
           <a class="enlace-acento" id="enlace-calendario" href="#" target="_blank">Ver calendario de ocupación →</a>
         </p>
+      </div>
+
+      <div class="panel">
+        <h2>Buscar Reserva</h2>
+        <p class="ayuda-campo">Comprueba si hay reservas para un huésped o una fecha.</p>
+        <div class="campo-fila">
+          <div class="form-grupo">
+            <label for="buscar-nombre">Nombre</label>
+            <input type="text" id="buscar-nombre" autocomplete="off">
+          </div>
+          <div class="form-grupo">
+            <label for="buscar-fecha">Fecha</label>
+            <input type="date" id="buscar-fecha">
+          </div>
+        </div>
+        <div class="form-acciones">
+          <button type="button" class="btn btn-secundario" id="btn-buscar">Buscar</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Ref.</th><th>Espacio</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Nombre</th></tr>
+          </thead>
+          <tbody id="tabla-busqueda">
+            <tr><td colspan="5" class="vacio">Introduce un nombre o una fecha y pulsa Buscar.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -157,14 +190,191 @@
     </section>
 
     <section id="seccion-gestionar" class="seccion">
-      <div class="panel"><h2>Gestionar Reserva</h2><p class="vacio">Pendiente (Sprint 4).</p></div>
+      <div class="panel" id="panel-lista">
+        <h2>Gestionar Reserva</h2>
+        <div class="campo-fila">
+          <div class="form-grupo"><label for="filtro-nombre">Nombre</label><input type="text" id="filtro-nombre" autocomplete="off"></div>
+          <div class="form-grupo"><label for="filtro-desde">Desde</label><input type="date" id="filtro-desde"></div>
+          <div class="form-grupo"><label for="filtro-hasta">Hasta</label><input type="date" id="filtro-hasta"></div>
+        </div>
+        <div class="form-acciones" style="justify-content:flex-start">
+          <button type="button" class="btn btn-secundario" id="btn-rapido-semana">Próxima semana</button>
+          <button type="button" class="btn btn-secundario" id="btn-rapido-mes">Próximo mes</button>
+          <button type="button" class="btn btn-primario" id="btn-filtrar">Filtrar</button>
+        </div>
+        <div class="tabla-scroll">
+          <table class="tabla-ancha">
+            <thead><tr><th></th><th>Estado</th><th>ID Reserva</th><th>Canal</th><th>Entrada</th><th>Salida</th><th>Check-in revisado</th><th>Check-out revisado</th><th>Nombre</th><th>Ingreso</th></tr></thead>
+            <tbody id="tabla-gestion"><tr><td colspan="10" class="vacio">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="detalle-gestion"></div>
+
+      <div class="panel" id="panel-edicion" hidden>
+        <div class="form-acciones" style="justify-content:space-between;margin-top:0">
+          <h2 id="edicion-titulo">Reserva</h2>
+          <button type="button" class="btn btn-secundario" id="btn-volver-lista">Cerrar ✕</button>
+        </div>
+        <p class="ayuda-campo" id="edicion-contexto"></p>
+
+        <div class="datos-reserva">
+          <div><span class="dato-etq">Espacio</span><span id="ed-espacio"></span></div>
+          <div><span class="dato-etq">Canal</span><span id="ed-canal"></span></div>
+          <div><span class="dato-etq">Entrada</span><span id="ed-inicio"></span></div>
+          <div><span class="dato-etq">Salida</span><span id="ed-fin"></span></div>
+          <div><span class="dato-etq">Servicios extra</span><span id="ed-servicios"></span></div>
+          <div><span class="dato-etq">Registro viajeros</span><span id="ed-viajeros"></span></div>
+        </div>
+
+        <h3 style="font-size:1rem;margin-bottom:var(--space-3)">Resumen económico</h3>
+        <div class="datos-reserva">
+          <div><span class="dato-etq">Importe bruto</span><span id="ed-bruto"></span></div>
+          <div><span class="dato-etq">Comisión</span><span id="ed-comision-imp"></span></div>
+          <div><span class="dato-etq">Coste servicios</span><span id="ed-coste-serv"></span></div>
+          <div><span class="dato-etq">Margen servicios</span><span id="ed-margen"></span></div>
+          <div><span class="dato-etq">Importe neto</span><span id="ed-neto"></span></div>
+        </div>
+        <p class="ayuda-campo" id="ed-auditoria"></p>
+
+        <form id="form-edicion" novalidate>
+          <fieldset class="bloque-contacto"><legend>Huésped</legend>
+            <div class="form-grupo"><label for="ed-nombre">Nombre y apellido <span class="obligatorio">*</span></label><input type="text" id="ed-nombre"></div>
+            <div class="campo-fila">
+              <div class="form-grupo"><label for="ed-telefono">Teléfono</label><input type="tel" id="ed-telefono" inputmode="numeric"></div>
+              <div class="form-grupo"><label for="ed-email">Email</label><input type="email" id="ed-email"></div>
+            </div>
+            <div class="campo-fila">
+              <div class="form-grupo"><label for="ed-adultos">Adultos <span class="obligatorio">*</span></label><input type="number" id="ed-adultos" min="1" step="1"></div>
+              <div class="form-grupo"><label for="ed-menores">Menores</label><input type="number" id="ed-menores" min="0" step="1"></div>
+            </div>
+          </fieldset>
+
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ed-importe">Importe del alquiler (€) <span class="obligatorio">*</span></label><input type="number" id="ed-importe" min="0" step="0.01"></div>
+            <div class="form-grupo"><label for="ed-comision">% Comisión</label><input type="number" id="ed-comision" min="0" max="100" step="0.01"></div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ed-cobro">Estado de cobro</label>
+              <select id="ed-cobro"><option>No ingresado</option><option>Ingresado</option></select></div>
+            <div class="form-grupo"><label for="ed-contrato">Estado del contrato</label>
+              <select id="ed-contrato"><option>Gestionado por canal</option><option>Pendiente</option><option>Firmado</option></select></div>
+          </div>
+
+          <fieldset class="bloque-contacto"><legend>Incidencias</legend>
+            <div class="form-grupo"><label for="ed-incidencias">Incidencias</label>
+              <select id="ed-incidencias"><option>Sin incidentes</option><option>Con incidentes</option></select></div>
+            <div id="bloque-incidencia" hidden>
+              <div class="campo-fila">
+                <div class="form-grupo"><label for="ed-incidente-com">Incidente comunicado</label>
+                  <select id="ed-incidente-com"><option value=""></option><option>Sí</option><option>No</option></select></div>
+                <div class="form-grupo"><label for="ed-compensacion">Compensación de daños</label>
+                  <select id="ed-compensacion"><option value=""></option><option>No recibida</option><option>Recibida</option></select></div>
+                <div class="form-grupo"><label for="ed-incid-resuelta">Incidencia resuelta</label>
+                  <select id="ed-incid-resuelta"><option value=""></option><option>Sí</option><option>No</option></select></div>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ed-checkin">Check-in revisado</label>
+              <select id="ed-checkin"><option>Pendiente</option><option>Hecho</option></select></div>
+            <div class="form-grupo"><label for="ed-checkout">Check-out revisado</label>
+              <select id="ed-checkout"><option>Pendiente</option><option>Hecho</option></select></div>
+          </div>
+
+          <div class="form-grupo"><label for="ed-notas">Notas</label><textarea id="ed-notas" rows="3"></textarea></div>
+
+          <div class="form-acciones">
+            <button type="button" class="btn btn-secundario" id="btn-cancelar-reserva">Cancelar reserva</button>
+            <button type="submit" class="btn btn-primario" id="btn-guardar-cambios">Guardar cambios</button>
+          </div>
+        </form>
+
+        <div class="form-grupo" style="margin-top:var(--space-5)">
+          <span class="etiqueta-bloque">Contrato (PDF/JPG/PNG)</span>
+          <div class="campo-fila">
+            <input type="file" id="ed-archivo-contrato" accept=".pdf,.jpg,.jpeg,.png">
+            <button type="button" class="btn btn-secundario" id="btn-subir-contrato">Subir contrato</button>
+          </div>
+          <p class="ayuda-campo" id="ed-contrato-enlace"></p>
+        </div>
+
+        <div class="campo-fila">
+          <div class="form-grupo"><span class="etiqueta-bloque">Vídeo check-in</span>
+            <input type="file" id="ed-archivo-video-in" accept="video/*">
+            <button type="button" class="btn btn-secundario" id="btn-subir-video-in">Subir vídeo in</button></div>
+          <div class="form-grupo"><span class="etiqueta-bloque">Vídeo check-out</span>
+            <input type="file" id="ed-archivo-video-out" accept="video/*">
+            <button type="button" class="btn btn-secundario" id="btn-subir-video-out">Subir vídeo out</button></div>
+        </div>
+
+        <div style="margin-top:var(--space-5)">
+          <h3>Historial de cambios</h3>
+          <table>
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
+            <tbody id="tabla-historial"><tr><td colspan="5" class="vacio">Sin cambios registrados.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section id="seccion-estadisticas" class="seccion">
-      <div class="panel"><h2>Estadísticas</h2><p class="vacio">Pendiente (Sprint 5).</p></div>
+      <div class="panel">
+        <h2>Estadísticas</h2>
+        <p class="ayuda-campo">Las estadísticas se actualizan cada 24 horas. <span id="stats-actualizado"></span></p>
+        <div id="stats-zonas" class="stats-zonas"></div>
+      </div>
+    </section>
+
+    <section id="seccion-gastos" class="seccion">
+      <div class="panel">
+        <h2>Registrar Gasto</h2>
+        <form id="form-gasto" novalidate>
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ga-fecha">Fecha <span class="obligatorio">*</span></label><input type="date" id="ga-fecha"></div>
+            <div class="form-grupo"><label for="ga-importe">Importe (€) <span class="obligatorio">*</span></label><input type="number" id="ga-importe" min="0" step="0.01" inputmode="decimal"></div>
+          </div>
+          <div class="form-grupo"><label for="ga-concepto">Concepto <span class="obligatorio">*</span></label><input type="text" id="ga-concepto"></div>
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ga-categoria">Categoría <span class="obligatorio">*</span></label>
+              <select id="ga-categoria"><option value="">Selecciona…</option></select></div>
+            <div class="form-grupo"><label for="ga-espacio">Espacio <span class="obligatorio">*</span></label>
+              <select id="ga-espacio"><option value="">Selecciona…</option><option>Piscina / Jardín</option><option>Habitación Interior</option><option>Común</option></select></div>
+          </div>
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="ga-deducible">Deducible</label>
+              <select id="ga-deducible"><option>Sí</option><option>No</option></select></div>
+            <div class="form-grupo"><label for="ga-pagado">Pagado por</label>
+              <input type="text" id="ga-pagado" placeholder="Cuenta operativa / A / B / C"></div>
+          </div>
+          <div class="form-grupo"><label for="ga-notas">Notas</label><textarea id="ga-notas" rows="2"></textarea></div>
+          <div class="form-grupo">
+            <span class="etiqueta-bloque">Justificante (PDF/JPG/PNG)</span>
+            <input type="file" id="ga-justificante" accept=".pdf,.jpg,.jpeg,.png">
+            <p class="ayuda-campo">Recomendado: factura/recibo y, si puedes, el justificante de pago (ADR-0012).</p>
+          </div>
+          <div class="form-acciones">
+            <button type="submit" class="btn btn-primario" id="btn-guardar-gasto">Guardar Gasto</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Resumen Fiscal</h2>
+        <div class="campo-fila" style="align-items:flex-end">
+          <div class="form-grupo"><label for="rf-ejercicio">Ejercicio</label><input type="number" id="rf-ejercicio" step="1"></div>
+          <div class="form-acciones" style="margin-top:0"><button type="button" class="btn btn-secundario" id="btn-resumen">Calcular</button></div>
+        </div>
+        <div id="rf-resultado"></div>
+      </div>
     </section>
   </main>
 
   <?!= include('cliente'); ?>
+  <?!= include('gestion_interfaz'); ?>
+  <?!= include('gastos_interfaz'); ?>
 </body>
 </html>

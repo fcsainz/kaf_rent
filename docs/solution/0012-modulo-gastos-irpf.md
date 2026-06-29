@@ -71,8 +71,15 @@ La carga de la prueba es del **arrendador**: ante un requerimiento debe acredita
 
 ## Pendiente
 - Confirmar con el gestor qué gastos son deducibles y la proporción aplicable (parte alquilada de la vivienda y tiempo en alquiler).
-- Fijar el criterio de reparto de gastos comunes entre los dos espacios.
-- Decidir si el resumen fiscal se calcula al vuelo o se almacena en `Resumen_Fiscal`.
+- ~~Criterio de reparto de gastos comunes entre los dos espacios.~~ Implementado: los gastos imputados a "Común" se reparten **50/50** entre los dos espacios (revisable con el gestor).
+- ~~Resumen al vuelo o almacenado.~~ Implementado: se calcula al vuelo **y** se persiste en `Resumen_Fiscal` (se reescriben las filas del ejercicio).
+
+## Notas de implementación (Sprint 6)
+- **Ingresos íntegros** por espacio = suma de `Importe_Bruto` de las reservas no canceladas del ejercicio.
+- **Gastos deducibles** = comisiones de plataforma (de `Reservas.Importe_Comisión`, deducibles automáticamente) + gastos de `Gastos` con `Deducible = Sí` (propios del espacio + mitad de los comunes) + amortización anual / nº de espacios.
+- **Amortización anual** = 3 % × `Valor_Construccion` × `Proporcion_Alquilada` (de `Config`; 0 si faltan datos). El ajuste por tiempo en alquiler queda para validar con el gestor.
+- **Rendimiento neto** = ingresos íntegros − gastos deducibles; **tercio** = rendimiento / 3.
+- Justificantes en Drive: `Documentos/Gastos/{Ejercicio}/` (no se podan, conservación ≥ 4 años).
 
 ## Fuentes consultadas (2026-06)
 - AEAT — Gastos deducibles del capital inmobiliario (Manual IRPF): https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/irpf-2025/c04-rendimientos-capital-inmobiliario/gastos-deducibles.html

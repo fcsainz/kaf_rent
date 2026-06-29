@@ -1,0 +1,133 @@
+<script>
+  // Gastos y resumen fiscal (ADR-0012). Reutiliza $, mostrarMensaje, crearCelda, formatearEuros,
+  // fechaLocalISO y leerArchivo del resto de scripts de la página.
+
+  let categoriasGasto = [];
+
+  const cargarCategoriasGasto = () => {
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        categoriasGasto = res.data;
+        const sel = $('ga-categoria');
+        res.data.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c.nombre;
+          opt.textContent = c.nombre;
+          sel.appendChild(opt);
+        });
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar las categorías.', 'error'))
+      .cargarCategoriasGasto();
+  };
+
+  const alCambiarCategoria = () => {
+    const cat = categoriasGasto.find((c) => c.nombre === $('ga-categoria').value);
+    $('ga-deducible').value = (cat && !cat.deducibleDefault) ? 'No' : 'Sí';
+  };
+
+  const recogerGasto = () => ({
+    fecha: $('ga-fecha').value,
+    importe: $('ga-importe').value,
+    concepto: $('ga-concepto').value.trim(),
+    categoria: $('ga-categoria').value,
+    espacio: $('ga-espacio').value,
+    deducible: $('ga-deducible').value,
+    pagadoPor: $('ga-pagado').value.trim(),
+    notas: $('ga-notas').value.trim(),
+  });
+
+  const guardarGasto = (evento) => {
+    evento.preventDefault();
+    const datos = recogerGasto();
+    if (!datos.fecha || !datos.concepto || !datos.categoria || !datos.espacio || !(Number(datos.importe) > 0)) {
+      mostrarMensaje('Completa fecha, concepto, categoría, espacio e importe (mayor que 0).', 'error');
+      return;
+    }
+    const input = $('ga-justificante');
+    if (input.files[0]) {
+      leerArchivo(input, (archivo) => enviarGasto(datos, archivo));
+    } else {
+      enviarGasto(datos, null);
+    }
+  };
+
+  const enviarGasto = (datos, archivo) => {
+    const boton = $('btn-guardar-gasto');
+    boton.disabled = true;
+    google.script.run
+      .withSuccessHandler((res) => {
+        boton.disabled = false;
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        mostrarMensaje('Gasto ' + res.id + ' guardado.', 'exito');
+        $('form-gasto').reset();
+        $('ga-fecha').value = fechaLocalISO(new Date());
+      })
+      .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo guardar el gasto.', 'error'); })
+      .registrarGasto(datos, archivo);
+  };
+
+  const calcularResumen = () => {
+    const boton = $('btn-resumen');
+    boton.disabled = true;
+    google.script.run
+      .withSuccessHandler((res) => {
+        boton.disabled = false;
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        renderResumen(res.data);
+      })
+      .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo calcular el resumen.', 'error'); })
+      .calcularResumenFiscal($('rf-ejercicio').value);
+  };
+
+  const renderResumen = (d) => {
+    const cont = $('rf-resultado');
+    cont.innerHTML = '';
+
+    const tabla = document.createElement('table');
+    tabla.innerHTML = '<thead><tr><th>Espacio</th><th>Ingresos íntegros</th><th>Gastos deducibles</th><th>Rendimiento neto</th><th>Tercio (33,33%)</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    d.resumen.forEach((r) => {
+      const tr = document.createElement('tr');
+      [r.espacio, formatearEuros(r.ingresos), formatearEuros(r.gastosDeducibles), formatearEuros(r.rendimiento), formatearEuros(r.tercio)]
+        .forEach((t) => tr.appendChild(crearCelda(t)));
+      tbody.appendChild(tr);
+    });
+    tabla.appendChild(tbody);
+    cont.appendChild(tabla);
+
+    const nota = document.createElement('p');
+    nota.className = 'ayuda-campo';
+    nota.textContent = `Amortización anual estimada: ${formatearEuros(d.amortizacionAnual)} (3% × Valor_Construccion × Proporcion_Alquilada de Config, repartida entre espacios). `
+      + 'Incluye comisiones de plataforma como gasto deducible. Reparto a tercios entre los 3 copropietarios. Cifras orientativas: confírmalas con el gestor.';
+    cont.appendChild(nota);
+
+    if (d.porCategoria.length > 0) {
+      const titulo = document.createElement('h3');
+      titulo.style.marginTop = 'var(--space-5)';
+      titulo.textContent = 'Gastos deducibles por categoría';
+      cont.appendChild(titulo);
+      const tablaCat = document.createElement('table');
+      tablaCat.innerHTML = '<thead><tr><th>Categoría</th><th>Importe</th></tr></thead>';
+      const cuerpo = document.createElement('tbody');
+      d.porCategoria.forEach((c) => {
+        const tr = document.createElement('tr');
+        [c.categoria, formatearEuros(c.importe)].forEach((t) => tr.appendChild(crearCelda(t)));
+        cuerpo.appendChild(tr);
+      });
+      tablaCat.appendChild(cuerpo);
+      cont.appendChild(tablaCat);
+    }
+  };
+
+  const inicializarGastos = () => {
+    $('ga-fecha').value = fechaLocalISO(new Date());
+    $('rf-ejercicio').value = new Date().getFullYear();
+    $('ga-categoria').addEventListener('change', alCambiarCategoria);
+    $('form-gasto').addEventListener('submit', guardarGasto);
+    $('btn-resumen').addEventListener('click', calcularResumen);
+    cargarCategoriasGasto();
+  };
+
+  inicializarGastos();
+</script>

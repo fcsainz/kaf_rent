@@ -60,9 +60,7 @@ const obtenerServiciosActivos = (espacio) => {
 // Endpoint (google.script.run): espacios activos para el desplegable inicial del formulario.
 const cargarEspaciosFormulario = () => {
   try {
-    if (!verificarAcceso(obtenerEmailSesion()).autorizado) {
-      return { success: false, error: 'Sesión no autorizada.' };
-    }
+    if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
     return { success: true, data: obtenerEspaciosActivos() };
   } catch (error) {
     registrarError('cargarEspaciosFormulario', error, {});
@@ -73,9 +71,7 @@ const cargarEspaciosFormulario = () => {
 // Endpoint (google.script.run): canales y servicios activos del espacio elegido (cascada).
 const cargarOpcionesEspacio = (espacio) => {
   try {
-    if (!verificarAcceso(obtenerEmailSesion()).autorizado) {
-      return { success: false, error: 'Sesión no autorizada.' };
-    }
+    if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
     if (!espacio) return { success: false, error: 'Espacio requerido.' };
     return {
       success: true,

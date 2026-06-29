@@ -129,7 +129,7 @@ Google Apps Script impone cuotas de ejecución que condicionan el diseño del si
 
 | Requisito | Descripción | Prioridad |
 |---|---|---|
-| Código deployable con clasp | El código en VS Code se sincroniza con GAS mediante `clasp push` | Must |
+| Código versionado y desplegable | El código vive en VS Code/Git y se despliega en GAS por copia/pega manual en el editor (clasp descartado, ver DEVELOPMENT.md) | Must |
 | Separación de responsabilidades | Backend (GAS .gs) separado de frontend (HTML/CSS/JS) | Should |
 | Funciones con responsabilidad única | Cada función del backend hace una sola cosa; facilita pruebas y cambios | Should |
 | Sin dependencias externas de coste | Solo librerías nativas de GAS y Google APIs; sin npm ni servicios de pago | Must |

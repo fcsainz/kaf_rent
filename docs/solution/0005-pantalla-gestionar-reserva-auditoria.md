@@ -11,10 +11,14 @@ Aceptado
 - El contrato puede llegar como foto del documento en papel o como archivo digital, según el canal.
 
 ## Decisión
-- **Campos editables**: todos los campos de `Reservas` excepto `ID_Reserva`, `Registrado_Por` y `Fecha_Registro` (inmutables, son el origen de la reserva), y `Estado_Reserva` (campo calculado, no editable directamente — ver más abajo).
+- **Acceso a la edición**: cada fila del listado tiene un botón **"Modificar"** que abre la reserva.
+- **Datos de la reserva en solo lectura**: arriba de la edición se muestran **Espacio, Canal, Fechas y Servicios extra** (no editables en esta versión, para no rehacer la validación de solapamientos; ver Pendiente).
+- **Campos editables**: en esta versión se editan huésped (nombre/teléfono/email), personas, importe del alquiler, % comisión, estado de cobro, estado del contrato, bloque de incidencias, checklists de check-in/out y notas. `ID_Reserva`, `Registrado_Por` y `Fecha_Registro` son inmutables; `Estado_Reserva` es calculado (no editable); Espacio/Canal/Fechas/Servicios quedan de solo lectura por ahora.
 - **Auditoría de cambios**: cada vez que se guarda una edición desde "Gestionar Reserva", el sistema compara campo a campo el valor anterior con el nuevo, y por cada campo que cambie escribe una fila en una hoja propia `Historial_Cambios` (independiente de `Logs`/`Errores`, que son para eventos del sistema, no para el histórico de datos de negocio), con: Fecha_Hora, Usuario, ID_Reserva, Campo, Valor_Anterior, Valor_Nuevo. Adicionalmente, se actualizan `Modificado_Por` y `Fecha_Última_Modificación` en la propia fila de `Reservas`.
 - **Cancelación**: se realiza mediante un botón dedicado "Cancelar reserva" (nunca editando `Estado_Reserva` directamente), que pide confirmación explícita antes de ejecutar la acción. Al confirmar: `Estado_Reserva` pasa a "Cancelada", el cambio se registra en `Historial_Cambios` igual que cualquier otro campo, y se dispara el aviso de reapertura de disponibilidad en los demás canales activos (ya definido en una decisión anterior).
-- **Subida de contrato**: campo de tipo archivo que acepta únicamente imagen (JPG/PNG) o PDF. El archivo se codifica en el cliente y se envía al servidor, que lo guarda en una carpeta de Drive y enlaza la URL resultante en `Contrato_Archivo`, actualizando `Contrato_Estado` a "Firmado".
+- **Subida de contrato**: campo de tipo archivo que acepta únicamente imagen (JPG/PNG) o PDF. El archivo se codifica en el cliente y se envía al servidor, que lo guarda en la carpeta de documentos de la reserva en Drive (estructura y nombres en ADR-0014) y enlaza la URL resultante en `Contrato_Archivo`, actualizando `Contrato_Estado` a "Firmado". El tamaño máximo del archivo se controla con `Tamano_Max_Contrato_MB` (`Config`).
+- **Checklists de check-in/check-out**: dos campos `Checkin_Revisado` y `Checkout_Revisado` (Pendiente/Hecho) que el usuario marca tras repasar el checklist físico de preparación y de salida; informativos, no condicionan el estado (ver ADR-0004).
+- **Vídeos in/out**: subida del vídeo grabado al terminar el check-in y antes del check-out, archivados en la carpeta de vídeos de la reserva en Drive (ADR-0014). Se podan automáticamente a los 180 días, por lo que no se enlazan en `Reservas`.
 
 ## Alternativas consideradas
 - **Registro genérico de "reserva modificada" sin detalle de campos**: descartado, no permitiría saber qué cambió exactamente si hay una discrepancia más adelante.
@@ -35,4 +39,4 @@ Aceptado
 
 ## Pendiente
 - Definir el diseño visual/disposición de los campos en la pantalla "Gestionar Reserva" (agrupación, qué se ve siempre vs. qué se despliega según el estado de incidencias).
-- Definir un tamaño máximo razonable para el archivo del contrato subido.
+- ~~Definir un tamaño máximo razonable para el archivo del contrato subido.~~ Resuelto: `Tamano_Max_Contrato_MB` en `Config` (5 MB por defecto).

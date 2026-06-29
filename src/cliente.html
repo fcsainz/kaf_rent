@@ -1,16 +1,17 @@
 <script>
   // Navegación entre secciones a nivel de cliente (HTML Service no tiene enrutado nativo, ver ADR-0008).
-  function navegar(seccion) {
-    document.querySelectorAll('.seccion').forEach(function (s) {
+  // En window porque se invoca desde onclick inline en index.html (un const/let no quedaría global).
+  window.navegar = (seccion) => {
+    document.querySelectorAll('.seccion').forEach((s) => {
       s.classList.toggle('activa', s.id === 'seccion-' + seccion);
     });
-    document.querySelectorAll('.btn-nav').forEach(function (b) {
-      var activo = b.dataset.seccion === seccion;
+    document.querySelectorAll('.btn-nav').forEach((b) => {
+      const activo = b.dataset.seccion === seccion;
       b.classList.toggle('activo', activo);
       b.classList.toggle('btn-primario', activo);
       b.classList.toggle('btn-secundario', !activo);
     });
-  }
+  };
 
   // ----- Formulario Crear Reserva: catálogos en cascada y validación (ADR-0003, US-006/007/010/011) -----
   const RE_TELEFONO = /^\d{9}$/;
@@ -24,11 +25,18 @@
   const formatearEuros = (importe) =>
     Number(importe || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+  // Fecha local en YYYY-MM-DD (no toISOString, que devuelve UTC y desplaza el día de madrugada).
+  const fechaLocalISO = (fecha) => {
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    return `${fecha.getFullYear()}-${mes}-${dia}`;
+  };
+
   const inicializarFormularioReserva = () => {
     const selEspacio = $('campo-espacio');
     if (!selEspacio) return;
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaLocalISO(new Date());
     ['campo-fecha-unica', 'campo-fecha-entrada', 'campo-fecha-salida'].forEach((id) => {
       $(id).min = hoy;
     });
@@ -195,7 +203,59 @@
       mostrarMensaje('Revisa los campos marcados.', 'error');
       return;
     }
-    mostrarMensaje('Datos válidos. El guardado con validación de solapamientos llega en el siguiente paso.', 'info');
+    enviarReserva();
+  };
+
+  const enviarReserva = () => {
+    const boton = $('btn-guardar-reserva');
+    boton.disabled = true;
+    google.script.run
+      .withSuccessHandler((res) => {
+        boton.disabled = false;
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        mostrarMensaje('Reserva ' + res.id + ' guardada correctamente.', 'exito');
+        reiniciarFormulario();
+      })
+      .withFailureHandler(() => {
+        boton.disabled = false;
+        mostrarMensaje('Error inesperado al guardar. Inténtalo de nuevo.', 'error');
+      })
+      .crearReserva(obtenerDatosFormulario());
+  };
+
+  const obtenerServiciosSeleccionados = () => {
+    const seleccionados = [];
+    document.querySelectorAll('#lista-servicios .servicio-item').forEach((item) => {
+      const check = item.querySelector('input[type="checkbox"]');
+      if (!check.checked) return;
+      seleccionados.push({ nombre: check.value, cantidad: item.querySelector('.servicio-cantidad').value });
+    });
+    return seleccionados;
+  };
+
+  const obtenerDatosFormulario = () => ({
+    espacio: $('campo-espacio').value,
+    canal: $('campo-canal').value,
+    comision: $('campo-comision').value,
+    fechaUnica: $('campo-fecha-unica').value,
+    horaLlegada: $('campo-hora-llegada').value,
+    horaSalida: $('campo-hora-salida').value,
+    fechaEntrada: $('campo-fecha-entrada').value,
+    fechaSalida: $('campo-fecha-salida').value,
+    adultos: $('campo-adultos').value,
+    menores: $('campo-menores').value,
+    importeAlquiler: $('campo-importe-alquiler').value,
+    nombre: $('campo-nombre').value.trim(),
+    telefono: $('campo-telefono').value.trim(),
+    email: $('campo-email').value.trim(),
+    servicios: obtenerServiciosSeleccionados(),
+  });
+
+  const reiniciarFormulario = () => {
+    $('form-reserva').reset();
+    $('campo-espacio').selectedIndex = 0;
+    resetearCamposDependientes();
+    $('bloque-dependiente').hidden = true;
   };
 
   const validarFormulario = () => {
@@ -257,6 +317,8 @@
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'toast-global';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
       document.body.appendChild(toast);
     }
     toast.className = 'toast toast-' + (tipo || 'info');
@@ -266,5 +328,91 @@
     temporizadorToast = setTimeout(() => { toast.style.display = 'none'; }, 4500);
   };
 
+  // ----- Inicio: 5 últimas reservas, ordenable (US-004) -----
+  let ultimasReservas = [];
+  const ordenInicio = { clave: null, asc: true };
+
+  const crearCelda = (texto) => {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    return td;
+  };
+
+  const filaVacia = (texto, colspan = 5) => {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = colspan;
+    td.className = 'vacio';
+    td.textContent = texto;
+    tr.appendChild(td);
+    return tr;
+  };
+
+  const pintarFilas = (tbody, reservas, columnas, textoVacio) => {
+    tbody.innerHTML = '';
+    if (reservas.length === 0) { tbody.appendChild(filaVacia(textoVacio)); return; }
+    reservas.forEach((r) => {
+      const tr = document.createElement('tr');
+      columnas.forEach((celda) => tr.appendChild(crearCelda(celda(r))));
+      tbody.appendChild(tr);
+    });
+  };
+
+  const renderUltimas = () => pintarFilas(
+    $('tabla-ultimas'), ultimasReservas,
+    [(r) => r.espacio, (r) => r.inicioTexto, (r) => r.finTexto, (r) => r.nombre, (r) => formatearEuros(r.neto)],
+    'Sin reservas todavía.'
+  );
+
+  const ordenarUltimas = (clave, tipo) => {
+    ordenInicio.asc = ordenInicio.clave === clave ? !ordenInicio.asc : true;
+    ordenInicio.clave = clave;
+    const factor = ordenInicio.asc ? 1 : -1;
+    ultimasReservas.sort((a, b) =>
+      (tipo === 'num' ? a[clave] - b[clave] : String(a[clave]).localeCompare(String(b[clave]), 'es')) * factor);
+    renderUltimas();
+  };
+
+  const inicializarInicio = () => {
+    document.querySelectorAll('#tabla-inicio th.orden').forEach((th) => {
+      th.addEventListener('click', () => ordenarUltimas(th.dataset.clave, th.dataset.tipo));
+    });
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res.success) { pintarFilas($('tabla-ultimas'), [], [], res.error); return; }
+        ultimasReservas = res.data;
+        renderUltimas();
+      })
+      .withFailureHandler(() => pintarFilas($('tabla-ultimas'), [], [], 'No se pudieron cargar las reservas.'))
+      .cargarUltimasReservas();
+  };
+
+  // ----- Buscar Reserva (US-022) -----
+  const renderBusqueda = (reservas) => pintarFilas(
+    $('tabla-busqueda'), reservas,
+    [(r) => r.id, (r) => r.espacio, (r) => r.inicioTexto, (r) => r.finTexto, (r) => r.nombre],
+    'No hay reservas registradas.'
+  );
+
+  const ejecutarBusqueda = () => {
+    const boton = $('btn-buscar');
+    boton.disabled = true;
+    google.script.run
+      .withSuccessHandler((res) => {
+        boton.disabled = false;
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        renderBusqueda(res.data);
+      })
+      .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo buscar. Inténtalo de nuevo.', 'error'); })
+      .buscarReservas({ nombre: $('buscar-nombre').value.trim(), fecha: $('buscar-fecha').value });
+  };
+
+  const inicializarBuscar = () => {
+    const boton = $('btn-buscar');
+    if (boton) boton.addEventListener('click', ejecutarBusqueda);
+  };
+
   inicializarFormularioReserva();
+  inicializarInicio();
+  inicializarBuscar();
 </script>

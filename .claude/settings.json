@@ -8,7 +8,10 @@
       "Bash(git -C /home/fcsainz/Workspace/kaf_rent diff --stat -- docs/)",
       "Bash(sed -i 's/KAF App Rent/KAF Rent/g' docs/discovery/*.md CLAUDE.md)",
       "WebSearch",
-      "WebFetch(domain:sede.agenciatributaria.gob.es)"
+      "WebFetch(domain:sede.agenciatributaria.gob.es)",
+      "Bash(git commit -m ' *)",
+      "Bash(python3 -)",
+      "Bash(python3 -c \"import re;s=open\\('setup.gs'\\).read\\(\\);m=re.search\\(r'nombre: HOJA_RESERVAS,\\\\s*cabeceras: \\\\[\\(.*?\\)\\\\]',s,re.S\\);print\\('cabeceras:',len\\(re.findall\\(r\\\\\"'[^']+'\\\\\",m.group\\(1\\)\\)\\)\\)\")"
     ]
   }
 }

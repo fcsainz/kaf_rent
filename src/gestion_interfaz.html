@@ -1,0 +1,510 @@
+<script>
+  // Gestionar Reserva, Estadísticas y enlace de calendario. Reutiliza $, mostrarMensaje, crearCelda, filaVacia,
+  // formatearEuros y fechaLocalISO de cliente.html (mismo ámbito global de la página).
+
+  let reservaActualId = null;
+
+  // ----- Lista de reservas activas (US-023) -----
+  const filtroGestion = () => ({
+    nombre: $('filtro-nombre').value.trim(),
+    desde: $('filtro-desde').value,
+    hasta: $('filtro-hasta').value,
+  });
+
+  const mensajeEnTabla = (texto) => {
+    const tbody = $('tabla-gestion');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="vacio">' + texto + '</td></tr>';
+  };
+
+  const cargarListaGestion = () => {
+    google.script.run
+      .withSuccessHandler((res) => {
+        try {
+          if (!res.success) { mensajeEnTabla(res.error); return; }
+          renderListaGestion(res.data);
+        } catch (e) {
+          mensajeEnTabla('Error al pintar la lista: ' + e.message);
+        }
+      })
+      .withFailureHandler((err) => mensajeEnTabla('Fallo del servidor: ' + (err && err.message ? err.message : err)))
+      .listarReservasActivas(filtroGestion());
+  };
+
+  const celdaEstado = (estado) => {
+    const td = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'estado-badge estado-' + String(estado).toLowerCase();
+    badge.textContent = estado;
+    td.appendChild(badge);
+    return td;
+  };
+
+  const celdaCobro = (cobro) => {
+    const td = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'estado-badge ' + (cobro === 'Ingresado' ? 'cobro-ingresado' : 'cobro-no');
+    badge.textContent = cobro;
+    td.appendChild(badge);
+    return td;
+  };
+
+  // ----- Detalle: "Ver más" (ficha solo lectura) y "Modificar" (formulario), a ancho completo bajo la tabla -----
+  let detalleId = null;
+  let detalleModo = null;   // 'ver' | 'editar'
+
+  // Devuelve el panel de edición a su sitio (oculto) para que no lo destruya el vaciado del área de detalle.
+  const devolverPanel = () => {
+    const panel = $('panel-edicion');
+    if (!panel) return;
+    panel.hidden = true;
+    $('seccion-gestionar').appendChild(panel);
+  };
+
+  const cerrarDetalle = () => {
+    devolverPanel();
+    const cont = $('detalle-gestion');
+    if (cont) cont.innerHTML = '';
+    detalleId = null;
+    detalleModo = null;
+  };
+
+  // Tier 1 — campos de la fila. "Ver más"/"Modificar" abren el detalle a ancho completo (fuera de la tabla).
+  const renderListaGestion = (reservas) => {
+    cerrarDetalle();
+    const tbody = $('tabla-gestion');
+    tbody.innerHTML = '';
+    if (reservas.length === 0) { tbody.appendChild(filaVacia('No hay reservas modificables con esos filtros.', 10)); return; }
+    reservas.forEach((r) => {
+      const tr = document.createElement('tr');
+      const tdAcciones = document.createElement('td');
+      tdAcciones.className = 'acciones-fila';
+      const btnVer = document.createElement('button');
+      btnVer.className = 'btn btn-secundario btn-pequeno';
+      btnVer.textContent = 'Ver más';
+      const btnMod = document.createElement('button');
+      btnMod.className = 'btn btn-primario btn-pequeno';
+      btnMod.textContent = 'Modificar';
+      tdAcciones.append(btnVer, btnMod);
+      tr.appendChild(tdAcciones);
+      tr.appendChild(celdaEstado(r.estado));
+      [r.ref, r.canal, r.inicioTexto, r.finTexto, r.checkin, r.checkout, r.nombre].forEach((t) => tr.appendChild(crearCelda(t)));
+      tr.appendChild(celdaCobro(r.cobro));
+      tbody.appendChild(tr);
+
+      btnVer.addEventListener('click', () => verMas(r.id));
+      btnMod.addEventListener('click', () => modificar(r.id));
+    });
+  };
+
+  const verMas = (id) => {
+    const cont = $('detalle-gestion');
+    if (!cont) { mostrarMensaje('Recarga la página (falta re-pegar index.html).', 'error'); return; }
+    if (detalleId === id && detalleModo === 'ver') { cerrarDetalle(); return; }
+    cerrarDetalle();
+    detalleId = id;
+    detalleModo = 'ver';
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.textContent = 'Cargando…';
+    cont.appendChild(panel);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    google.script.run
+      .withSuccessHandler((res) => {
+        panel.innerHTML = '';
+        if (!res.success) { panel.textContent = res.error; return; }
+        try { panel.appendChild(construirFicha(res.data)); }
+        catch (e) { panel.textContent = 'Error al mostrar la ficha: ' + e.message; }
+      })
+      .withFailureHandler(() => { panel.textContent = 'No se pudo cargar el detalle.'; })
+      .obtenerReserva(id);
+  };
+
+  const modificar = (id) => {
+    const cont = $('detalle-gestion');
+    if (!cont) { mostrarMensaje('Recarga la página (falta re-pegar index.html).', 'error'); return; }
+    if (detalleId === id && detalleModo === 'editar') { cerrarDetalle(); return; }
+    cerrarDetalle();
+    detalleId = id;
+    detalleModo = 'editar';
+    const panel = $('panel-edicion');
+    cont.appendChild(panel);
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    reservaActualId = id;
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        rellenarEdicion(res.data);
+        cargarHistorial(id);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudo abrir la reserva.', 'error'))
+      .obtenerReserva(id);
+  };
+
+  const datoFicha = (etiqueta, valor) => {
+    const div = document.createElement('div');
+    const e = document.createElement('span');
+    e.className = 'dato-etq';
+    e.textContent = etiqueta;
+    const v = document.createElement('span');
+    v.textContent = valor;
+    div.append(e, v);
+    return div;
+  };
+
+  const valorEnlace = (url, texto) => {
+    if (url) {
+      const a = document.createElement('a');
+      a.className = 'enlace-acento';
+      a.href = url;
+      a.target = '_blank';
+      a.textContent = texto;
+      return a;
+    }
+    const s = document.createElement('span');
+    s.textContent = texto || '—';
+    return s;
+  };
+
+  const enlaceFicha = (etiqueta, url, texto) => {
+    const div = document.createElement('div');
+    const e = document.createElement('span');
+    e.className = 'dato-etq';
+    e.textContent = etiqueta;
+    div.append(e, valorEnlace(url, texto));
+    return div;
+  };
+
+  const bloqueFicha = (titulo, nodos) => {
+    const wrap = document.createElement('div');
+    const h = document.createElement('h3');
+    h.style.fontSize = '0.95rem';
+    h.style.margin = 'var(--space-4) 0 var(--space-2)';
+    h.textContent = titulo;
+    const grid = document.createElement('div');
+    grid.className = 'datos-reserva';
+    grid.style.marginBottom = '0';
+    nodos.forEach((n) => grid.appendChild(n));
+    wrap.append(h, grid);
+    return wrap;
+  };
+
+  // "Ver más": Bloque 2 Resumen económico · Bloque 3 Documentos (contrato + vídeos) · Bloque 4 Resto de datos.
+  const construirFicha = (d) => {
+    const cont = document.createElement('div');
+
+    cont.appendChild(bloqueFicha('Resumen económico', [
+      datoFicha('Importe alquiler', formatearEuros(d.importeAlquiler)),
+      datoFicha('Importe bruto', formatearEuros(d.bruto)),
+      datoFicha('Comisión', formatearEuros(d.comisionImporte)),
+      datoFicha('Coste servicios', formatearEuros(d.serviciosCoste)),
+      datoFicha('Margen servicios', formatearEuros(d.margen)),
+      datoFicha('Importe neto', formatearEuros(d.neto)),
+    ]));
+
+    const contrato = enlaceFicha('Contrato', d.contratoArchivo, d.contratoArchivo ? 'Ver contrato' : (d.contratoEstado || 'No subido'));
+    const videoIn = enlaceFicha('Vídeo check-in', d.videoInUrl, d.videoInUrl ? 'Ver vídeo' : 'No subido');
+    const videoOut = enlaceFicha('Vídeo check-out', d.videoOutUrl, d.videoOutUrl ? 'Ver vídeo' : 'No subido');
+    cont.appendChild(bloqueFicha('Documentos', [contrato, videoIn, videoOut]));
+
+    cont.appendChild(bloqueFicha('Resto de datos', [
+      datoFicha('Espacio', d.espacio),
+      datoFicha('Nombre', d.nombre),
+      datoFicha('Adultos', d.adultos),
+      datoFicha('Menores', d.menores),
+      datoFicha('Teléfono', d.telefono || '—'),
+      datoFicha('Email', d.email || '—'),
+      datoFicha('Servicios extra', d.serviciosExtra || '—'),
+      datoFicha('Registro viajeros', d.registroViajeros || '—'),
+      datoFicha('Incidencias', d.incidencias),
+      datoFicha('Incidente comunicado', d.incidenteComunicado || '—'),
+      datoFicha('Compensación', d.compensacion || '—'),
+      datoFicha('Incidencia resuelta', d.incidenciaResuelta || '—'),
+      datoFicha('Notas', d.notas || '—'),
+    ]));
+
+    const audit = document.createElement('p');
+    audit.className = 'ayuda-campo';
+    audit.textContent = `Registrada por ${d.registradoPor || '—'}${d.fechaRegistro ? ' el ' + d.fechaRegistro : ''}`
+      + (d.modificadoPor ? ` · Últ. modificación ${d.modificadoPor}${d.fechaModificacion ? ' el ' + d.fechaModificacion : ''}` : '');
+    cont.appendChild(audit);
+    return cont;
+  };
+
+  const refrescarEdicion = () => {
+    if (!reservaActualId) return;
+    google.script.run
+      .withSuccessHandler((res) => { if (res.success) rellenarEdicion(res.data); })
+      .withFailureHandler(() => {})
+      .obtenerReserva(reservaActualId);
+  };
+
+  const fijarRango = (dias) => {
+    const hoy = new Date();
+    const fin = new Date();
+    fin.setDate(hoy.getDate() + dias);
+    $('filtro-desde').value = fechaLocalISO(hoy);
+    $('filtro-hasta').value = fechaLocalISO(fin);
+    cargarListaGestion();
+  };
+
+  // ----- Edición de una reserva (US-015/016) -----
+  const rellenarEdicion = (d) => {
+    $('edicion-titulo').textContent = `Reserva ${d.ref} — ${d.espacio}`;
+    $('edicion-contexto').textContent = `Estado: ${d.estado}`;
+    $('ed-espacio').textContent = d.espacio;
+    $('ed-canal').textContent = d.canal;
+    $('ed-inicio').textContent = d.inicioTexto;
+    $('ed-fin').textContent = d.finTexto;
+    $('ed-servicios').textContent = d.serviciosExtra || '—';
+    $('ed-viajeros').textContent = d.registroViajeros || '—';
+    $('ed-bruto').textContent = formatearEuros(d.bruto);
+    $('ed-comision-imp').textContent = formatearEuros(d.comisionImporte);
+    $('ed-coste-serv').textContent = formatearEuros(d.serviciosCoste);
+    $('ed-margen').textContent = formatearEuros(d.margen);
+    $('ed-neto').textContent = formatearEuros(d.neto);
+    $('ed-auditoria').textContent = `Registrada por ${d.registradoPor || '—'}${d.fechaRegistro ? ' el ' + d.fechaRegistro : ''}`
+      + (d.modificadoPor ? ` · Última modificación por ${d.modificadoPor}${d.fechaModificacion ? ' el ' + d.fechaModificacion : ''}` : '');
+    $('ed-nombre').value = d.nombre;
+    $('ed-telefono').value = d.telefono;
+    $('ed-email').value = d.email;
+    $('ed-adultos').value = d.adultos;
+    $('ed-menores').value = d.menores;
+    $('ed-importe').value = d.importeAlquiler;
+    $('ed-comision').value = d.comisionPct;
+    $('ed-cobro').value = d.cobro;
+    $('ed-contrato').value = d.contratoEstado;
+    $('ed-incidencias').value = d.incidencias;
+    $('ed-incidente-com').value = d.incidenteComunicado;
+    $('ed-compensacion').value = d.compensacion;
+    $('ed-incid-resuelta').value = d.incidenciaResuelta;
+    $('ed-checkin').value = d.checkin;
+    $('ed-checkout').value = d.checkout;
+    $('ed-notas').value = d.notas;
+    toggleIncidencia();
+    pintarEnlaceContrato(d.contratoArchivo);
+  };
+
+  const toggleIncidencia = () => {
+    $('bloque-incidencia').hidden = $('ed-incidencias').value !== 'Con incidentes';
+  };
+
+  const pintarEnlaceContrato = (url) => {
+    const p = $('ed-contrato-enlace');
+    p.innerHTML = '';
+    if (!url) { p.textContent = 'Aún no hay contrato subido.'; return; }
+    const a = document.createElement('a');
+    a.className = 'enlace-acento';
+    a.href = url;
+    a.target = '_blank';
+    a.textContent = 'Ver contrato subido →';
+    p.appendChild(a);
+  };
+
+  const recogerCambios = () => ({
+    nombre: $('ed-nombre').value.trim(),
+    telefono: $('ed-telefono').value.trim(),
+    email: $('ed-email').value.trim(),
+    adultos: $('ed-adultos').value,
+    menores: $('ed-menores').value,
+    importeAlquiler: $('ed-importe').value,
+    comisionPct: $('ed-comision').value,
+    cobro: $('ed-cobro').value,
+    contratoEstado: $('ed-contrato').value,
+    incidencias: $('ed-incidencias').value,
+    incidenteComunicado: $('ed-incidente-com').value,
+    compensacion: $('ed-compensacion').value,
+    incidenciaResuelta: $('ed-incid-resuelta').value,
+    checkin: $('ed-checkin').value,
+    checkout: $('ed-checkout').value,
+    notas: $('ed-notas').value,
+  });
+
+  const guardarCambios = (evento) => {
+    evento.preventDefault();
+    if (!reservaActualId) return;
+    const boton = $('btn-guardar-cambios');
+    boton.disabled = true;
+    google.script.run
+      .withSuccessHandler((res) => {
+        boton.disabled = false;
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        mostrarMensaje('Cambios guardados.', 'exito');
+        volverALista();
+      })
+      .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudieron guardar los cambios.', 'error'); })
+      .actualizarReserva(reservaActualId, recogerCambios());
+  };
+
+  const volverALista = () => {
+    reservaActualId = null;
+    cargarListaGestion();
+  };
+
+  // ----- Cancelación con confirmación (US-018) -----
+  const cancelarReservaUI = () => {
+    if (!reservaActualId) return;
+    confirmarAccion('¿Confirmas la cancelación de esta reserva? Esta acción no se puede deshacer y avisará de reabrir canales.', () => {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+          mostrarMensaje('Reserva cancelada.', 'exito');
+          volverALista();
+        })
+        .withFailureHandler(() => mostrarMensaje('No se pudo cancelar la reserva.', 'error'))
+        .cancelarReserva(reservaActualId);
+    });
+  };
+
+  const confirmarAccion = (texto, onConfirm) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    const titulo = document.createElement('h3');
+    titulo.textContent = 'Confirmar';
+    const parrafo = document.createElement('p');
+    parrafo.textContent = texto;
+    const acciones = document.createElement('div');
+    acciones.className = 'form-acciones';
+    const volver = document.createElement('button');
+    volver.className = 'btn btn-secundario';
+    volver.textContent = 'No, volver';
+    const confirmar = document.createElement('button');
+    confirmar.className = 'btn btn-primario';
+    confirmar.textContent = 'Sí, continuar';
+    volver.addEventListener('click', () => overlay.remove());
+    confirmar.addEventListener('click', () => { overlay.remove(); onConfirm(); });
+    acciones.append(volver, confirmar);
+    modal.append(titulo, parrafo, acciones);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  };
+
+  // ----- Subida de archivos a Drive (US-017/030) -----
+  const leerArchivo = (input, cb) => {
+    const fichero = input.files[0];
+    if (!fichero) { mostrarMensaje('Selecciona un archivo primero.', 'error'); return; }
+    const lector = new FileReader();
+    lector.onload = () => cb({ nombre: fichero.name, tipoMime: fichero.type, datosBase64: lector.result.split(',')[1] });
+    lector.readAsDataURL(fichero);
+  };
+
+  const subirContratoUI = () => {
+    if (!reservaActualId) return;
+    leerArchivo($('ed-archivo-contrato'), (archivo) => {
+      const boton = $('btn-subir-contrato');
+      boton.disabled = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          boton.disabled = false;
+          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+          mostrarMensaje('Contrato subido.', 'exito');
+          refrescarEdicion();
+        })
+        .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el contrato.', 'error'); })
+        .subirContrato(reservaActualId, archivo);
+    });
+  };
+
+  const subirVideoUI = (momento, idInput, idBoton) => {
+    if (!reservaActualId) return;
+    leerArchivo($(idInput), (archivo) => {
+      const boton = $(idBoton);
+      boton.disabled = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          boton.disabled = false;
+          mostrarMensaje(res.success ? 'Vídeo subido.' : res.error, res.success ? 'exito' : 'error');
+        })
+        .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el vídeo.', 'error'); })
+        .subirVideo(reservaActualId, momento, archivo);
+    });
+  };
+
+  // ----- Historial (US-019) -----
+  const cargarHistorial = (id) => {
+    google.script.run
+      .withSuccessHandler((res) => renderHistorial(res.success ? res.data : []))
+      .withFailureHandler(() => renderHistorial([]))
+      .obtenerHistorial(id);
+  };
+
+  const renderHistorial = (cambios) => {
+    const tbody = $('tabla-historial');
+    tbody.innerHTML = '';
+    if (cambios.length === 0) { tbody.appendChild(filaVacia('Sin cambios registrados.')); return; }
+    cambios.forEach((c) => {
+      const tr = document.createElement('tr');
+      [c.fecha, c.usuario, c.campo, c.anterior, c.nuevo].forEach((t) => tr.appendChild(crearCelda(t)));
+      tbody.appendChild(tr);
+    });
+  };
+
+  // ----- Estadísticas (US-024) -----
+  const inicializarEstadisticas = () => {
+    google.script.run
+      .withSuccessHandler((res) => { if (res.success) renderEstadisticas(res.data); })
+      .withFailureHandler(() => {})
+      .cargarEstadisticas();
+  };
+
+  const renderEstadisticas = (data) => {
+    const cont = $('stats-zonas');
+    cont.innerHTML = '';
+    if (!data || data.length === 0) {
+      cont.innerHTML = '<p class="ayuda-campo">Aún no hay estadísticas calculadas. Se generan de madrugada automáticamente; para verlas ya, ejecuta «recalcularEstadisticas» desde el editor.</p>';
+      return;
+    }
+    data.forEach((z) => {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      const h = document.createElement('h3');
+      h.textContent = z.zona;
+      const num = document.createElement('div');
+      num.className = 'stat-num';
+      num.textContent = z.totalReservas;
+      const lbl = document.createElement('div');
+      lbl.className = 'stat-label';
+      lbl.textContent = 'reservas este año';
+      const netos = document.createElement('div');
+      netos.className = 'stat-num';
+      netos.textContent = formatearEuros(z.ingresosNetos);
+      const lblN = document.createElement('div');
+      lblN.className = 'stat-label';
+      lblN.textContent = 'ingresos netos';
+      card.append(h, num, lbl, netos, lblN);
+      cont.appendChild(card);
+    });
+    if (data[0]) $('stats-actualizado').textContent = 'Última actualización: ' + data[0].actualizado;
+  };
+
+  // ----- Enlace al calendario de ocupación (ADR-0010) -----
+  const CALENDARIO_POR_DEFECTO = 'https://calendar.google.com/calendar/u/0/r';
+  const inicializarCalendario = () => {
+    google.script.run
+      .withSuccessHandler((res) => {
+        $('enlace-calendario').href = (res.success && res.url) ? res.url : CALENDARIO_POR_DEFECTO;
+      })
+      .withFailureHandler(() => { $('enlace-calendario').href = CALENDARIO_POR_DEFECTO; })
+      .obtenerEnlaceCalendario();
+  };
+
+  const inicializarGestion = () => {
+    $('btn-filtrar').addEventListener('click', cargarListaGestion);
+    $('btn-rapido-semana').addEventListener('click', () => fijarRango(7));
+    $('btn-rapido-mes').addEventListener('click', () => fijarRango(30));
+    $('btn-volver-lista').addEventListener('click', volverALista);
+    $('form-edicion').addEventListener('submit', guardarCambios);
+    $('btn-cancelar-reserva').addEventListener('click', cancelarReservaUI);
+    $('ed-incidencias').addEventListener('change', toggleIncidencia);
+    $('btn-subir-contrato').addEventListener('click', subirContratoUI);
+    $('btn-subir-video-in').addEventListener('click', () => subirVideoUI('In', 'ed-archivo-video-in', 'btn-subir-video-in'));
+    $('btn-subir-video-out').addEventListener('click', () => subirVideoUI('Out', 'ed-archivo-video-out', 'btn-subir-video-out'));
+    cargarListaGestion();
+  };
+
+  inicializarGestion();
+  inicializarEstadisticas();
+  inicializarCalendario();
+</script>

@@ -26,6 +26,10 @@ Campos asociados, todos gestionados después de la creación —no en el formula
 | `Incidente_Comunicado` | (solo aplica si Incidencias = Con incidentes) | Sí/No, manual |
 | `Compensación_Daños` | No recibida (solo aplica si Incidencias = Con incidentes) | Manualmente, cuando se recibe — informativo, no condiciona el cierre |
 | `Incidencia_Resuelta` | No (solo aplica si Incidencias = Con incidentes) | Manualmente, al dar por cerrada la incidencia (compensada o no); es la condición que permite completar la reserva |
+| `Checkin_Revisado` | Pendiente | Manualmente, al revisar el checklist de check-in (preparación del espacio) |
+| `Checkout_Revisado` | Pendiente | Manualmente, al revisar el checklist de check-out (estado del espacio tras la estancia) |
+
+Los dos campos de revisión (`Checkin_Revisado` / `Checkout_Revisado`) reflejan el repaso del checklist físico de preparación/salida; son informativos y **no condicionan** el cálculo de `Estado_Reserva`.
 
 ## Alternativas consideradas
 - **Mantener `Estado` (Confirmada/Cancelada/Pendiente) y `Estado_Reserva` (Abierta/Completada) como campos separados**: descartado, dos campos de estado pueden acabar contradiciéndose (p. ej. "Cancelada" en uno y "Completada" en otro) y complica la lógica sin necesidad real.
@@ -45,4 +49,4 @@ Campos asociados, todos gestionados después de la creación —no en el formula
 
 ## Pendiente
 - Diseñar el detalle de la pantalla "Gestionar Reserva" donde se editan estos campos.
-- Definir la estructura de carpetas en Drive donde se archivan los contratos subidos manualmente.
+- ~~Definir la estructura de carpetas en Drive donde se archivan los contratos subidos manualmente.~~ Resuelto en ADR-0014.

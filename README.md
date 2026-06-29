@@ -4,7 +4,7 @@ Webapp de gestión de alquileres para los co-propietarios de Calle 16, construid
 
 Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización manual de plataformas) por una única interfaz que centraliza el ciclo de vida completo de las reservas, evita solapamientos y automatiza los avisos de sincronización de canales.
 
-> **Estado actual:** documentación y diseño cerrados; **Sprint 1 en marcha** — estructura del proyecto, *setup* de la base de datos, autenticación y shell de la app (código en [`src/`](src/), ver [DEVELOPMENT.md](DEVELOPMENT.md)). Plan completo en el [roadmap](docs/discovery/09_roadmap.md).
+> **Estado actual:** **Fase 1 funcionalmente completa** (código en [`src/`](src/), pendiente de pruebas end-to-end en producción): autenticación, Inicio + Buscar, Crear Reserva (con solapamientos, importes y notificaciones), Gestionar Reserva (edición con auditoría, ciclo de vida, contrato/vídeos a Drive, cancelación), Google Calendar, Estadísticas, informes y mantenimiento nocturno, y módulo de Gastos/IRPF. Ver [DEVELOPMENT.md](DEVELOPMENT.md) y el [roadmap](docs/discovery/09_roadmap.md).
 
 ---
 
@@ -29,7 +29,7 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 - **Frontend:** HTML Service (HTML/CSS/JS servido desde GAS).
 - **Datos:** Google Sheets (transaccional + catálogos + configuración + logs).
 - **Ficheros:** Google Drive (contratos). **Email:** Gmail/MailApp.
-- **Despliegue:** código en VS Code → `clasp push`; control de versiones con Git.
+- **Despliegue:** código en VS Code → copia/pega manual en el editor de Apps Script; control de versiones con Git. Ver [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Estructura del repositorio
 
@@ -38,7 +38,7 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 ├── CLAUDE.md                 # Estándares de código, documentación y UX/UI del proyecto
 ├── README.md                 # Este documento
 ├── CHANGELOG.md              # Histórico de cambios de la documentación/proyecto
-├── DEVELOPMENT.md            # Cómo desarrollar y desplegar (clasp, puesta en marcha)
+├── DEVELOPMENT.md            # Cómo desarrollar y desplegar (puesta en marcha, copia/pega manual)
 ├── src/                      # Código Google Apps Script (.gs + HTML del HTML Service)
 └── docs/
     ├── discovery/            # QUÉ se construye y POR QUÉ (PRD ágil)
@@ -54,7 +54,7 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
     │   └── 09_roadmap.md
     └── solution/             # CÓMO se construye (ADRs + SDD)
         ├── SDD.md            # Documento vivo del diseño del sistema
-        └── 0001..0009-*.md   # Architecture Decision Records
+        └── 0001..0012-*.md   # Architecture Decision Records
 ```
 
 ## Cómo leer la documentación

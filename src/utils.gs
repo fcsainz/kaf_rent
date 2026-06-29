@@ -15,6 +15,24 @@ const obtenerFilas = (hoja) => {
   return hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getValues();
 };
 
+// Combina una fecha 'YYYY-MM-DD' y una hora 'HH:MM' en un objeto Date local. Devuelve null si la fecha es inválida.
+const combinarFechaHora = (fechaISO, horaHHMM) => {
+  if (!fechaISO) return null;
+  const [anyo, mes, dia] = String(fechaISO).split('-').map(Number);
+  const [hora, minuto] = String(horaHHMM || '00:00').split(':').map(Number);
+  if (!anyo || !mes || !dia) return null;
+  return new Date(anyo, mes - 1, dia, hora || 0, minuto || 0, 0);
+};
+
+// Medianoche local de hoy, para comparar "no se permiten fechas pasadas".
+const inicioDeHoy = () => {
+  const ahora = new Date();
+  return new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0);
+};
+
+// Normaliza un valor de celda (Date o string) a Date.
+const aFecha = (valor) => (valor instanceof Date ? valor : new Date(valor));
+
 // Normaliza valores tipo "Sí"/"true"/"x"/1 a booleano.
 const esVerdadero = (valor) => {
   if (valor === true) return true;

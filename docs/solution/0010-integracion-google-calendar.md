@@ -13,7 +13,9 @@ Aceptado
 - Al **crear** una reserva, KAF Rent crea automáticamente un **evento** en el Google Calendar de la cuenta operativa con: título `Espacio — Nombre_Huesped`, inicio/fin = `Fecha_Hora_Inicio`/`Fecha_Hora_Fin`, y descripción con canal, nº de personas y estado. El identificador del evento se guarda en el campo `Calendar_Event_Id` de la reserva.
 - Al **editar** una reserva en datos que afectan al evento (fechas, espacio, huésped) → se **actualiza** el evento correspondiente.
 - Al **cancelar** una reserva → se **elimina** el evento (libera visualmente la franja).
-- El **calendario de ocupación** que pide la Fase 1 **es** este Google Calendar: se consulta directamente en Calendar (web/móvil) y, opcionalmente, se **embebe** en la app como vista de solo lectura.
+- El **calendario de ocupación** que pide la Fase 1 **es** este Google Calendar: se consulta directamente en Calendar (web/móvil) y la app lo **enlaza** (no lo embebe) desde el Inicio mediante `Config.Calendar_Url`.
+- Se usa **un único calendario** (el de la cuenta operativa por defecto, o `Config.Calendar_Id` si se indica) con un **color por espacio** (Piscina/Jardín y Habitación), en vez de un calendario por espacio.
+- Título del evento: `NN/AA · Espacio — Nombre_Huesped`; descripción con canal y referencia.
 - **Robustez**: la sincronización con Calendar **no bloquea** el guardado de la reserva. El Sheet `Reservas` es la **fuente de verdad**; si la llamada a Calendar falla, la reserva se guarda igual, el fallo se registra en `Errores` y el evento se reconcilia después. La validación de solapamientos sigue haciéndose contra el Sheet (ADR-0003), nunca contra Calendar.
 
 ## Alternativas consideradas
@@ -35,7 +37,8 @@ Aceptado
 - Una edición manual del evento en Calendar **no** se refleja en el Sheet (el Sheet manda); conviene no editar eventos a mano.
 
 ## Pendiente
-- Decidir si se usa **un único calendario con un color por espacio** o **un calendario por espacio**.
-- Decidir si la vista se **embebe** en la app (iframe de solo lectura) o solo se **enlaza** al Calendar.
-- Definir la política ante fallo de sincronización (reintentos / reconciliación periódica).
-- Definir el contenido exacto y el formato del título/descripción del evento.
+- ~~Un único calendario con color por espacio vs. un calendario por espacio.~~ Resuelto: único calendario, color por espacio.
+- ~~Embeber vs. enlazar.~~ Resuelto: enlazar (`Config.Calendar_Url`).
+- ~~Contenido del título/descripción del evento.~~ Resuelto: `NN/AA · Espacio — Huésped` + canal/referencia.
+- **Actualización del evento al editar fechas:** hoy la edición de "Gestionar Reserva" no permite cambiar fechas/espacio (ver ADR-0005), así que el evento solo se crea al guardar y se elimina al cancelar; cuando se habilite la edición de fechas habrá que actualizar el evento.
+- Política ante fallo de sincronización (reintentos / reconciliación periódica): hoy el fallo se registra en `Errores` y `Calendar_Event_Id` queda vacío; falta el reconciliador.

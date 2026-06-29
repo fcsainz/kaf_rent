@@ -132,8 +132,8 @@
 | **Probabilidad** | B |
 | **Impacto** | A — Pérdida irreversible de datos de reservas, historial y configuración |
 | **Exposición** | Media |
-| **Mitigación** | Activar el historial de versiones de Google Drive en la hoja (disponible automáticamente). Realizar copias periódicas manuales de la Sheet (.xlsx) en una carpeta separada de Drive. Evitar edición manual directa de la Sheet en producción; usar la app para todas las modificaciones. |
-| **Contingencia** | Restaurar desde el historial de versiones de Google Drive (disponible hasta 30 días en cuentas personales) o desde la última copia manual. |
+| **Mitigación** | Copia de seguridad automática del Sheet cada 2 días a una carpeta de Drive, conservando las últimas 15 (ADR-0013). Historial de versiones de Google Drive (disponible automáticamente). Evitar edición manual directa de la Sheet en producción; usar la app para todas las modificaciones. |
+| **Contingencia** | Restaurar desde la última copia de seguridad automática (carpeta `Backups`) o desde el historial de versiones de Google Drive. |
 | **Estado** | Abierto |
 
 ---
@@ -213,6 +213,36 @@
 
 ---
 
+### R-14 — Ventana de copia de seguridad limitada (~30 días)
+
+| Campo | Valor |
+|---|---|
+| **Categoría** | Técnico — Datos |
+| **Descripción** | La copia automática del Sheet (ADR-0013) conserva 15 copias con cadencia de 2 días, es decir ~30 días de histórico. Una corrupción o borrado de datos que pase desapercibido más de 30 días no tendría copia de la que restaurar el estado correcto. |
+| **Probabilidad** | B |
+| **Impacto** | M — Pérdida de datos anteriores a la ventana de copias |
+| **Exposición** | Baja |
+| **Mitigación** | `Backup_Max_Copias` y `Backup_Cada_Dias` son configurables en `Config`: ampliar el número de copias o la frecuencia si se necesita una ventana mayor. Revisar periódicamente que las copias se están generando. Valorar una exportación periódica fuera de Google (ADR-0013, Pendiente). |
+| **Contingencia** | Si se detecta una corrupción fuera de la ventana, recuperar lo posible del historial de versiones de Drive y reconstruir manualmente el resto. |
+| **Estado** | Abierto |
+
+---
+
+### R-15 — Borrado de vídeos in/out elimina prueba ante daños
+
+| Campo | Valor |
+|---|---|
+| **Categoría** | Operativo / Legal |
+| **Descripción** | Los vídeos de check-in/check-out (ADR-0014) son la evidencia del estado del espacio antes y después de la estancia. Se borran automáticamente a los 180 días para acotar el almacenamiento; una reclamación de daños posterior a ese plazo se quedaría sin la prueba grabada. |
+| **Probabilidad** | B — Las reclamaciones de daños suelen surgir poco después de la estancia |
+| **Impacto** | M — Imposibilidad de probar el estado del espacio en una disputa tardía |
+| **Exposición** | Baja |
+| **Mitigación** | `Retencion_Videos_Dias` es configurable en `Config` (180 por defecto): ampliar el periodo si un caso lo requiere. Conservar manualmente fuera de la carpeta podada los vídeos de una reserva con incidencia abierta. |
+| **Contingencia** | Si se prevé una reclamación, mover el vídeo de esa reserva a una carpeta no sujeta a poda antes de que cumpla 180 días. |
+| **Estado** | Abierto |
+
+---
+
 ## Resumen de exposición
 
 | ID | Riesgo | Exposición | Estado |
@@ -230,3 +260,5 @@
 | R-11 | Form público viajeros + documentos identidad | **Alta** | Abierto (Fase 2) |
 | R-12 | Trigger diario de estadísticas no se ejecuta | Baja | Abierto |
 | R-13 | Cuenta operativa única (compromiso/pérdida) | **Media** | Abierto |
+| R-14 | Ventana de copia de seguridad limitada (~30 días) | Baja | Abierto |
+| R-15 | Borrado de vídeos in/out elimina prueba ante daños | Baja | Abierto |

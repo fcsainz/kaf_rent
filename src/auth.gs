@@ -27,6 +27,12 @@ const verificarAcceso = (email) => {
   return { autorizado: true, email };
 };
 
+// Check silencioso para endpoints (no escribe en Logs; el acceso ya quedó registrado en doGet).
+const sesionAutorizada = () => {
+  const email = obtenerEmailSesion();
+  return !!email && esUsuarioAutorizado(email);
+};
+
 const esUsuarioAutorizado = (email) => {
   try {
     const hoja = obtenerHoja(HOJA_USUARIOS);
