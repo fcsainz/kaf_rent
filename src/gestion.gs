@@ -36,6 +36,15 @@ const COL_RES_CALENDAR_EVENT   = 30;
 const COL_RES_NOTAS            = 31;
 const COL_RES_MOD_POR          = 34;
 const COL_RES_FECHA_MOD        = 35;
+const COL_RES_COSTE_CANAL_FIJO = 38;
+
+// Índices (0-based) de las columnas de Historial_Cambios.
+const COL_HIST_FECHA    = 0;
+const COL_HIST_USUARIO  = 1;
+const COL_HIST_ID       = 2;
+const COL_HIST_CAMPO    = 3;
+const COL_HIST_ANTERIOR = 4;
+const COL_HIST_NUEVO    = 5;
 
 // Estado calculado (ADR-0004): nunca toca una reserva cancelada; "Completada" exige cobro y sin incidencia abierta.
 const calcularEstadoReserva = (cobro, incidencias, incidenciaResuelta, estadoActual) => {
@@ -82,6 +91,8 @@ const mapearReservaGestion = (fila) => ({
   canal: String(fila[COL_RES_CANAL]),
   inicioTexto: formatearFechaHora(aFecha(fila[COL_RES_INICIO])),
   finTexto: formatearFechaHora(aFecha(fila[COL_RES_FIN])),
+  adultos: Number(fila[COL_RES_ADULTOS]) || 0,
+  menores: Number(fila[COL_RES_MENORES]) || 0,
   checkin: String(fila[COL_RES_CHECKIN]),
   checkout: String(fila[COL_RES_CHECKOUT]),
   nombre: String(fila[COL_RES_NOMBRE]),
@@ -190,7 +201,11 @@ const aplicarCambios = (valores, c, email) => {
   set(COL_RES_CHECKOUT, 'Check-out revisado', String(c.checkout));
   set(COL_RES_NOTAS, 'Notas', String(c.notas || ''));
 
-  recalcularDerivados(fila);
+  const derivados = recalcularDerivados(fila);
+  fila[COL_RES_BRUTO]       = derivados.bruto;
+  fila[COL_RES_COMISION_IMP] = derivados.comision;
+  fila[COL_RES_MARGEN]      = derivados.margen;
+  fila[COL_RES_NETO]        = derivados.neto;
 
   const nuevoEstado = calcularEstadoReserva(fila[COL_RES_COBRO], fila[COL_RES_INCIDENCIAS], fila[COL_RES_INCID_RESUELTA], fila[COL_RES_ESTADO]);
   if (nuevoEstado !== fila[COL_RES_ESTADO]) {
@@ -203,16 +218,19 @@ const aplicarCambios = (valores, c, email) => {
   return { fila, diffs };
 };
 
-// Recalcula bruto/comisión/margen/neto a partir del alquiler, la comisión y los totales de servicios ya guardados.
+// Recalcula bruto/comisión/margen/neto a partir de la fila. Pura: devuelve un objeto sin mutar el parámetro.
 const recalcularDerivados = (fila) => {
   const serviciosPrecio = Number(fila[COL_RES_SERV_PRECIO]) || 0;
   const serviciosCoste = Number(fila[COL_RES_SERV_COSTE]) || 0;
+  const costeFijoCanal = Number(fila[COL_RES_COSTE_CANAL_FIJO]) || 0;
   const bruto = (Number(fila[COL_RES_IMPORTE_ALQUILER]) || 0) + serviciosPrecio;
   const comision = bruto * ((Number(fila[COL_RES_COMISION_PCT]) || 0) / 100);
-  fila[COL_RES_BRUTO] = bruto;
-  fila[COL_RES_COMISION_IMP] = comision;
-  fila[COL_RES_MARGEN] = serviciosPrecio - serviciosCoste;
-  fila[COL_RES_NETO] = bruto - comision - serviciosCoste;
+  return {
+    bruto,
+    comision,
+    margen: serviciosPrecio - serviciosCoste,
+    neto: bruto - comision - serviciosCoste - costeFijoCanal,
+  };
 };
 
 // Endpoint: cancela una reserva (transición manual única), audita y avisa de reapertura de canales (US-018/020).
@@ -258,12 +276,12 @@ const obtenerHistorial = (id) => {
     if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
     const tz = obtenerSpreadsheet().getSpreadsheetTimeZone();
     const cambios = obtenerFilas(obtenerHoja(HOJA_HISTORIAL_CAMBIOS))
-      .filter((fila) => String(fila[2]).trim() === id)
+      .filter((fila) => String(fila[COL_HIST_ID]).trim() === id)
       .map((fila) => ({
-        fecha: Utilities.formatDate(aFecha(fila[0]), tz, 'dd/MM/yyyy HH:mm'),
-        orden: aFecha(fila[0]).getTime(),
-        usuario: String(fila[1]), campo: String(fila[3]),
-        anterior: String(fila[4]), nuevo: String(fila[5]),
+        fecha: Utilities.formatDate(aFecha(fila[COL_HIST_FECHA]), tz, 'dd/MM/yyyy HH:mm'),
+        orden: aFecha(fila[COL_HIST_FECHA]).getTime(),
+        usuario: String(fila[COL_HIST_USUARIO]), campo: String(fila[COL_HIST_CAMPO]),
+        anterior: String(fila[COL_HIST_ANTERIOR]), nuevo: String(fila[COL_HIST_NUEVO]),
       }))
       .sort((a, b) => b.orden - a.orden);
     return { success: true, data: cambios };
@@ -287,4 +305,90 @@ const registrarHistorial = (id, diffs, email) => {
   const ahora = new Date();
   const filas = diffs.map((d) => [ahora, email, id, d.campo, d.anterior, d.nuevo]);
   hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, 6).setValues(filas);
+};
+
+// Endpoint: catálogo de servicios del espacio + servicios actuales de la reserva, para el formulario de edición.
+const cargarServiciosReserva = (id) => {
+  try {
+    if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
+    const loc = localizarReserva(obtenerHoja(HOJA_RESERVAS), id);
+    if (!loc) return { success: false, error: 'No se encontró la reserva.' };
+    const espacio = String(loc.valores[COL_RES_ESPACIO]).trim();
+    const catalogo = obtenerServiciosActivos(espacio);
+    const actuales = obtenerFilas(obtenerHoja(HOJA_RESERVA_SERVICIOS))
+      .filter((fila) => String(fila[0]).trim() === id)
+      .map((fila) => ({ nombre: String(fila[1]).trim(), cantidad: Number(fila[2]) || 1 }));
+    return { success: true, data: { catalogo, actuales } };
+  } catch (error) {
+    registrarError('cargarServiciosReserva', error, { id });
+    return { success: false, error: 'No se pudieron cargar los servicios.' };
+  }
+};
+
+// Endpoint: actualiza los servicios de una reserva existente.
+// La comisión NO se recalcula (acuerdo directo propietario-cliente, sin intervención del canal).
+const actualizarServiciosReserva = (id, servicios) => {
+  try {
+    if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
+    const bloqueo = LockService.getScriptLock();
+    bloqueo.waitLock(20000);
+    try {
+      const hoja = obtenerHoja(HOJA_RESERVAS);
+      const loc = localizarReserva(hoja, id);
+      if (!loc) return { success: false, error: 'No se encontró la reserva.' };
+      const fila = loc.valores;
+      const espacio = String(fila[COL_RES_ESPACIO]).trim();
+
+      const lineas = resolverLineasServicio(espacio, Array.isArray(servicios) ? servicios : []);
+      reescribirServiciosDeReserva(id, lineas);
+
+      const serviciosPrecio = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
+      const serviciosCoste = lineas.reduce((s, l) => s + l.cantidad * l.coste, 0);
+      const importeAlquiler = Number(fila[COL_RES_IMPORTE_ALQUILER]) || 0;
+      const comisionImporte = Number(fila[COL_RES_COMISION_IMP]) || 0;
+      const costeFijoCanal = Number(fila[COL_RES_COSTE_CANAL_FIJO]) || 0;
+      const bruto = importeAlquiler + serviciosPrecio;
+      const margen = serviciosPrecio - serviciosCoste;
+      const neto = bruto - comisionImporte - serviciosCoste - costeFijoCanal;
+      const resumen = lineas.map((l) => `${l.nombre} x${l.cantidad}`).join(', ');
+
+      const diffs = [];
+      if (String(fila[COL_RES_SERVICIOS_EXTRA]) !== resumen) {
+        diffs.push({ campo: 'Servicios extra', anterior: fila[COL_RES_SERVICIOS_EXTRA], nuevo: resumen });
+      }
+      if (fila[COL_RES_NETO] !== neto) {
+        diffs.push({ campo: 'Importe neto', anterior: fila[COL_RES_NETO], nuevo: neto });
+      }
+
+      fila[COL_RES_SERVICIOS_EXTRA] = resumen;
+      fila[COL_RES_SERV_PRECIO]     = serviciosPrecio;
+      fila[COL_RES_SERV_COSTE]      = serviciosCoste;
+      fila[COL_RES_BRUTO]           = bruto;
+      fila[COL_RES_MARGEN]          = margen;
+      fila[COL_RES_NETO]            = neto;
+      fila[COL_RES_MOD_POR]         = obtenerEmailSesion();
+      fila[COL_RES_FECHA_MOD]       = new Date();
+      hoja.getRange(loc.filaSheet, 1, 1, fila.length).setValues([fila]);
+
+      registrarHistorial(id, diffs, obtenerEmailSesion());
+      return { success: true, data: { bruto, serviciosPrecio, serviciosCoste, margen, neto, resumen } };
+    } finally {
+      bloqueo.releaseLock();
+    }
+  } catch (error) {
+    registrarError('actualizarServiciosReserva', error, { id });
+    return { success: false, error: 'No se pudieron actualizar los servicios.' };
+  }
+};
+
+// Borra todas las líneas de servicio de la reserva y escribe las nuevas en una sola operación.
+const reescribirServiciosDeReserva = (id, lineas) => {
+  const hoja = obtenerHoja(HOJA_RESERVA_SERVICIOS);
+  const datos = hoja.getDataRange().getValues();
+  const cabecera = datos[0];
+  const otras = datos.slice(1).filter((fila) => String(fila[0]).trim() !== id);
+  const nuevas = lineas.map((l) => [id, l.nombre, l.cantidad, l.coste, l.precio]);
+  const todo = [cabecera, ...otras, ...nuevas];
+  hoja.clearContents();
+  hoja.getRange(1, 1, todo.length, cabecera.length).setValues(todo);
 };

@@ -36,9 +36,14 @@ Aceptado
 - Suma uso de `CalendarApp` a la cuota diaria de Apps Script (ver NFR-01.2).
 - Una edición manual del evento en Calendar **no** se refleja en el Sheet (el Sheet manda); conviene no editar eventos a mano.
 
+## Implementación
+
+- La Web App se ejecuta como `operaciontangai@gmail.com` (`executeAs: USER_DEPLOYING`), lo que garantiza que `CalendarApp.getCalendarById(Calendar_Id)` siempre encuentre el calendario del grupo (que vive en la lista de calendarios de la cuenta operativa). Antes de este cambio, con `USER_ACCESSING`, cada usuario accedente necesitaba tener el calendario en su propia lista — condición frágil y fácil de romper.
+- **Utilidad de reconciliación (`sincronizarReservasCalendario`):** función disponible en el editor de Apps Script (no expuesta en la UI) que recorre todas las reservas no canceladas y crea los eventos de Calendar que falten, escribiendo el `Calendar_Event_Id` de vuelta en el Sheet. Se usa en el alta inicial del calendario y ante cualquier fallo masivo de sincronización.
+
 ## Pendiente
 - ~~Un único calendario con color por espacio vs. un calendario por espacio.~~ Resuelto: único calendario, color por espacio.
 - ~~Embeber vs. enlazar.~~ Resuelto: enlazar (`Config.Calendar_Url`).
 - ~~Contenido del título/descripción del evento.~~ Resuelto: `NN/AA · Espacio — Huésped` + canal/referencia.
+- ~~Política ante fallo de sincronización.~~ Parcialmente resuelta: el fallo se registra en `Errores`, `Calendar_Event_Id` queda vacío, y se reconcilia manualmente con `sincronizarReservasCalendario`. Falta reconciliación automática periódica.
 - **Actualización del evento al editar fechas:** hoy la edición de "Gestionar Reserva" no permite cambiar fechas/espacio (ver ADR-0005), así que el evento solo se crea al guardar y se elimina al cancelar; cuando se habilite la edición de fechas habrá que actualizar el evento.
-- Política ante fallo de sincronización (reintentos / reconciliación periódica): hoy el fallo se registra en `Errores` y `Calendar_Event_Id` queda vacío; falta el reconciliador.

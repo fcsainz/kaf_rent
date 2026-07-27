@@ -1,4 +1,5 @@
 // Informes por email (mensual y trimestral) con KPIs por espacio y canal; archiva los agregados en Historico_Informes. US-021.
+// Dependencia: ejecutarTarea() está definida en mantenimiento.gs (mismo ámbito global de GAS).
 
 // Lo invoca el trigger del día 1 de cada mes: informe mensual siempre; trimestral al inicio de cada trimestre.
 const informesProgramados = () => {

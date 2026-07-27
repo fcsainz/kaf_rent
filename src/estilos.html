@@ -8,6 +8,8 @@
     --c-warning:#D08A1E; --c-warning-bg:#FBEFD9;
     --c-error:#B23A2E;   --c-error-bg:#F7E2DF;
     --c-info:#4A6D7C;    --c-info-bg:#E5EDF0;
+    --c-badge-abierta:#7FD0F0; --c-badge-completada:#A6E08A; --c-badge-cancelada:#C9C2B8;
+    --c-badge-cobro-si:#A6E08A; --c-badge-cobro-no:#F2A6A0;
     --c-bg:#FBF8F4; --c-surface:#FFFFFF; --c-surface-alt:#F5F0E9;
     --c-border:#ECE5DC; --c-border-strong:#D9CFC2;
     --c-text:#2A2420; --c-text-muted:#6E655C; --c-text-disabled:#A89E92;
@@ -147,11 +149,11 @@
   /* Badge de estado de reserva */
   .estado-badge {
     display: inline-block; padding: 3px 12px; border-radius: var(--radius-pill);
-    font-size: 0.8rem; font-weight: 700; color: #000;
+    font-size: 0.8rem; font-weight: 700; color: var(--c-text);
   }
-  .estado-abierta { background: #7FD0F0; }
-  .estado-completada { background: #A6E08A; }
-  .estado-cancelada { background: #C9C2B8; }
+  .estado-abierta   { background: var(--c-badge-abierta); }
+  .estado-completada { background: var(--c-badge-completada); }
+  .estado-cancelada  { background: var(--c-badge-cancelada); }
 
   /* Datos de la reserva (solo lectura) en la pantalla de edición */
   .datos-reserva {
@@ -168,8 +170,8 @@
   .fila-detalle:hover { background: transparent; }
   .acciones-fila { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
   .tabla-scroll { overflow-x: auto; }
-  .cobro-ingresado { background: #A6E08A; }
-  .cobro-no { background: #F2A6A0; }
+  .cobro-ingresado { background: var(--c-badge-cobro-si); }
+  .cobro-no        { background: var(--c-badge-cobro-no); }
   /* En PC la tabla se adapta (sin barra); en móvil las columnas no parten y aparece scroll horizontal. */
   @media (max-width: 600px) { .tabla-ancha th, .tabla-ancha td { white-space: nowrap; } }
   #detalle-gestion:empty { display: none; }

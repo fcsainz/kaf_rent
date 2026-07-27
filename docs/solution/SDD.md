@@ -7,7 +7,7 @@
 Webapp única para gestionar dos tipos de alquiler — Piscina/Jardín y Habitación Interior — sustituyendo procesos dispersos por una sola interfaz. Sin coste de infraestructura, usando exclusivamente recursos de una cuenta de Google personal (gmail.com).
 
 ## 2. Arquitectura
-- **Cuenta operativa**: la cuenta de Gmail dedicada `operaciontangai@gmail.com` es **propietaria** del proyecto Apps Script, el Sheet, la carpeta de Drive y el Calendar; estos recursos se **comparten** (editor) con las tres cuentas personales. La Web App se ejecuta **como el usuario que accede** (`executeAs: USER_ACCESSING`) para poder identificarlo (ver ADR-0001).
+- **Cuenta operativa**: la cuenta de Gmail dedicada `operaciontangai@gmail.com` es **propietaria** del proyecto Apps Script, el Sheet, la carpeta de Drive y el Calendar; estos recursos se **comparten** (editor) con las tres cuentas personales. La Web App se ejecuta **como el propietario del script** (`executeAs: USER_DEPLOYING`, es decir, como `operaciontangai@gmail.com`), lo que permite que las operaciones de Calendar, Drive y Sheets funcionen desde una única cuenta con los recursos compartidos. La identificación del usuario para trazabilidad y control de acceso se obtiene de `Session.getActiveUser().getEmail()`, que sigue devolviendo el correo real de quien accede (ver ADR-0001).
 - **Plataforma**: Google Apps Script, usando el HTML Service para servir la interfaz (ver ADR-0008; ADR-0002 documenta la estructura original, ya superseded).
 - **Base de datos**: Google Sheet, con hojas separadas para datos transaccionales, catálogos de configuración, control de acceso, logs/errores e histórico de informes.
 - **Calendario**: Google Calendar de la cuenta operativa, donde cada reserva genera un evento de ocupación (ver ADR-0010).
@@ -38,7 +38,8 @@ Webapp única para gestionar dos tipos de alquiler — Piscina/Jardín y Habitac
 | %_Comisión | Número | Se autocompleta desde el Canal, editable; puede ser 0 (alquiler sin plataforma) |
 | Importe_Comisión | Número | Calculado — `Importe_Bruto × %_Comisión / 100` |
 | Margen_Servicios | Número | Calculado — `Servicios_Precio_Total − Servicios_Coste_Total` |
-| Importe_Neto | Número | Calculado — `Importe_Bruto − Importe_Comisión − Servicios_Coste_Total` |
+| Coste_Canal_Fijo | Número | Snapshot del coste fijo por reserva del canal en el momento de crearla (ej. seguro Cocopool). Ver ADR-0003 |
+| Importe_Neto | Número | Calculado — `Importe_Bruto − Importe_Comisión − Servicios_Coste_Total − Coste_Canal_Fijo` |
 | Estado_Cobro | Texto | No ingresado / Ingresado (ver ADR-0004) |
 | Contrato_Estado | Texto | Gestionado por canal / Pendiente / Firmado (ver ADR-0004) |
 | Contrato_Archivo | URL | Enlace al documento en Drive, si aplica |
@@ -63,13 +64,13 @@ Webapp única para gestionar dos tipos de alquiler — Piscina/Jardín y Habitac
 Nombre_Espacio, Activo, Modo_Fecha (`Dia_y_Hora` \| `Rango_Dias`). Ver ADR-0003.
 
 ### 3.3 `Catálogo_Canales`
-Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato (`Automática` \| `Manual`). Ver ADR-0003 y ADR-0004.
+Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato (`Automática` \| `Manual`), Coste_Fijo_Por_Reserva (coste fijo por reserva cobrado por el canal, ej. seguro Cocopool 9,50 €; 0 si no aplica). Ver ADR-0003 y ADR-0004.
 
 ### 3.4 `Catálogo_Servicios_Extra`
 Espacio, Nombre_Servicio, Activo, Coste_Unitario (lo que nos cuesta), Precio_Unitario (lo que paga el huésped). Ver ADR-0003.
 
 ### 3.5 `Config`
-Variables clave-valor: emails de aviso (cierre/reapertura de canales, confirmación de reserva, informes), mensaje de bloqueo por solapamiento, hora de check-in/check-out por defecto para espacios en modo `Rango_Dias`, los parámetros de **amortización** del IRPF (`Valor_Construccion` y `Proporcion_Alquilada`, ver ADR-0012), los **IDs de carpetas de Drive** (`Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`) y los parámetros de **copias de seguridad y retención** (`Backup_Cada_Dias`, `Backup_Max_Copias`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`; ver ADR-0013 y ADR-0014), etc.
+Variables clave-valor: emails de aviso (cierre/reapertura de canales, confirmación de reserva, informes), mensaje de bloqueo por solapamiento, hora de check-in/check-out por defecto para espacios en modo `Rango_Dias`, los parámetros de **amortización** del IRPF (`Valor_Construccion` y `Proporcion_Alquilada`, ver ADR-0012), los **IDs de carpetas de Drive** (`Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`), los parámetros de **copias de seguridad y retención** (`Backup_Cada_Dias`, `Backup_Max_Copias`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`; ver ADR-0013 y ADR-0014), y **límites de archivos** (`Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`; el límite de vídeo previene cuelgues en móvil al leer archivos grandes en memoria), etc.
 
 ### 3.6 `Usuarios_Autorizados`
 Email, Activo, Rol (previsto para el futuro, hoy sin uso real). Ver ADR-0001. *(El reparto del IRPF es a partes iguales, 33,33 % cada uno; no requiere campo de porcentaje — ver ADR-0012.)*
@@ -141,7 +142,7 @@ Los IDs de carpeta y los parámetros de retención viven en `Config`. Detalle en
 ## 4. Modelo de importes y rentabilidad
 - `Importe_Bruto = Importe_Alquiler + Servicios_Precio_Total` — total que paga el huésped.
 - `Importe_Comisión = Importe_Bruto × %_Comisión / 100` — comisión de la plataforma (`%_Comisión` puede ser 0 si el alquiler no se hace por plataforma).
-- `Importe_Neto = Importe_Bruto − Importe_Comisión − Servicios_Coste_Total` — ganancia real de la reserva.
+- `Importe_Neto = Importe_Bruto − Importe_Comisión − Servicios_Coste_Total − Coste_Canal_Fijo` — ganancia real de la reserva.
 - `Margen_Servicios = Servicios_Precio_Total − Servicios_Coste_Total` — rentabilidad aislada de los servicios extra, para análisis.
 
 La comisión de plataforma se aplica sobre el **total** (`Importe_Bruto`), es decir, también sobre los servicios extra.
@@ -156,7 +157,7 @@ Formulario personalizado con campos dependientes según el Espacio elegido. Ver 
 
 ### 5.3 Gestionar Reserva
 Sección con la **lista de reservas activas** y la **edición** de una reserva concreta (ver ADR-0008 y ADR-0005).
-- **Lista (vista estándar)**: muestra **todas las reservas modificables** (no canceladas: Abiertas y Completadas, sin importar la fecha); nunca **Canceladas**. Columnas: dos botones **Ver más / Modificar**, **Estado** (badge de color — Abierta azul, Completada verde, Cancelada gris), **ID Reserva**, **Canal**, **Entrada**, **Salida**, **Check-in revisado**, **Check-out revisado**, **Nombre** e **Ingreso** (estado de cobro, badge — Ingresado verde / No ingresado rojo). En PC la tabla se adapta; en móvil tiene scroll horizontal. Encima, filtros: fechas rápidas "Próxima Semana" / "Próximo Mes" y búsqueda por nombre. **Ver más** despliega una ficha de solo lectura (Resumen económico · Documentos con enlaces a contrato y vídeos · Resto de datos); **Modificar** despliega el formulario de edición; ambos se abren **a ancho completo bajo la tabla**. Al guardar/cerrar se vuelve al listado.
+- **Lista (vista estándar)**: muestra **todas las reservas modificables** (no canceladas: Abiertas y Completadas, sin importar la fecha); nunca **Canceladas**. Columnas: dos botones **Ver más / Modificar**, **Estado** (badge de color — Abierta azul, Completada verde, Cancelada gris), **ID Reserva**, **Canal**, **Entrada**, **Salida**, **Personas** (total = Adultos + Menores), **Check-in revisado**, **Check-out revisado**, **Nombre** e **Ingreso** (estado de cobro, badge — Ingresado verde / No ingresado rojo). En PC la tabla se adapta; en móvil tiene scroll horizontal. Encima, filtros: fechas rápidas "Próxima Semana" / "Próximo Mes" y búsqueda por nombre. **Ver más** despliega una ficha de solo lectura (Resumen económico · Documentos con enlaces a contrato y vídeos · Resto de datos); **Modificar** despliega el formulario de edición; ambos se abren **a ancho completo bajo la tabla**. Al guardar/cerrar se vuelve al listado.
 - **Edición de una reserva**: se editan los campos de gestión (huésped, personas, importe, % comisión, cobro, contrato, incidencias, checklists, notas); `ID_Reserva`, `Registrado_Por`, `Fecha_Registro` son inmutables, `Estado_Reserva` es calculado (ADR-0004) y Espacio/Canal/Fechas/Servicios quedan de solo lectura en esta versión (para no rehacer la validación de solapamientos). Cada campo modificado queda registrado en `Historial_Cambios`. La cancelación se hace con un botón dedicado que pide confirmación (modal) y dispara el aviso de reapertura de canales. La subida del contrato (JPG/PNG/PDF) se archiva en Drive y enlaza en `Contrato_Archivo`. Se marcan los checklists (`Checkin_Revisado`/`Checkout_Revisado`) y se suben los vídeos in/out a Drive, cuyo enlace queda en `Video_In_Url`/`Video_Out_Url` (rellenables también a mano). Ver ADR-0005 y ADR-0014.
 
 ### 5.4 Estadísticas

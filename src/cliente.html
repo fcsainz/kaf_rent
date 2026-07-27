@@ -1,7 +1,6 @@
 <script>
-  // Navegación entre secciones a nivel de cliente (HTML Service no tiene enrutado nativo, ver ADR-0008).
-  // En window porque se invoca desde onclick inline en index.html (un const/let no quedaría global).
-  window.navegar = (seccion) => {
+  // Navegación entre secciones (HTML Service no tiene enrutado nativo, ver ADR-0008).
+  const navegar = (seccion) => {
     document.querySelectorAll('.seccion').forEach((s) => {
       s.classList.toggle('activa', s.id === 'seccion-' + seccion);
     });
@@ -13,12 +12,21 @@
     });
   };
 
+  const inicializarNavegacion = () => {
+    document.querySelectorAll('.btn-nav').forEach((btn) => {
+      btn.addEventListener('click', () => navegar(btn.dataset.seccion));
+    });
+    const btnCancelar = $('btn-cancelar-crear');
+    if (btnCancelar) btnCancelar.addEventListener('click', () => navegar('inicio'));
+  };
+
   // ----- Formulario Crear Reserva: catálogos en cascada y validación (ADR-0003, US-006/007/010/011) -----
   const RE_TELEFONO = /^\d{9}$/;
   const RE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
   let espaciosCatalogo = [];
   let canalesCatalogo = [];
+  let costeFijoCanal = 0;
 
   const $ = (id) => document.getElementById(id);
 
@@ -104,6 +112,7 @@
   const alCambiarCanal = (evento) => {
     const canal = canalesCatalogo.find((c) => c.nombre === evento.target.value);
     $('campo-comision').value = (canal && canal.comision !== '') ? canal.comision : '';
+    costeFijoCanal = (canal && canal.costeFijo) ? canal.costeFijo : 0;
     recalcularImportes();
   };
 
@@ -167,13 +176,18 @@
 
     const bruto = alquiler + serviciosPrecio;
     const comision = bruto * (comisionPct / 100);
-    const neto = bruto - comision - serviciosCoste;
+    const neto = bruto - comision - serviciosCoste - costeFijoCanal;
 
     $('res-alquiler').textContent = formatearEuros(alquiler);
     $('res-servicios').textContent = formatearEuros(serviciosPrecio);
     $('res-bruto').textContent = formatearEuros(bruto);
     $('res-comision').textContent = '−' + formatearEuros(comision);
     $('res-coste').textContent = '−' + formatearEuros(serviciosCoste);
+    const fijoWrap = $('res-fijo-wrap');
+    if (fijoWrap) {
+      fijoWrap.hidden = costeFijoCanal === 0;
+      $('res-fijo').textContent = '−' + formatearEuros(costeFijoCanal);
+    }
     $('res-neto').textContent = formatearEuros(neto);
   };
 
@@ -185,6 +199,7 @@
   const resetearCamposDependientes = () => {
     $('campo-canal').selectedIndex = 0;
     $('campo-comision').value = '';
+    costeFijoCanal = 0;
     $('lista-servicios').innerHTML = '';
     $('ayuda-servicios').hidden = true;
     $('ayuda-canal').hidden = true;
@@ -412,6 +427,7 @@
     if (boton) boton.addEventListener('click', ejecutarBusqueda);
   };
 
+  inicializarNavegacion();
   inicializarFormularioReserva();
   inicializarInicio();
   inicializarBuscar();

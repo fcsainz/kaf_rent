@@ -13,7 +13,7 @@ Aceptado
 
 ## Decisión
 - Toda la infraestructura (proyecto Apps Script, Sheet, Drive, Calendar) es **propiedad** de la cuenta operativa `operaciontangai@gmail.com`, y esos recursos se **comparten** (editor) con las tres cuentas personales.
-- La Web App se despliega con acceso "Cualquiera con cuenta de Google" y **ejecutándose como el usuario que accede** (`executeAs: USER_ACCESSING`). Es necesario para que `Session.getActiveUser().getEmail()` devuelva el correo de cada usuario: con cuentas personales (no Workspace), ejecutar "como propietario" devolvería el correo **en blanco**, impidiendo el control de acceso y la auditoría.
+- La Web App se despliega con acceso "Cualquiera con cuenta de Google" y **ejecutándose como el propietario del script** (`executeAs: USER_DEPLOYING`, es decir, como `operaciontangai@gmail.com`). Esto permite que `CalendarApp.getCalendarById()` localice el calendario del grupo (que solo existe en la lista de calendarios de la cuenta operativa) y que las operaciones de Drive y Sheets no requieran que cada usuario tenga permisos individuales sobre cada recurso. A pesar de ejecutarse como el propietario, `Session.getActiveUser().getEmail()` sigue devolviendo el correo real de la persona que ha iniciado sesión (el sistema de autenticación de Google lo preserva), por lo que el control de acceso y la auditoría funcionan correctamente.
 - La Web App de Apps Script se despliega con acceso "Cualquier persona con cuenta de Google", de forma que Google exige login antes de poder cargar la interfaz.
 - En cada `doGet`, el script obtiene el correo de la persona que ha iniciado sesión mediante `Session.getActiveUser().getEmail()`.
 - Ese correo se compara contra una hoja `Usuarios_Autorizados` en el Google Sheet, con columnas Email y Activo (se deja la columna Rol prevista para el futuro, aunque hoy los tres comparten el mismo nivel de acceso).
@@ -35,7 +35,7 @@ Aceptado
 - No hay contraseñas que gestionar, resetear ni proteger.
 
 **Negativas / riesgos**
-- Al ejecutarse "como el usuario que accede", los recursos (Sheet/Drive/Calendar) deben compartirse con las tres cuentas, y los **emails interactivos** salen desde la cuenta del usuario que ejecuta la acción (los **programados** —informes, estadísticas— salen desde la cuenta operativa, que es quien crea los triggers). A revisar si se quiere un remitente único.
+- Al ejecutarse "como el propietario", **todos** los emails (interactivos y programados) salen desde `operaciontangai@gmail.com`, lo que garantiza un remitente único y consistente. Los recursos (Sheet/Drive/Calendar) no necesitan compartirse individualmente con cada cuenta personal para que las operaciones de la Web App funcionen, aunque sí se comparten para el acceso directo desde los apps de Google (Drive, Calendar, Sheets).
 - Si una de las tres personas pierde el acceso a su cuenta de Google, pierde el acceso a la app; la recuperación depende enteramente de Google, no hay mecanismo propio.
 - La comprobación de autorización se hace en cada carga de la interfaz; a tres usuarios es irrelevante en términos de rendimiento, pero si la lista creciera mucho en el futuro habría que revisar el enfoque.
 - Es necesario verificar en el despliegue real que `Session.getActiveUser().getEmail()` devuelve el correo esperado (y no vacío) en el contexto concreto de Web App, ya que su comportamiento puede variar según la configuración de permisos de la implementación.

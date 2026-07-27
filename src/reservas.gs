@@ -57,7 +57,8 @@ const prepararReserva = (datos) => {
 
   const lineas = resolverLineasServicio(datos.espacio, datos.servicios);
   const comisionPct = Number(datos.comision) || 0;
-  const importes = calcularImportesReserva(Number(datos.importeAlquiler), comisionPct, lineas);
+  const costeFijoCanal = canal.costeFijo || 0;
+  const importes = calcularImportesReserva(Number(datos.importeAlquiler), comisionPct, lineas, costeFijoCanal);
 
   return {
     valido: true,
@@ -74,6 +75,7 @@ const prepararReserva = (datos) => {
       adultos: parseInt(datos.adultos, 10),
       menores: parseInt(datos.menores, 10) || 0,
       comisionPct,
+      costeFijoCanal,
       importeAlquiler: Number(datos.importeAlquiler),
       lineas,
       importes,
@@ -138,7 +140,8 @@ const resolverLineasServicio = (espacio, serviciosSolicitados) => {
   }, []);
 };
 
-const calcularImportesReserva = (importeAlquiler, comisionPct, lineas) => {
+const calcularImportesReserva = (importeAlquiler, comisionPct, lineas, costeFijoCanal) => {
+  const cf = Number(costeFijoCanal) || 0;
   const serviciosPrecio = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
   const serviciosCoste = lineas.reduce((s, l) => s + l.cantidad * l.coste, 0);
   const bruto = importeAlquiler + serviciosPrecio;
@@ -149,7 +152,7 @@ const calcularImportesReserva = (importeAlquiler, comisionPct, lineas) => {
     bruto,
     comision,
     margenServicios: serviciosPrecio - serviciosCoste,
-    neto: bruto - comision - serviciosCoste,
+    neto: bruto - comision - serviciosCoste - cf,
   };
 };
 
@@ -204,22 +207,23 @@ const referenciaMostrada = (id) => {
   return `${String(parseInt(num, 10)).padStart(2, '0')}/${String(anyo).slice(2)}`;
 };
 
-const construirFilaReserva = (reserva, id, email) => {
+const construirFilaReserva = (reserva, id, email, eventoId) => {
   const ahora = new Date();
   const resumenServicios = reserva.lineas.map((l) => `${l.nombre} x${l.cantidad}`).join(', ');
   const contratoEstado = reserva.gestionContrato === GESTION_CONTRATO_AUTOMATICA ? CONTRATO_GESTIONADO_CANAL : CONTRATO_PENDIENTE;
   const registroViajeros = reserva.modoFecha === MODO_RANGO_DIAS ? REVISION_PENDIENTE : '';
 
   return [
-    id, reserva.espacio, reserva.canal, reserva.inicio, reserva.fin,
-    reserva.nombre, reserva.telefono, reserva.email, reserva.adultos, reserva.menores,
-    resumenServicios, reserva.importeAlquiler, reserva.importes.serviciosPrecio, reserva.importes.serviciosCoste,
-    reserva.importes.bruto, reserva.comisionPct, reserva.importes.comision, reserva.importes.margenServicios, reserva.importes.neto,
-    ESTADO_COBRO_INICIAL, contratoEstado, '', INCIDENCIAS_SIN, '',
-    '', '', ESTADO_RESERVA_ABIERTA, registroViajeros,
-    REVISION_PENDIENTE, REVISION_PENDIENTE,
-    '', '', email, ahora, '',
-    '', '', '',
+    id, reserva.espacio, reserva.canal, reserva.inicio, reserva.fin,           // 0-4
+    reserva.nombre, reserva.telefono, reserva.email, reserva.adultos, reserva.menores, // 5-9
+    resumenServicios, reserva.importeAlquiler, reserva.importes.serviciosPrecio, reserva.importes.serviciosCoste, // 10-13
+    reserva.importes.bruto, reserva.comisionPct, reserva.importes.comision, reserva.importes.margenServicios, reserva.importes.neto, // 14-18
+    ESTADO_COBRO_INICIAL, contratoEstado, '', INCIDENCIAS_SIN, '',             // 19-23
+    '', '', ESTADO_RESERVA_ABIERTA, registroViajeros,                          // 24-27
+    REVISION_PENDIENTE, REVISION_PENDIENTE,                                     // 28-29
+    eventoId || '', '', email, ahora, '',                                       // 30-34: Calendar_Event_Id, Notas, Registrado_Por, Fecha_Registro, Modificado_Por
+    '', '', '',                                                                  // 35-37: Fecha_Última_Modificación, Video_In_Url, Video_Out_Url
+    reserva.costeFijoCanal,                                                     // 38: Coste_Canal_Fijo
   ];
 };
 

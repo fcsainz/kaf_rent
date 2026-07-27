@@ -36,7 +36,11 @@ Campos del formulario y su comportamiento:
    - `Importe_Bruto` = Importe del alquiler + Σ(cantidad × precio de servicio)
    - `Importe_Comisión` = `Importe_Bruto` × %comisión (la comisión se aplica sobre el total, incluidos los servicios)
    - `Margen_Servicios` = Σ(cantidad × (precio − coste))
-   - `Importe_Neto` = `Importe_Bruto` − `Importe_Comisión` − Σ(cantidad × coste de servicio)
+   - `Coste_Canal_Fijo` = coste fijo por reserva cobrado automáticamente por el canal (ej. seguro de propietario de Cocopool: 9,50 €); configurable en `Catálogo_Canales.Coste_Fijo_Por_Reserva`, se copia como snapshot en `Reservas.Coste_Canal_Fijo` al crear la reserva
+   - `Importe_Neto` = `Importe_Bruto` − `Importe_Comisión` − Σ(cantidad × coste de servicio) − `Coste_Canal_Fijo`
+
+   **Servicios añadidos a reservas existentes**: cuando se añaden servicios a una reserva ya creada (desde Gestionar), la `Importe_Comisión` no se recalcula — el acuerdo de servicio adicional es directo entre propietario y huésped, sin intervención del canal. Solo se actualizan `Servicios_Extra`, totales de servicios, `Importe_Bruto`, `Margen_Servicios` e `Importe_Neto`.
+
    El resumen es solo informativo en el cliente; el servidor recalcula estos importes de forma autoritativa al guardar (ver SDD §4).
 
 Independientemente del `Modo_Fecha`, la reserva se almacena siempre con `Fecha_Hora_Inicio` y `Fecha_Hora_Fin` (datetime completo), construidos así:
@@ -65,3 +69,4 @@ Esto mantiene un único modelo de datos para la validación de solapamientos y l
 ## Pendiente
 - Definir el detalle de las validaciones del formulario (mensajes de error concretos, límites de capacidad si los hubiera).
 - La comisión de plataforma se aplica sobre el total (`Importe_Bruto`), incluidos los servicios extra (ver SDD §4).
+- El `Coste_Canal_Fijo` se resta del neto pero **no** se recalcula si se añaden servicios a una reserva existente.

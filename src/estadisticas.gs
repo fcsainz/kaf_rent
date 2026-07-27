@@ -1,16 +1,18 @@
 // Estadísticas por zona, precalculadas a diario y leídas de Estadisticas_Cache. Ver ADR-0009.
 
-const ZONAS_ESTADISTICAS = ['Todos', 'Piscina / Jardín', 'Habitación Interior'];
+// Las zonas se derivan del catálogo en tiempo de ejecución para no duplicar la definición de espacios.
+const obtenerZonasEstadisticas = () => ['Todos', ...obtenerEspaciosActivos().map((e) => e.nombre)];
 
 // Recalcula los agregados del año natural en curso y sobrescribe el cache. Lo invoca el trigger nocturno.
 const recalcularEstadisticas = () => {
   const anyo = new Date().getFullYear();
+  const zonas = obtenerZonasEstadisticas();
   const reservas = obtenerFilas(obtenerHoja(HOJA_RESERVAS)).filter((fila) =>
     String(fila[COL_RES_ESTADO]).trim() !== ESTADO_RESERVA_CANCELADA &&
     aFecha(fila[COL_RES_INICIO]).getFullYear() === anyo);
 
   const ahora = new Date();
-  const datos = ZONAS_ESTADISTICAS.map((zona) => {
+  const datos = zonas.map((zona) => {
     const subset = zona === 'Todos' ? reservas : reservas.filter((f) => String(f[COL_RES_ESPACIO]).trim() === zona);
     const netos = subset.reduce((suma, f) => suma + (Number(f[COL_RES_NETO]) || 0), 0);
     return [zona, subset.length, netos, ahora];

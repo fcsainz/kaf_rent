@@ -16,11 +16,11 @@
 
   <main class="contenedor">
     <nav class="nav-secciones">
-      <button class="btn btn-primario btn-nav activo" data-seccion="inicio" onclick="navegar('inicio')">Inicio</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="crear" onclick="navegar('crear')">Crear Reserva</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="gestionar" onclick="navegar('gestionar')">Gestionar Reserva</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="estadisticas" onclick="navegar('estadisticas')">Estadísticas</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="gastos" onclick="navegar('gastos')">Gastos</button>
+      <button class="btn btn-primario btn-nav activo" data-seccion="inicio">Inicio</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="crear">Crear Reserva</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="gestionar">Gestionar Reserva</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="estadisticas">Estadísticas</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="gastos">Gastos</button>
     </nav>
 
     <section id="seccion-inicio" class="seccion activa">
@@ -158,6 +158,7 @@
               <div class="resumen-linea resumen-subtotal"><span>Importe bruto</span><span id="res-bruto">0,00 €</span></div>
               <div class="resumen-linea"><span>Comisión del canal</span><span id="res-comision">0,00 €</span></div>
               <div class="resumen-linea"><span>Coste de servicios</span><span id="res-coste">0,00 €</span></div>
+              <div class="resumen-linea" id="res-fijo-wrap" hidden><span>Coste fijo del canal</span><span id="res-fijo">0,00 €</span></div>
               <div class="resumen-linea resumen-total"><span>Importe neto</span><span id="res-neto">0,00 €</span></div>
               <p class="ayuda-campo">Cálculo orientativo; el importe definitivo se confirma al guardar.</p>
             </div>
@@ -181,7 +182,7 @@
             </fieldset>
 
             <div class="form-acciones">
-              <button type="button" class="btn btn-secundario" onclick="navegar('inicio')">Cancelar</button>
+              <button type="button" class="btn btn-secundario" id="btn-cancelar-crear">Cancelar</button>
               <button type="submit" class="btn btn-primario" id="btn-guardar-reserva">Guardar Reserva</button>
             </div>
           </div>
@@ -204,8 +205,8 @@
         </div>
         <div class="tabla-scroll">
           <table class="tabla-ancha">
-            <thead><tr><th></th><th>Estado</th><th>ID Reserva</th><th>Canal</th><th>Entrada</th><th>Salida</th><th>Check-in revisado</th><th>Check-out revisado</th><th>Nombre</th><th>Ingreso</th></tr></thead>
-            <tbody id="tabla-gestion"><tr><td colspan="10" class="vacio">Cargando…</td></tr></tbody>
+            <thead><tr><th></th><th>Estado</th><th>ID Reserva</th><th>Canal</th><th>Entrada</th><th>Salida</th><th>Personas</th><th>Check-in revisado</th><th>Check-out revisado</th><th>Nombre</th><th>Ingreso</th></tr></thead>
+            <tbody id="tabla-gestion"><tr><td colspan="11" class="vacio">Cargando…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -237,6 +238,16 @@
           <div><span class="dato-etq">Importe neto</span><span id="ed-neto"></span></div>
         </div>
         <p class="ayuda-campo" id="ed-auditoria"></p>
+
+        <div class="form-grupo" style="margin-bottom:var(--space-5)">
+          <span class="etiqueta-bloque">Editar servicios extra</span>
+          <div id="ed-lista-servicios" class="lista-servicios"></div>
+          <p class="ayuda-campo" id="ed-servicios-sin" hidden>No hay servicios configurados para este espacio.</p>
+          <div class="form-acciones" style="margin-top:var(--space-3)">
+            <button type="button" class="btn btn-secundario" id="btn-guardar-servicios">Guardar servicios</button>
+          </div>
+          <p class="ayuda-campo">Los servicios añadidos aquí no modifican la comisión del canal (acuerdo directo propietario-huésped).</p>
+        </div>
 
         <form id="form-edicion" novalidate>
           <fieldset class="bloque-contacto"><legend>Huésped</legend>
@@ -325,6 +336,9 @@
       <div class="panel">
         <h2>Estadísticas</h2>
         <p class="ayuda-campo">Las estadísticas se actualizan cada 24 horas. <span id="stats-actualizado"></span></p>
+        <div class="form-acciones" style="justify-content:flex-start;margin-bottom:var(--space-4)">
+          <button type="button" class="btn btn-secundario" id="btn-recalcular-stats">Recalcular ahora</button>
+        </div>
         <div id="stats-zonas" class="stats-zonas"></div>
       </div>
     </section>

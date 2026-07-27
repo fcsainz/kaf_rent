@@ -31,7 +31,7 @@ const ESQUEMA_HOJAS = [
       'Compensación_Daños', 'Incidencia_Resuelta', 'Estado_Reserva', 'Registro_Viajeros_Estado',
       'Checkin_Revisado', 'Checkout_Revisado',
       'Calendar_Event_Id', 'Notas', 'Registrado_Por', 'Fecha_Registro', 'Modificado_Por',
-      'Fecha_Última_Modificación', 'Video_In_Url', 'Video_Out_Url'],
+      'Fecha_Última_Modificación', 'Video_In_Url', 'Video_Out_Url', 'Coste_Canal_Fijo'],
   },
   {
     nombre: HOJA_RESERVA_SERVICIOS,
@@ -47,7 +47,7 @@ const ESQUEMA_HOJAS = [
   },
   {
     nombre: HOJA_CAT_CANALES,
-    cabeceras: ['Espacio', 'Nombre_Canal', 'Activo', '%_Comisión_Default', 'Gestión_Contrato'],
+    cabeceras: ['Espacio', 'Nombre_Canal', 'Activo', '%_Comisión_Default', 'Gestión_Contrato', 'Coste_Fijo_Por_Reserva'],
   },
   {
     nombre: HOJA_CAT_SERVICIOS,
@@ -78,6 +78,7 @@ const ESQUEMA_HOJAS = [
       ['Hora_CheckIn_Default', '16:00', 'Hora de entrada por defecto (modo Rango_Dias)'],
       ['Hora_CheckOut_Default', '12:00', 'Hora de salida por defecto (modo Rango_Dias)'],
       ['Tamano_Max_Contrato_MB', '5', 'Tamaño máximo del archivo de contrato (MB)'],
+      ['Tamano_Max_Video_MB', '100', 'Tamaño máximo del vídeo de check-in/out en MB (100 MB evita cuelgues en móvil)'],
       ['Valor_Construccion', '', 'Valor de construcción del inmueble — amortización IRPF (ADR-0012)'],
       ['Proporcion_Alquilada', '', 'Proporción alquilada de la vivienda — amortización IRPF (ADR-0012)'],
       ['Carpeta_Raiz_Id', '', 'ID de la carpeta raíz del proyecto en Drive — KAF. KAF Rent (ADR-0014)'],

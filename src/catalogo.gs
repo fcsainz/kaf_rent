@@ -9,6 +9,7 @@ const COL_CAN_NOMBRE           = 1;
 const COL_CAN_ACTIVO           = 2;
 const COL_CAN_COMISION_DEFAULT = 3;
 const COL_CAN_GESTION_CONTRATO = 4;
+const COL_CAN_COSTE_FIJO       = 5;
 
 const COL_SRV_ESPACIO = 0;
 const COL_SRV_NOMBRE  = 1;
@@ -39,6 +40,7 @@ const obtenerCanalesActivos = (espacio) => {
       nombre: String(fila[COL_CAN_NOMBRE]).trim(),
       comision: fila[COL_CAN_COMISION_DEFAULT] === '' ? '' : Number(fila[COL_CAN_COMISION_DEFAULT]),
       gestionContrato: String(fila[COL_CAN_GESTION_CONTRATO]).trim(),
+      costeFijo: Number(fila[COL_CAN_COSTE_FIJO]) || 0,
     }));
 };
 

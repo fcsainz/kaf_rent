@@ -7,6 +7,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [Unreleased]
 
 ### Added
+- **Coste fijo del canal en resumen de Crear Reserva:** cuando se selecciona un canal con `Coste_Fijo_Por_Reserva` (ej. seguro Cocopool 9,50 €), aparece una línea "Coste fijo del canal" en el resumen económico y se descuenta del `Importe_Neto`. La línea se oculta si el canal no tiene coste fijo. Campo rastreado en `costeFijoCanal` (variable de módulo en `cliente.html`); incluido ya en el campo `Coste_Canal_Fijo` del Sheet y en el recálculo autoritativo del servidor (ver ADR-0003).
+- **Columna "Personas" en la lista de Gestionar Reserva:** muestra el total de ocupantes (`Adultos + Menores`) entre "Salida" y "Check-in revisado". Los campos `adultos` y `menores` se añadieron a la proyección `mapearReservaGestion` en `gestion.gs` (antes solo estaban en `obtenerReserva`).
+- **Utilidad `sincronizarReservasCalendario` en `calendario.gs`:** función de mantenimiento (solo uso desde el editor de Apps Script, no expuesta en la UI) que recorre todas las reservas no canceladas y crea los eventos de Calendar que falten, escribiendo el `Calendar_Event_Id` de vuelta en el Sheet. Diseñada para el alta inicial del calendario y la reconciliación manual ante fallos (ver ADR-0010).
+
+### Changed
+- **`executeAs: USER_DEPLOYING`** en `appsscript.json`: la Web App pasa a ejecutarse como `operaciontangai@gmail.com` en lugar de como el usuario que accede. Esto permite que `CalendarApp.getCalendarById()` encuentre el calendario del grupo (que solo existe en la cuenta operativa) y que las operaciones de Drive y Sheets funcionen sin tener que compartir cada recurso con cada cuenta personal. La identificación del usuario para auditoría y control de acceso se mantiene mediante `Session.getActiveUser().getEmail()`, que sigue devolviendo el correo real de quien accede (ver ADR-0001 actualizado).
+- **Botón "Sincronizar calendario" eliminado de la UI:** la sincronización automática ocurre al crear (en `guardarReservaConBloqueo`) y al cancelar (en `cancelarReserva`). El botón de sincronización manual se eliminó de la sección Estadísticas; la función `sincronizarReservasCalendario` sigue disponible en el editor para uso puntual de mantenimiento.
+
+---
+
+## [2.0.0] - 2026-06-29
+
+### Added
 - **Sprint 6 — Gastos / IRPF (ADR-0012):** `gastos.gs` con registro de gastos (con justificante en Drive, `Documentos/Gastos/{Ejercicio}/`, US-027), catálogo de categorías con deducible por defecto, y resumen fiscal por ejercicio y espacio con reparto a tercios (US-028): ingresos íntegros (de `Reservas`), gastos deducibles (comisiones + gastos registrados + amortización de `Config`), rendimiento neto y tercio por comunero; se persiste en `Resumen_Fiscal`. Nueva sección "Gastos" en la navegación (`gastos.html`). Gastos comunes repartidos 50/50 entre espacios.
 - **Sprint 2 (cierre) — Inicio y Buscar:** capa de lectura de reservas en `reservas.gs` con endpoints `cargarUltimasReservas` (5 últimas, tabla ordenable por columna, US-004) y `buscarReservas` (por nombre y/o fecha, US-022). Panel "Buscar Reserva" en la sección Crear.
 - **Sprint 4 — Gestionar Reserva:** `gestion.gs` (lista de activas con filtros rápidos US-023; edición con auditoría campo a campo en `Historial_Cambios` US-015; ciclo de vida automático de `Estado_Reserva` US-016; cancelación con confirmación + aviso de reapertura US-018/020; historial US-019). `drive.gs` (subida de contrato US-017 y vídeos in/out US-030 a `Documentos|Videos / Espacio / reserva`, ADR-0014). `calendario.gs` (evento de ocupación por reserva, color por espacio, US-026/ADR-0010). UI de Gestionar (lista + edición + subidas + historial + modal de cancelación) y de Estadísticas en `gestion.html`. **Alcance v1:** la edición no permite cambiar espacio/canal/fechas/servicios (esos campos son de solo lectura para no recalcular solapamientos); el resto de campos sí.
@@ -66,5 +79,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Documentos de solución iniciales: SDD y ADR-0001 a ADR-0006.
 - `CLAUDE.md` con los estándares de código, documentación y principios de calidad del proyecto.
 
-[Unreleased]: estado de trabajo actual, pendiente de consolidar en una versión.
+[Unreleased]: cambios post-2.0 pendientes de consolidar en una versión.
+[2.0.0]: versión inicial completa — toda la funcionalidad de Fase 1 desplegada.
 [0.5.0]: línea base de documentación de discovery y diseño.

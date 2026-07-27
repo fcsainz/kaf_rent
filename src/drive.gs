@@ -39,7 +39,7 @@ const subirVideo = (id, momento, archivo) => {
   try {
     if (!sesionAutorizada()) return { success: false, error: 'Sesión no autorizada.' };
     if (momento !== 'In' && momento !== 'Out') return { success: false, error: 'Momento de vídeo no válido.' };
-    const validacion = validarArchivo(archivo, TIPOS_VIDEO, 0);
+    const validacion = validarArchivo(archivo, TIPOS_VIDEO, Number(obtenerConfig('Tamano_Max_Video_MB', 100)));
     if (!validacion.valido) return { success: false, error: validacion.error };
 
     const hoja = obtenerHoja(HOJA_RESERVAS);
@@ -95,8 +95,17 @@ const guardarArchivo = (carpeta, archivo, nombre) => {
   return carpeta.createFile(blob).getUrl();
 };
 
-// Palabra clave del espacio para localizar su subcarpeta (tolerante: "KAF. VIdeos in-out - Piscina|Habitacion").
-const palabraEspacio = (espacio) => (String(espacio).indexOf('Habita') !== -1 ? 'Habitaci' : 'Piscina');
+// Mapa explícito espacio → texto parcial que aparece en el nombre de la carpeta de Drive.
+// Al añadir un nuevo espacio, basta con añadir aquí su entrada.
+const PALABRAS_ESPACIO = {
+  'Piscina / Jardín':    'Piscina',
+  'Habitación Interior': 'Habitaci',
+};
+
+const palabraEspacio = (espacio) => {
+  const clave = String(espacio).trim();
+  return PALABRAS_ESPACIO[clave] ?? clave.split(/[\s/]/)[0].slice(0, 8);
+};
 
 const buscarSubcarpetaPorTexto = (padre, texto) => {
   const t = String(texto).toLowerCase();
