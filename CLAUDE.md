@@ -1,509 +1,431 @@
 # CLAUDE.md — KAF Rent
 
-Guía de estándares y convenciones para el desarrollo del proyecto. Claude debe seguir estas reglas en todas las interacciones con este repositorio.
+Reglas de trabajo, estándares y convenciones del proyecto. **Claude las sigue en todas las interacciones con este repositorio.** Si una regla choca con una petición concreta del usuario, se señala el conflicto y se pide instrucción; no se elige por él.
+
+**Índice:** §0 Arranque de sesión · §1 Proyecto y mapa · §2 Colaboración con Claude (decisiones, commits, revisiones, próximos pasos) · §3 Principios de diseño · §4 Estándar de código · §5 Documentación y trazabilidad · §6 UX/UI · §7 Tests · §8 Definition of Ready / Done
 
 ---
 
-## Proyecto
+## 0. Arranque de cada sesión (obligatorio)
 
-**KAF Rent** — Webapp de gestión de alquileres sobre Google Apps Script + Google Sheets.  
-**Stack:** Google Apps Script (`.gs` = JavaScript), HTML Service, Google Sheets como base de datos, Google Drive, Gmail.  
-**Desarrollador único:** co-propietario técnico. Los otros dos usuarios son no técnicos.
+Al retomar el trabajo, **antes de nada**, Claude:
 
----
-
-## 1. Documentación: Estándar PRD Ágil
-
-Toda la documentación de requisitos y discovery sigue el estándar de **Product Requirements Document (PRD) ágil**, organizado en las tres capas siguientes. Los documentos viven en `docs/discovery/`.
-
-### Capas del PRD
-
-| Capa | Documentos | Propósito |
-|---|---|---|
-| **Estratégica** | Product Vision, Personas, Problem Statement | El "por qué" y "para quién" |
-| **Táctica** | Story Map, User Stories, NFR | El "qué" construimos exactamente |
-| **Ejecución** | Definition of Done, Risk Register, Roadmap | El "cuándo" y "con qué garantías" |
-
-### Reglas de documentación
-
-- Cada documento de discovery lleva frontmatter: `versión`, `fecha`, `estado`, `framework de referencia`.
-- Las **User Stories** siguen el formato: `Como [persona], quiero [acción] para [beneficio]`.
-- Los **criterios de aceptación** se escriben siempre en formato **Gherkin** (`Given / When / Then`).
-- La **priorización** usa el método **MoSCoW** (Must / Should / Could / Won't).
-- Las **personas** se definen con el template de Nielsen Norman Group.
-- El **Story Map** sigue el framework de Jeff Patton (actividades → tareas → historias por release).
-- Los **NFR** se organizan por las características de calidad de **ISO/IEC 25010**.
-- El **Risk Register** sigue el formato **PMI/PMBOK** (probabilidad × impacto = exposición).
-- El **Roadmap** usa cadencia de sprints de 2 semanas con milestones explícitos.
-
-### Actualización de documentos
-
-- Cuando se implementa una feature que cambia el diseño documentado en un ADR, actualizar el ADR correspondiente en `docs/solution/`.
-- Cuando el alcance de un sprint cambia, actualizar `docs/discovery/09_roadmap.md`.
-- El `SDD.md` en `docs/solution/` es el documento vivo del estado actual del sistema.
+1. Lee [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md).
+2. Muestra al usuario:
+   - **§0 Decisiones pendientes del usuario** (si las hay), primero.
+   - La **tabla de sprints pendientes**: nº, objetivo, resumen corto de su contenido, estimación en horas y estado.
+3. Señala cualquier cosa del repo que contradiga ese documento (cambios sin commitear, ficheros nuevos…).
+4. Espera a que el usuario elija qué se hace. No empieza trabajo por su cuenta.
 
 ---
 
-## 2. Estándar de Código: JavaScript / Google Apps Script
+## 1. Proyecto y mapa del repositorio
 
-Aunque los ficheros tienen extensión `.gs`, el lenguaje es **JavaScript moderno (ES2019+)**. Google Apps Script ejecuta el código en el motor V8 desde 2020, por lo que se puede usar sintaxis moderna.
+**KAF Rent** — webapp de gestión de alquileres (Piscina/Jardín y Habitación Interior de Calle 16) sobre **Google Apps Script + Sheets + Drive + Calendar + Gmail**, con **coste cero**.  
+**Equipo:** un copropietario desarrollador (único mantenedor) y dos copropietarios no técnicos (la referencia de usabilidad).
 
-### 2.1 Sintaxis y estilo general
+```
+.
+├── CLAUDE.md               # Este documento: reglas de trabajo y estándares
+├── PROXIMOS_PASOS.md       # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
+├── CHANGELOG.md            # Keep a Changelog + SemVer
+├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
+├── package.json            # Solo herramientas de desarrollo (npm test); nada se despliega
+├── .github/workflows/      # CI gratuita: tests en cada push
+├── tests/                  # Tests: soporte/ (cargador vm + dobles de Google), dominio/, endpoints/
+├── docs_dev/               # Desarrollo del producto: código y su documentación
+│   ├── src/                # Código Apps Script (.gs + HTML Service); rootDir de clasp
+│   ├── DEVELOPMENT.md      # Puesta en marcha, clasp, despliegue y día a día
+│   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
+│   └── solution/           # CÓMO: arc42.md, adr/ (MADR), design-system.md
+└── docs_work/
+    └── docs_ses/           # (propósito por definir, ver PROXIMOS_PASOS D-11)
+```
 
-- Usar `const` por defecto. Usar `let` solo si la variable necesita reasignarse. **Nunca `var`**.
-- **Arrow functions** para callbacks y funciones anónimas cortas: `const fn = (x) => x * 2`.
-- **Template literals** en lugar de concatenación: `` `Hola ${nombre}` `` en vez de `'Hola ' + nombre`.
-- **Destructuring** cuando se extraen múltiples propiedades de un objeto o array.
-- **Default parameters** en lugar de comprobaciones manuales dentro de la función.
-- **Optional chaining** (`?.`) y **nullish coalescing** (`??`) cuando el motor V8 de GAS lo soporte.
-- Punto y coma al final de cada sentencia (no confiar en ASI).
-- Comillas simples `'` para strings, salvo en template literals o cuando el string contiene comillas simples.
+---
 
-### 2.2 Nomenclatura
+## 2. Reglas de colaboración con Claude
+
+### 2.1 Ninguna decisión sin explicarla y sin OK del usuario
+
+Claude **no toma decisiones por su cuenta**. Cuando algo admite más de una opción razonable, lo explica y **espera un OK explícito** ("ok", "adelante", "opción B"…). El silencio o un "vale" a otra cosa no cuentan como aprobación, y la aprobación de una decisión no se extiende a otras.
+
+**Qué es una decisión (requiere OK):**
+- Arquitectura, patrones, estructura de ficheros o capas.
+- Añadir, quitar o cambiar dependencias, herramientas o servicios.
+- Cambios en el modelo de datos (hojas, columnas, IDs), en reglas de negocio o en el comportamiento visible.
+- Alcance, prioridades, renombrados, borrados o movimientos de ficheros.
+- Crear o cambiar un ADR, una regla de este documento o el formato de un documento.
+- Cualquier refactorización.
+
+**Qué NO es una decisión (se hace sin preguntar, informando después):**
+- Corregir erratas, enlaces rotos o documentación que no refleja lo implementado.
+- Aplicar una regla ya aprobada en este documento.
+- Corregir un defecto cuando el comportamiento correcto ya está fijado sin ambigüedad en una HU, un RF o un ADR aprobados. Si hay ambigüedad, es decisión.
+
+**Cómo se presenta una decisión** (de lo más sencillo a lo más técnico):
+
+```markdown
+### D-NN — {Título}
+**Qué hay que decidir (en llano):** una o dos frases sin jerga.
+**Por qué ahora:** qué lo provoca y qué bloquea.
+
+| | Opción A (recomendada) | Opción B | … |
+|---|---|---|---|
+| En llano | qué supone para el usuario | … | |
+| Técnico | qué cambia en el código o la documentación | … | |
+| Pros | … | … | |
+| Contras / riesgos | … | … | |
+| Esfuerzo | horas estimadas | … | |
+| Reversibilidad | fácil / costosa / irreversible | … | |
+
+**Recomendación:** opción y motivo.
+**Si no se decide:** qué queda bloqueado.
+```
+
+Las decisiones que no se resuelven en la sesión se anotan en **PROXIMOS_PASOS §0**. Las aprobadas que sean de arquitectura se registran como ADR (§5.5).
+
+### 2.2 Commits: solo al final de la sesión y los hace el usuario
+
+- **Claude nunca hace `git commit` ni `git push`.** Puede usar `git mv` / `git rm` para reorganizar si el usuario lo aprueba, pero el commit es siempre del usuario.
+- **Cierre de sesión**, siempre en este orden:
+  1. El usuario pide la **revisión de cierre**.
+  2. Claude ejecuta la **Revisión 1** y la **Revisión 2** (§2.3) sobre **todo el repositorio**, no solo sobre lo tocado.
+  3. Claude **corrige** lo que no dependa de una decisión del usuario (§2.1) y lo informa.
+  4. Claude **muestra en el chat el informe de las dos revisiones** (formato abajo), con todos los hallazgos, corregidos o no. El informe es obligatorio: sin él no hay propuesta de commit.
+  5. Lo que dependa de una decisión se anota **en la primera sección (§0) de PROXIMOS_PASOS.md**, con el formato de §2.1.
+  6. Claude **regenera PROXIMOS_PASOS.md** (§2.4) y actualiza `CHANGELOG.md` → `[Unreleased]`.
+  7. Claude **propone un mensaje de commit corto**: una línea de ≤ 72 caracteres con la convención del histórico (`vX.Y Resumen en imperativo`) y, si hace falta, 2–4 viñetas de cuerpo.
+  8. El usuario revisa y hace el commit.
+
+### 2.3 Doble revisión de cierre
+
+**Informe en el chat** (paso 4): para cada revisión, (1) qué se ha comprobado y cómo (comprobaciones automáticas y manuales), (2) una tabla `# | Severidad (Crítica/Alta/Media/Baja) | Tipo | Ubicación (fichero:línea) | Hallazgo | Acción (corregido / decisión D-NN / backlog B-NN)` y (3) un resumen con el recuento por severidad y por acción. Al final, el resultado de los tests (`npm test`) tal cual, sin maquillar.
+
+**Revisión 1 — Coherencia, huecos y relaciones**
+- Cada documento refleja el estado real del código: DEVELOPMENT, arc42 (modelo de datos, `Config`, módulos), ADR y estados de HU, RF y RNF.
+- Trazabilidad completa (§5.4): ningún P sin HU, HU sin RF, RF sin origen ni justificación, o RNF sin origen ni justificación. IDs únicos y referencias cruzadas válidas.
+- Enlaces internos rotos, secciones citadas que no existen (p. ej. "CLAUDE.md §X").
+- Cuestiones abiertas de los ADR reflejadas en PROXIMOS_PASOS; riesgos nuevos en arc42 §11.
+- Coherencia técnica entre ficheros: constantes `COL_*` y `ESQUEMA_HOJAS`, claves de `Config` usadas frente a sembradas, endpoints llamados desde el cliente frente a los existentes, nombres de HTML frente a los `include`.
+- Lo que falta: requisitos implícitos sin documentar, casos límite sin HU, decisiones tomadas en el código sin ADR.
+
+**Revisión 2 — Semántica y código**
+- Principios (§3) y estándar de código (§4): SRP, DRY, KISS, YAGNI, niveles de abstracción, nombres, números mágicos, código muerto, comentarios obsoletos.
+- Corrección: bugs, casos límite (vacíos, `null`, fechas, zonas horarias, concurrencia), coherencia entre cliente y servidor.
+- Seguridad: autorización en toda función expuesta (sufijo `_` en las internas), validación en servidor, escape de HTML (XSS), secretos o IDs en el código.
+- Fiabilidad: errores registrados, sin fallos silenciosos, atomicidad, locks.
+- Rendimiento: llamadas a Sheets, Drive o Calendar dentro de bucles.
+- UX/UI (§6) y accesibilidad.
+- Tests: se ejecutan (`npm test` cuando exista) y cubren lo tocado; se informa del resultado real, sin maquillarlo.
+
+### 2.4 PROXIMOS_PASOS.md: sprints autogenerados
+
+**Framework:** Scrum adaptado a un desarrollador único: **sprints por objetivo, sin duración fija** (se trabajan en ratos libres y se cierran cuando se cumple su objetivo), *product backlog* priorizado y estimación en tallas convertidas a horas (XS ≤ 1 h · S ≈ 2 h · M ≈ 4–6 h · L ≈ 8–16 h · XL: dividir).
+
+**Estructura fija del documento:**
+- §0 Decisiones pendientes del usuario (siempre la primera).
+- §1 Tabla de sprints pendientes: sprint, objetivo, contenido resumido, estimación y estado.
+- §2 Backlog completo con IDs.
+- §3 Histórico de sprints completados.
+- §4 Cómo se regenera.
+
+**Regeneración al final de cada sesión**, a partir de estas fuentes (sin inventar tareas):
+1. Decisiones abiertas (§2.1).
+2. HU, RF y RNF con estado distinto de ✅.
+3. Defectos (`B-NN`) y deuda técnica (`REF-NN`, `TD-NN`) de la revisión y de arc42 §11.2.
+4. "Cuestiones abiertas" de cada ADR.
+5. Riesgos abiertos que requieran acción.
+6. Tareas externas (`EXT-NN`: gestor, legal…).
+
+**Orden de prioridad para agrupar en sprints:** (1) seguridad y pérdida de datos → (2) defectos de requisitos Must → (3) habilitadores de calidad (tests, CI) → (4) Must/Should pendientes → (5) deuda técnica → (6) Could → (7) fases futuras. Cada sprint tiene un objetivo único y un tamaño manejable (orientativo ≤ 20 h).
+
+### 2.5 Reglas generales
+
+- Antes de crear un fichero, comprobar si ya existe uno donde encaje. Preferir editar a crear.
+- No añadir funcionalidades ni refactorizaciones no pedidas (y, si se ven necesarias, proponerlas como decisión, §2.1).
+- Informar con fidelidad: si algo falla o no se ha verificado, se dice.
+- Idioma: español en documentación, UI, commits y nombres de dominio.
+- Riesgo nuevo detectado → arc42 §11.1. Decisión de diseño que cambia → ADR (§5.5) **antes** de seguir.
+
+---
+
+## 3. Principios de diseño
+
+Referencias: *Clean Code* y *Clean Architecture* (R. C. Martin), *The Pragmatic Programmer* (Hunt & Thomas).
+
+### 3.1 SOLID, adaptado a Apps Script (JavaScript funcional, sin clases)
+
+| Principio | Cómo se aplica aquí |
+|---|---|
+| **S** — Responsabilidad única | Una función = una razón para cambiar. Un fichero `.gs` = un módulo de negocio. Validar, calcular, persistir y notificar son funciones distintas. |
+| **O** — Abierto/cerrado | Ampliar por datos, no por código: espacios, canales y servicios nuevos son filas de catálogo, no `if` nuevos. Las tablas de dominio (p. ej. colores por espacio) se leen de configuración. |
+| **L** — Sustitución de Liskov | Los dobles de test (Sheets, Drive, Calendar falsos) cumplen el mismo contrato que el servicio real; si no, el test no vale. |
+| **I** — Segregación de interfaces | Los endpoints devuelven proyecciones mínimas por pantalla (`mapearReservaListado`, `mapearReservaGestion`), no la fila entera. |
+| **D** — Inversión de dependencias | El dominio no llama a `SpreadsheetApp`, `DriveApp`… Recibe datos o funciones como parámetros; solo los adaptadores tocan servicios de Google (§3.3). |
+
+### 3.2 KISS · DRY · YAGNI · otros
+
+| Principio | Regla |
+|---|---|
+| **KISS** | La solución más simple que cumple el requisito. Nada de capas o abstracciones "por si acaso". |
+| **DRY** | Una regla de negocio vive en un solo sitio. Dos repeticiones → valorar extraer; tres → obligatorio. También aplica al conocimiento en documentos: se enlaza, no se copia. |
+| **YAGNI** | Solo lo que pide una HU, un RF o un RNF actual. |
+| **Guard clauses / fail fast** | Errores primero y retorno temprano; la lógica principal, sin anidar. |
+| **Sin efectos ocultos** | El nombre revela los efectos (`guardar…`, `enviar…`, `registrar…`); las funciones `calcular…`, `validar…` y `es…` son puras. |
+| **Inmutabilidad** | No mutar parámetros; devolver valores nuevos (`slice()`, spread). |
+| **Sin magia** | Todo literal con significado de negocio es una constante con nombre. |
+| **Ley de Demeter** | Pedir lo que se necesita, no navegar cadenas de objetos ajenos. |
+
+### 3.3 Clean Architecture ligera (implantada en v2)
+
+Una Clean Architecture completa (entidades, casos de uso, puertos, adaptadores, inyección de dependencias) sería desproporcionada en Apps Script e iría contra KISS y YAGNI. Se aplica una versión de **tres capas** con dependencias hacia dentro:
+
+| Capa (prefijo de fichero) | Contiene | Puede usar | Nunca |
+|---|---|---|---|
+| **API** (`api_*.gs`) | Endpoints de `google.script.run` y entradas del sistema (triggers, menú, editor), siempre a través de `ejecutarEndpoint_` / `ejecutarTareaDelSistema_` | Dominio e infraestructura | Reglas de negocio |
+| **Dominio** (`dominio_*.gs`) | Funciones **puras**: validaciones, importes, estado, solapamiento, IDs, agregados, fiscalidad | Otras funciones de dominio y utilidades puras (fechas, `texto_`, `numero_`) | Servicios de Google, `new Date()` implícito (la fecha "ahora" se pasa como parámetro) |
+| **Infraestructura** (`infra_*.gs`) | Esquema, repositorios (Sheets por campo) y adaptadores (Drive, Calendar, Mail, Config), utilidades comunes | Servicios de Google | Reglas de negocio |
+| **Presentación** (`*.html`) | Interfaz: plantillas y JS de cliente | Solo los endpoints | Reglas autoritativas (el servidor revalida) |
+
+- **La capa se ve en el nombre del fichero** (`api_`, `dominio_`, `infra_`) **y en su primera línea** (`// Capa: DOMINIO — …`). Un fichero pertenece a una sola capa.
+- **Sin dependencias entre ficheros al cargar:** Apps Script no garantiza el orden de carga; ninguna constante de nivel superior puede usar otra de otro fichero (un test carga los ficheros en orden inverso).
+- Mapa completo de ficheros: [arc42 §5.2](docs_dev/solution/arc42.md#52-nivel-2--capas-y-ficheros-del-servidor-clean-architecture-ligera).
+
+### 3.4 Código limpio, claro, robusto y eficiente — resumen
+
+| | Regla de oro |
+|---|---|
+| Limpio | Nombres que revelan la intención; sin código muerto ni bloques comentados |
+| Claro | Un nivel de abstracción por función; orden: validar → calcular → efecto → retorno |
+| Robusto | Casos límite explícitos (vacío, `null`, hoja inexistente); nunca un `catch` vacío salvo en el propio logger |
+| Eficiente | Llamadas a la API de Google en bloque, nunca en bucles; `find` antes que `filter()[0]`; sin optimizar sin medir |
+
+---
+
+## 4. Estándar de código: JavaScript / Google Apps Script
+
+Los `.gs` son **JavaScript moderno (V8, ES2019+)**.
+
+### 4.1 Sintaxis
+- `const` por defecto, `let` si se reasigna, **nunca `var`**.
+- Arrow functions, template literals, destructuring, parámetros por defecto, `?.` y `??`.
+- Punto y coma siempre; comillas simples salvo en template literals.
+
+### 4.2 Nomenclatura
 
 | Elemento | Convención | Ejemplo |
 |---|---|---|
-| Variables y funciones | `camelCase` | `fechaInicio`, `obtenerReservas` |
-| Constantes de módulo / config | `UPPER_SNAKE_CASE` | `NOMBRE_HOJA_RESERVAS` |
-| Clases (si se usan) | `PascalCase` | `GestorReservas` |
-| Archivos `.gs` | `camelCase` o `kebab-case` descriptivo | `reservas.gs`, `notificaciones.gs` |
-| Sheets y rangos | Nombres exactos de la hoja entre comillas simples | `'Reservas'`, `'Config'` |
-| IDs de columna | Constantes con nombre descriptivo, no números mágicos | `const COL_ESTADO = 5` |
+| Variables y funciones | `camelCase`, verbo en funciones | `obtenerReservas`, `calcularImportesReserva` |
+| **Todo lo interno del servidor** (funciones y variables) | **sufijo `_`** (Apps Script no expone a `google.script.run` lo que termina en `_`) | `haySolapamiento_`, `cacheConfig_` |
+| Constantes | `UPPER_SNAKE_CASE` | `HOJA_RESERVAS`, `ESTADO_RESERVA` |
+| Ficheros `.gs` | `<capa>_<módulo>.gs` | `api_reservas.gs`, `dominio_reservas.gs`, `infra_drive.gs` |
+| HTML que comparte nombre con un `.gs` | sufijo `_interfaz` | `gestion_interfaz.html` |
+| Hojas | Nombre exacto, en constante de `infra_esquema.gs` | `HOJA_RESERVAS = 'Reservas'` |
+| Columnas | Campo lógico del esquema, nunca un número de columna | `reserva.estado` ↔ `Estado_Reserva` (`CAMPOS_RESERVA`) |
 
-### 2.3 Estructura de ficheros `.gs`
+### 4.3 Estructura de ficheros
+Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 §5.2](docs_dev/solution/arc42.md#52-nivel-2--capas-y-ficheros-del-servidor-clean-architecture-ligera), que es la fuente de verdad de la lista de ficheros. Al añadir, renombrar o borrar un fichero con clasp basta `push`; con copia/pega hay que borrar también el fichero antiguo en el editor (dos definiciones de la misma constante rompen la app).
 
-Organizar el código en ficheros por responsabilidad, no en un único fichero monolítico:
+### 4.4 Acceso a Sheets y eficiencia
+- Leer en bloque (`getValues()` del rango completo) y escribir en bloque (`setValues()`); nunca `getValue` o `setValue` dentro de bucles.
+- Cachear `Spreadsheet` y `Config` dentro de una ejecución (`obtenerSpreadsheet_`, `leerConfig_`).
+- Acceder siempre **por campo** con las utilidades de tabla de `infra_comun.gs` (`leerTabla_`, `anadirRegistro_`, `actualizarRegistro_`, `reescribirFilas_`), nunca por número de columna.
+- `LockService.getScriptLock()` en toda escritura que pueda ser concurrente.
+- Operaciones de reescritura **atómicas**: calcular todo en memoria y escribir en una sola operación; nunca `clearContents()` seguido de otra escritura que pueda fallar.
 
-```
-Code.gs           — doGet(), punto de entrada de la webapp
-auth.gs           — verificación de usuario autorizado, logging de acceso
-reservas.gs       — CRUD de reservas, validación de solapamientos
-catalogo.gs       — lectura de catálogos (espacios, canales, servicios)
-auditoría.gs      — escritura en Historial_Cambios y Logs
-notificaciones.gs — envío de emails (cierre/apertura canales, informes)
-drive.gs          — subida de contratos a Google Drive
-config.gs         — lectura de parámetros desde la hoja Config
-informes.gs       — generación de informes trimestrales
-utils.gs          — funciones de utilidad transversales (validaciones, fechas)
-```
+### 4.5 Funciones
+- Responsabilidad única; ~30 líneas como máximo; si crece, dividir.
+- Separar la lógica de negocio del acceso a datos (§3.3).
 
-### 2.4 Funciones
+### 4.6 Manejo de errores
+- `try/catch` en todo endpoint y en toda llamada a servicios de Google que pueda fallar.
+- En el `catch`: `registrarError_(funcion, error, contexto)` (el contexto sin datos personales del huésped) y devolver `{ success: false, error: 'Mensaje para el usuario' }` (qué pasó y qué hacer).
+- Integraciones secundarias (Calendar, Mail) capturan su propio error y **no** bloquean la operación principal.
+- Nunca un `catch` vacío (excepción única: dentro de `registrarLog_`/`registrarError_`, con comentario).
 
-- Funciones cortas con **responsabilidad única** (una función = una cosa).
-- Máximo ~30 líneas por función. Si crece más, dividir.
-- Nombres de función como verbos descriptivos: `crearReserva`, `validarSolapamiento`, `enviarAvisoCierre`.
-- Las funciones que acceden a Sheets deben aceptar el objeto `sheet` como parámetro (no buscarlo internamente) para facilitar pruebas.
-- Separar la lógica de negocio del acceso a datos: una función que valida solapamientos no debe también escribir en la Sheet.
+### 4.7 Comunicación cliente-servidor y validación
+- Respuesta siempre `{ success: boolean, data?: any, error?: string }`.
+- Cliente: `.withSuccessHandler()` **y** `.withFailureHandler()` siempre; botón deshabilitado durante la llamada.
+- Validación **en dos capas**: cliente (inmediatez) y servidor (autoritativa). Las funciones de validación devuelven `{ valido, error? }` y son puras.
 
-```javascript
-// Bien: responsabilidad única, parámetros claros
-const calcularImporteNeto = (importeBruto, porcentajeComision, gastosAsociados) => {
-  const comision = importeBruto * (porcentajeComision / 100);
-  return importeBruto - comision + gastosAsociados;
-};
+### 4.8 Seguridad
+- **Todo endpoint pasa por `ejecutarEndpoint_`** (autorización + errores + bloqueo opcional). Todo lo no pensado para el cliente lleva sufijo `_`. Las entradas que Google necesita públicas (triggers, menú, editor) pasan por `ejecutarTareaDelSistema_`. Un test impide que aparezcan funciones públicas nuevas sin estar en la lista permitida.
+- Nada de emails, IDs de hoja, carpeta o calendario ni credenciales en el código: van en `Config`.
+- Nunca confiar en datos del cliente: revalidar tipos, rangos, valores de dominio y existencia en catálogos.
+- Escapar todo dato de usuario antes de insertarlo como HTML (`textContent` o una función de escape); nunca `innerHTML` con datos sin escapar.
 
-// Mal: mezcla lógica de negocio con acceso a datos
-function calcularYGuardarImporte(idReserva) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName('Reservas');
-  // ...hace demasiadas cosas
-}
-```
-
-### 2.5 Manejo de errores
-
-- Envolver en `try/catch` toda llamada a APIs de Google (Sheets, Drive, MailApp) — pueden fallar por cuotas o permisos.
-- En el `catch`, registrar el error en la hoja `Errores` con: timestamp, función, mensaje de error, datos de contexto.
-- **Nunca** silenciar un error con un `catch` vacío.
-- Devolver errores al cliente con un objeto estructurado: `{ success: false, error: 'Mensaje para el usuario' }`.
-- El cliente (HTML/JS) muestra siempre feedback al usuario cuando una operación falla.
-
-```javascript
-const guardarReserva = (datos) => {
-  try {
-    // lógica de guardado
-    return { success: true, id: idGenerado };
-  } catch (error) {
-    registrarError('guardarReserva', error, datos);
-    return { success: false, error: 'No se pudo guardar la reserva. Inténtalo de nuevo.' };
-  }
-};
-```
-
-### 2.6 Acceso a Google Sheets
-
-- **Nunca** usar números de columna hardcodeados en el código. Definir constantes en la parte superior del fichero.
-- Leer filas completas de una vez (`getValues()`) en lugar de celda a celda para minimizar llamadas a la API.
-- Usar `LockService.getScriptLock()` en operaciones de escritura que puedan ejecutarse concurrentemente.
-- Cachear la referencia al `Spreadsheet` y a los `Sheet` dentro de una ejecución; no llamar a `getSheetByName` repetidamente.
-
-```javascript
-// Constantes de columna — definir al inicio del fichero
-const COL_ID_RESERVA        = 1;
-const COL_ESPACIO           = 2;
-const COL_ESTADO_RESERVA    = 3;
-// ...
-
-// Leer en bloque, no celda a celda
-const obtenerTodasLasReservas = (sheet) => {
-  const datos = sheet.getDataRange().getValues();
-  return datos.slice(1); // omitir cabecera
-};
-```
-
-### 2.7 Comunicación cliente-servidor (GAS HTML Service)
-
-- Usar `google.script.run` para llamadas desde el cliente al servidor GAS.
-- Siempre encadenar `.withSuccessHandler()` y `.withFailureHandler()` — nunca dejar llamadas sin manejar errores.
-- El servidor devuelve siempre un objeto `{ success: boolean, data?: any, error?: string }`.
-- Deshabilitar el botón de submit mientras una llamada está en vuelo para evitar dobles envíos.
-
-```javascript
-// Cliente (HTML/JS)
-const guardarFormulario = () => {
-  const boton = document.getElementById('btn-guardar');
-  boton.disabled = true;
-
-  google.script.run
-    .withSuccessHandler((resultado) => {
-      boton.disabled = false;
-      if (resultado.success) {
-        mostrarMensajeExito('Reserva guardada correctamente');
-      } else {
-        mostrarError(resultado.error);
-      }
-    })
-    .withFailureHandler((error) => {
-      boton.disabled = false;
-      mostrarError('Error inesperado. Inténtalo de nuevo.');
-    })
-    .guardarReserva(obtenerDatosFormulario());
-};
-```
-
-### 2.8 Validación
-
-- Validar **siempre en dos capas**: cliente (inmediatez) y servidor (seguridad).
-- La validación del servidor es la autoritativa — el cliente solo mejora la UX.
-- Las funciones de validación devuelven `{ valido: boolean, mensaje?: string }`.
-- No mezclar validación con lógica de negocio ni con acceso a datos.
-
-### 2.9 Comentarios
-
-- **Por defecto no escribir comentarios.** El código bien nombrado se explica solo.
-- Escribir un comentario solo cuando el **POR QUÉ** es no obvio: una restricción oculta, un workaround para un bug de GAS, un invariante sutil.
-- No documentar el QUÉ hace el código (eso lo dicen los nombres).
-- No escribir bloques de comentarios multilínea ni JSDoc extensos — una línea máximo.
-
-```javascript
-// Bien: explica el por qué (workaround conocido de GAS)
-// GAS no soporta Date en getValues(); las fechas llegan como strings 'DD/MM/YYYY HH:MM:SS'
-const parsearFechaGAS = (fechaString) => new Date(fechaString);
-
-// Mal: describe el qué (ya lo dice el nombre)
-// Esta función obtiene todas las reservas de la hoja
-const obtenerTodasLasReservas = (sheet) => { ... };
-```
-
-### 2.10 Seguridad
-
-- **Nunca** hardcodear emails, IDs de hoja o claves en el código fuente. Leerlos siempre de la hoja `Config`.
-- **Nunca** confiar en datos enviados desde el cliente sin revalidarlos en el servidor.
-- **Siempre** verificar que el usuario está autorizado al inicio de cada función del servidor que acceda a datos sensibles.
+### 4.9 Comentarios
+- Por defecto, ninguno: el código bien nombrado se explica solo.
+- Un comentario de una línea solo para el **porqué** no obvio (restricción de Apps Script, invariante, referencia a un ADR o RF).
+- Los comentarios que hablan de comportamiento (p. ej. "USER_ACCESSING") se revisan en la Revisión 2; uno obsoleto es un defecto.
+- En el código, las referencias a requisitos usan los IDs vigentes (`HU-NN`, `RF-NN`, `ADR-NNNN`).
 
 ---
 
-## 3. Principios de Código Limpio, Claro, Robusto y Eficiente
+## 5. Documentación y trazabilidad
 
-Estos principios son transversales a todo el código del proyecto. Se apoyan en las obras de referencia del sector: *Clean Code* (Robert C. Martin), *The Pragmatic Programmer* (Hunt & Thomas) y los principios SOLID.
+### 5.1 Documentos y estándares
 
-### 3.1 Limpio — Código que no necesita explicación
-
-**DRY — Don't Repeat Yourself**  
-Si la misma lógica aparece dos veces, extraerla a una función. Tres o más veces, es obligatorio.  
-La duplicación no es solo de código: también de lógica, de intención y de conocimiento.
-
-**KISS — Keep It Simple, Stupid**  
-La solución más simple que resuelve el problema es siempre la correcta. Complejidad no solicitada = deuda técnica.
-
-**Sin código muerto**  
-Eliminar funciones sin llamar, variables no usadas, bloques comentados (`// código antiguo`) y ramas `if` inalcanzables. El historial de git conserva lo eliminado.
-
-**Nombres que revelan intención**  
-Un buen nombre elimina la necesidad de comentario. Si cuesta nombrar algo, es señal de que hace demasiadas cosas.
-
-```javascript
-// Mal
-const d = new Date();
-const fn = (x, y) => x > y;
-
-// Bien
-const fechaActual = new Date();
-const esPosterior = (fechaA, fechaB) => fechaA > fechaB;
-```
-
----
-
-### 3.2 Claro — Código que se lee de arriba abajo sin sorpresas
-
-**Guard clauses — retorno temprano**  
-Validar las condiciones de error al principio de la función y salir. Evitar bloques `if/else` anidados que obligan a mantener el contexto en la cabeza.
-
-```javascript
-// Mal: lógica principal enterrada en anidamiento
-const procesarReserva = (datos) => {
-  if (datos) {
-    if (datos.espacio) {
-      if (!haysolapamiento(datos)) {
-        // lógica principal aquí, muy dentro
-      }
-    }
-  }
-};
-
-// Bien: guard clauses, lógica principal en el nivel superior
-const procesarReserva = (datos) => {
-  if (!datos) return { success: false, error: 'Datos requeridos' };
-  if (!datos.espacio) return { success: false, error: 'Espacio requerido' };
-  if (haySolapamiento(datos)) return { success: false, error: 'Solapamiento detectado' };
-
-  // lógica principal sin anidamiento
-};
-```
-
-**Un único nivel de abstracción por función**  
-Una función no debe mezclar lógica de alto nivel (orquestar) con detalles de bajo nivel (leer celdas). Si lo hace, dividirla.
-
-```javascript
-// Mal: mezcla nivel alto y bajo
-const crearReserva = (datos) => {
-  const sheet = SpreadsheetApp.getActive().getSheetByName('Reservas');
-  const filas = sheet.getDataRange().getValues();
-  // ... validaciones de bajo nivel
-  // ... lógica de negocio de alto nivel mezclada
-};
-
-// Bien: nivel alto orquesta, delega los detalles
-const crearReserva = (datos) => {
-  const errValidacion = validarDatosReserva(datos);
-  if (errValidacion) return { success: false, error: errValidacion };
-
-  if (haySolapamiento(datos.espacio, datos.fechaInicio, datos.fechaFin)) {
-    return { success: false, error: obtenerMensajeSolapamiento() };
-  }
-
-  const id = guardarReservaEnSheet(datos);
-  notificarCierreCanales(datos.espacio, datos.canal);
-  return { success: true, id };
-};
-```
-
-**Sin números ni strings mágicos**  
-Todo literal con significado de negocio debe ser una constante nombrada.
-
-```javascript
-// Mal
-if (estado === 3) { ... }
-if (reserva.tipo === 'P') { ... }
-
-// Bien
-const ESTADO_COMPLETADA = 'Completada';
-const MODO_DIA_HORA     = 'Dia_y_Hora';
-
-if (estado === ESTADO_COMPLETADA) { ... }
-if (espacio.modofecha === MODO_DIA_HORA) { ... }
-```
-
-**Estructura predecible en todas las funciones**  
-Seguir siempre el orden: validaciones → lógica → efecto secundario → retorno. El lector sabe dónde buscar cada cosa.
-
----
-
-### 3.3 Robusto — Código que no se rompe en silencio
-
-**Fail fast — fallar pronto y con claridad**  
-Validar las precondiciones al inicio, no a mitad de la ejecución. Un error temprano con mensaje claro es mejor que un resultado incorrecto silencioso.
-
-```javascript
-const calcularComision = (importeBruto, porcentaje) => {
-  if (typeof importeBruto !== 'number' || importeBruto < 0) {
-    throw new Error(`calcularComision: importeBruto inválido (${importeBruto})`);
-  }
-  if (typeof porcentaje !== 'number' || porcentaje < 0 || porcentaje > 100) {
-    throw new Error(`calcularComision: porcentaje inválido (${porcentaje})`);
-  }
-  return importeBruto * (porcentaje / 100);
-};
-```
-
-**Sin efectos secundarios ocultos**  
-Una función que dice calcular algo no debe también escribir en una Sheet, enviar un email o modificar un objeto externo sin que el nombre lo indique. Los efectos secundarios deben ser explícitos en el nombre y en la firma.
-
-```javascript
-// Mal: el nombre no revela el efecto secundario
-const obtenerEstadoReserva = (reserva) => {
-  const estado = calcularEstado(reserva);
-  sheet.getRange(fila, COL_ESTADO).setValue(estado); // ¡efecto oculto!
-  return estado;
-};
-
-// Bien: dos funciones con propósitos claros
-const calcularEstadoReserva = (reserva) => { ... }; // pura, sin efectos
-const actualizarEstadoEnSheet = (sheet, fila, estado) => { ... }; // efecto explícito
-```
-
-**Manejo explícito de casos límite**  
-Siempre considerar: ¿qué pasa si el array está vacío? ¿si el valor es `null`? ¿si la Sheet no existe? Tratar estos casos explícitamente, no ignorarlos.
-
-**Inmutabilidad siempre que sea posible**  
-No mutar los parámetros de entrada de una función. Devolver nuevos valores en lugar de modificar los existentes.
-
-```javascript
-// Mal: muta el parámetro
-const normalizarDatos = (datos) => {
-  datos.nombre = datos.nombre.trim();
-  return datos;
-};
-
-// Bien: devuelve nuevo objeto
-const normalizarDatos = (datos) => ({
-  ...datos,
-  nombre: datos.nombre.trim(),
-});
-```
-
----
-
-### 3.4 Eficiente — Código que no hace trabajo innecesario
-
-**YAGNI — You Aren't Gonna Need It**  
-No implementar funcionalidad para casos hipotéticos futuros. Solo lo que el requisito actual necesita. La abstracción prematura es tan costosa como la duplicación.
-
-**Sin optimización prematura**  
-Primero escribir el código correcto y legible. Optimizar solo cuando un problema de rendimiento real esté identificado y medido. En GAS, el cuello de botella casi siempre son las llamadas a la API de Sheets, no la lógica JavaScript.
-
-**Minimizar llamadas a la API de Google**  
-Cada `getValue()`, `setValue()`, `getSheetByName()` es una llamada de red. Agrupar lecturas y escrituras, nunca dentro de bucles.
-
-```javascript
-// Mal: N llamadas a la API dentro del bucle
-reservas.forEach((reserva, i) => {
-  sheet.getRange(i + 2, COL_ESTADO).setValue(calcularEstado(reserva)); // llamada por fila
-});
-
-// Bien: una sola escritura al final
-const estados = reservas.map((reserva) => [calcularEstado(reserva)]);
-sheet.getRange(2, COL_ESTADO, estados.length, 1).setValues(estados); // una llamada
-```
-
-**Cachear referencias costosas dentro de una ejecución**  
-No repetir `SpreadsheetApp.getActiveSpreadsheet()` o `getSheetByName()` en cada función. Obtenerlas una vez y pasarlas como parámetro o guardarlas en una variable de módulo.
-
-**Evitar procesamiento innecesario**  
-Usar `find` en lugar de `filter` cuando solo se necesita el primer resultado. Salir del bucle con `return` o `break` en cuanto se tiene la respuesta. No recorrer arrays completos si no es necesario.
-
-```javascript
-// Mal: recorre todo aunque encuentre el resultado
-const reserva = reservas.filter(r => r.id === idBuscado)[0];
-
-// Bien: para en cuanto encuentra
-const reserva = reservas.find(r => r.id === idBuscado);
-```
-
----
-
-### 3.5 Resumen de principios
-
-| Principio | Regla de oro |
+| Documento | Estándar |
 |---|---|
-| **DRY** | Si se repite, se extrae |
-| **KISS** | La solución más simple que funciona |
-| **YAGNI** | Solo lo que el requisito actual pide |
-| **SRP** | Una función = una responsabilidad = una razón para cambiar |
-| **Guard clauses** | Errores primero, lógica principal al nivel superior |
-| **Sin magia** | Ningún número ni string literal con significado de negocio |
-| **Fail fast** | Validar precondiciones al inicio, no a mitad |
-| **Sin efectos ocultos** | El nombre revela todos los efectos secundarios |
-| **Inmutabilidad** | No mutar parámetros; devolver nuevos valores |
-| **API en bloque** | Nunca llamadas a Sheets dentro de bucles |
+| [01_problema.md](docs_dev/discovery/01_problema.md) | Lean UX Problem Statement + **JTBD** (*job stories*: "Cuando… quiero… para…") + Personas NN/g + Vision Board |
+| [02_historias_usuario.md](docs_dev/discovery/02_historias_usuario.md) | INVEST, `Como/quiero/para`, **Gherkin**, **MoSCoW**, talla de camiseta, estado; épicas en el orden del *backbone* (Jeff Patton) |
+| [03_requisitos_funcionales.md](docs_dev/discovery/03_requisitos_funcionales.md) | ISO/IEC/IEEE 29148: "El sistema debe…", verificable, con origen, ADR, implementación, test y estado |
+| [04_requisitos_no_funcionales.md](docs_dev/discovery/04_requisitos_no_funcionales.md) | **ISO/IEC 25010:2023**, medible, con verificación, origen o justificación y estado |
+| [arc42.md](docs_dev/solution/arc42.md) | **arc42** (12 secciones); §11 = riesgos (PMI/PMBOK) y deuda técnica |
+| [adr/](docs_dev/solution/adr/README.md) | **MADR 4.0** |
+| [design-system.md](docs_dev/solution/design-system.md) | Tokens de diseño |
+| [CHANGELOG.md](CHANGELOG.md) | Keep a Changelog + SemVer |
+| [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
+
+Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
+
+### 5.2 Identificadores (estables, nunca se reutilizan)
+
+| Prefijo | Qué | Dónde |
+|---|---|---|
+| `P-NN` / `JTBD-NN` | Problema / Job To Be Done | 01_problema |
+| `PER-NN` | Persona | 01_problema |
+| `HU-NN` (antes `US-0NN`) | Historia de usuario | 02 |
+| `E-NN` | Épica | 02 |
+| `RF-NN` / `RNF-NN` | Requisito funcional / no funcional | 03 / 04 |
+| `ADR-NNNN` | Decisión de arquitectura | adr/ |
+| `R-NN` / `REF-NN`, `TD-NN` / `QS-NN` | Riesgo / deuda técnica / escenario de calidad | arc42 §10–§11 |
+| `D-NN` / `B-NN` / `F-NN` / `T-NN` / `EXT-NN` | Decisión pendiente / defecto / funcionalidad / tarea de test / tarea externa | PROXIMOS_PASOS |
+
+### 5.3 Reglas de trazabilidad
+- **Cadena:** P → JTBD → HU → RF/RNF → ADR → código → test → sprint, navegable en ambos sentidos.
+- **La trazabilidad vive en cada documento**, con flechas ↑ (hacia arriba) y ↓ (hacia abajo). No hay matriz aparte: cada documento es la fuente de sus propias relaciones, y las dos direcciones deben coincidir (HU ↔ RF, RF ↔ RNF):
+  - **JTBD:** ↑ Problema · ↓ HU.
+  - **HU:** ↑ Problema, JTBD · ↓ RF, RNF (unión de los de sus RF), Sprint.
+  - **RF:** ↑ HU · ↓ RNF, Sprint (+ ADR, implementación y test).
+  - **RNF:** ↑ Problema/HU · ↓ RF, Sprint.
+- **Sin relación directa se anota, nunca se deja en blanco:** "**Sin HU directa**" + justificación; "**Sin RNF directo**"; "**Sin RF directo**" + cómo se cumple.
+- Sprint: `Sn` donde se implementó → **`Sn`** en negrita donde se corrige o completa (PROXIMOS_PASOS).
+- Todo RF indica `fichero · función` de implementación y, cuando exista, su test.
+- Los tests nombran el RF que verifican (`describe('RF-29 · …')`).
+- Un elemento sin enlace hacia arriba ni justificación es un defecto de documentación (Revisión 1).
+
+### 5.4 Qué se actualiza y cuándo
+
+| Cambio | Actualizar |
+|---|---|
+| Nueva necesidad o cambio de alcance | P/JTBD (si aplica) → HU → RF/RNF (con sus ↑/↓ en ambos extremos) → PROXIMOS_PASOS |
+| Implementar o cambiar código | Estado y columna *Implementación* del RF; HU; arc42 (bloques, datos, `Config`) si cambia |
+| Decisión de diseño | ADR nuevo o *Revisión* del existente → arc42 §4/§9 |
+| Riesgo nuevo | arc42 §11.1 |
+| Cierre de sesión | CHANGELOG `[Unreleased]` + PROXIMOS_PASOS (§2.2) |
+
+### 5.5 ADR (MADR 4.0)
+- Plantilla: [docs_dev/solution/adr/plantilla-madr.md](docs_dev/solution/adr/plantilla-madr.md). Front matter `status`, `date`, `decision-makers`, `consulted`, `informed`; secciones Contexto, Factores, Opciones, Resultado (Consecuencias, Confirmación), Pros y contras, Más información (trazabilidad y cuestiones abiertas).
+- Claude crea un ADR como `proposed`; pasa a `accepted` solo con el OK del usuario (§2.1).
+- No se reescribe la historia: una decisión sustituida pasa a `superseded by ADR-NNNN`.
+
+### 5.6 arc42
+Documento vivo del sistema. Se actualiza cuando cambia el modelo de datos, un módulo, un flujo, el despliegue, un concepto transversal, un riesgo o la deuda técnica.
 
 ---
 
-## 4. Estándares de UX/UI
+## 6. Estándares de UX/UI
 
-Estos estándares aplican a **toda interfaz** servida con HTML Service. La referencia de usuario es **Ana y Luis** (no técnicos): si ellos no lo entienden a la primera y sin formación, la interfaz está mal. Se apoyan en las **heurísticas de usabilidad de Nielsen** y en patrones de **Material Design** adaptados a la simplicidad del proyecto. El prototipo de una pantalla fija su estructura; estos estándares fijan su comportamiento, su estilo y su accesibilidad.
+La referencia de usuario son **Ana y Luis** (no técnicos, móvil). Se apoyan en las heurísticas de Nielsen y en patrones de Material Design simplificados. **Tokens concretos:** [design-system.md](docs_dev/solution/design-system.md) (ADR-0011); aquí van los principios.
 
-> **Tokens concretos:** los valores exactos de color, tipografía, espaciado, radios, sombras y componentes están en [docs/solution/design-system.md](docs/solution/design-system.md) (decisión en [ADR-0011](docs/solution/0011-sistema-diseno-visual.md)). Este §4 fija los **principios**; ese documento fija los **tokens** — al generar interfaz, usar siempre esas variables, no colores/medidas sueltas.
+### 6.1 Principios
+- **Claridad sobre densidad**; una tarea principal por pantalla (patrón hub + secciones, ADR-0008).
+- **Mínimo esfuerzo**: cascadas y autocompletado en lugar de datos redundantes.
+- **Guiar, no asumir**: el usuario sabe dónde está, qué puede hacer y cómo volver.
+- **Prevenir errores**: deshabilitar lo no válido, validar al momento, no ofrecer opciones incompatibles.
+- **Confirmación** en toda acción irreversible (modal).
+- **Feedback inmediato** en cada acción.
+- **Consistencia**: mismos componentes, etiquetas y colores para lo mismo.
 
-### 4.1 Principios UX
+### 6.2 Layout
+Título → acción primaria → contenido → acciones secundarias. Una acción primaria destacada por pantalla. **Mobile-first**; nada que exija una pantalla ancha. Agrupar con espacio en blanco, no con cajas.
 
-- **Claridad sobre densidad** — Mostrar lo justo para la tarea. Si una pantalla intenta hacer de todo, dividirla (ver el patrón hub + secciones de ADR-0008).
-- **Mínimo esfuerzo** — La tarea frecuente (crear/gestionar una reserva) se completa en los menos pasos y clics posibles. Autocompletar y filtrar en cascada en lugar de pedir datos redundantes.
-- **Guiar, no asumir** — El usuario no técnico debe saber siempre dónde está, qué puede hacer y cómo volver. Nada de flujos implícitos.
-- **Prevención de errores** — Es mejor impedir el error que avisar después: deshabilitar lo no válido, validar en el momento, no ofrecer opciones incompatibles.
-- **Confirmación en acciones destructivas** — Toda acción irreversible (cancelar reserva, borrar) exige confirmación explícita en un modal.
-- **Feedback inmediato** — Cada acción del usuario produce una respuesta visible (éxito, error o progreso). Nunca un clic sin reacción.
-- **Consistencia** — Mismos componentes, etiquetas, colores y posiciones para las mismas cosas en toda la app.
+### 6.3 Componentes
+- **Botones** con verbo del dominio ("Crear Reserva", "Guardar"); primario relleno y secundario con contorno; deshabilitado durante la llamada.
+- **Tablas** con cabeceras claras, orden por columna cuando aporte, y estados de carga y vacío explícitos.
+- **Formularios** con etiqueta visible, obligatorios marcados, validación en línea y en dos capas, y foco en el primer campo.
+- **Estados vacíos accionables** (mensaje + acción).
+- **Modales de confirmación** que explican la consecuencia y dejan claro cuál es la opción destructiva.
 
-### 4.2 Layout y jerarquía visual
+### 6.4 Sistema visual
+Paleta semántica con roles; el color **nunca** es el único portador de significado. Una familia tipográfica por uso, cuerpo ≥ 16 px. Espaciado en escala. Estados `hover`, `focus` visible, `active` y `disabled`. Iconos siempre acompañados de texto.
 
-- **Patrón hub + secciones**: pantalla de Inicio con accesos claros y una sección por tarea (ADR-0008). Una tarea principal por pantalla.
-- **Jerarquía visual clara**: título de la pantalla → acciones primarias → contenido → acciones secundarias. Lo importante, arriba y a la vista sin scroll.
-- **Una acción primaria por pantalla**, destacada visualmente; el resto, secundarias.
-- **Responsive**: usable en tablet y móvil (Ana usa móvil/tablet, Luis móvil). Nada que requiera horizontalidad de escritorio para funcionar.
-- **Espacio en blanco**: agrupar lo relacionado y separar lo distinto con espaciado, no con líneas y cajas innecesarias.
+### 6.5 Accesibilidad
+WCAG 2.1 AA (contraste ≥ 4.5:1), áreas táctiles ≥ 44×44 px, etiquetas asociadas, navegación por teclado, foco visible, texto alternativo.
 
-### 4.3 Patrones de componentes
+### 6.6 Feedback
+Indicador de carga en operaciones lentas. Éxito y error siempre comunicados; errores accionables. Nunca un fallo silencioso.
 
-- **Botones**: etiqueta con verbo de acción del dominio ("Crear Reserva", "Guardar", no "Aceptar"/"OK"). Distinguir primario (relleno) de secundario (contorno). Deshabilitar el botón mientras una llamada está en vuelo (ya en §2.7) para evitar dobles envíos.
-- **Tablas**: cabeceras descriptivas, columnas ordenables cuando aporte, filas legibles. Estado de carga y estado vacío explícitos.
-- **Formularios**: etiqueta visible sobre cada campo (no solo placeholder), campos obligatorios marcados, agrupación lógica, validación **en línea y en dos capas** (cliente para inmediatez, servidor autoritativo — §2.8). El foco entra en el primer campo relevante.
-- **Estados vacíos accionables**: cuando no hay datos, mensaje claro + acción para avanzar (p. ej. "No hay reservas registradas" + botón "Crear Reserva"). Nunca una pantalla en blanco.
-- **Modales de confirmación**: para acciones irreversibles, con texto que explique la consecuencia y dos opciones claras (confirmar / volver), sin ambigüedad sobre cuál es la destructiva.
+### 6.7 Microcopy
+Español claro y cercano, sin jerga ni nombres internos de hojas o campos. Errores: qué pasó y cómo solucionarlo en una frase. Etiquetas del dominio (Espacio, Reserva, Canal, Huésped).
 
-### 4.4 Sistema visual
-
-- **Paleta semántica con roles** (primario, éxito, error, aviso, neutro), definida una vez y reutilizada. El color **nunca** es el único portador de significado (acompañar de texto o icono) — por accesibilidad.
-- **Tipografía**: una sola familia, jerarquía por tamaño y peso, tamaño base legible (≥ 16 px en cuerpo).
-- **Espaciado por escala** consistente (no valores arbitrarios sueltos).
-- **Estados de interacción** visibles para todo elemento interactivo: `hover`, `focus` (foco visible siempre), `active`, `disabled`.
-- **Iconografía** solo de apoyo y acompañada de texto; nunca un icono solo para una acción importante.
-
-### 4.5 Accesibilidad
-
-- **Contraste WCAG 2.1 AA** (mínimo 4.5:1 en texto normal).
-- **Áreas táctiles** cómodas (objetivo ≥ 44×44 px), pensando en uso desde móvil.
-- **Labels asociadas** a cada input; **navegación por teclado** completa y **foco visible**.
-- Texto alternativo en imágenes con significado; no transmitir información solo por color o posición.
-
-### 4.6 Feedback y estados del sistema
-
-- **Carga**: indicador visible en operaciones que tarden (servidor GAS puede tardar segundos); no dejar la UI congelada sin señal.
-- **Éxito / error siempre comunicados**: tras cada operación, mensaje claro. Los errores son **accionables** (qué falló y cómo resolverlo — §2.5), nunca un "Error" genérico.
-- **Sin fallo silencioso**: si algo falla en el servidor, el usuario lo sabe (alineado con `withFailureHandler`, §2.7).
-
-### 4.7 Microcopy
-
-- **Español claro y cercano**, sin jerga técnica ni nombres internos de campos/hojas.
-- **Mensajes de error**: qué ha pasado + cómo solucionarlo, en una frase. Ej.: "La fecha de salida debe ser posterior a la de entrada".
-- **Etiquetas consistentes con el dominio** (Espacio, Reserva, Canal, Huésped…) y con el resto de la app.
-
-### 4.8 Flujos UX
-
-- Cada pantalla sigue: **entrada → acción → confirmación → retorno claro**. Siempre hay una salida visible ("Volver" / "Cancelar").
-- **No perder datos** al navegar: al volver o cancelar, no se pierde lo ya guardado; avisar si hay cambios sin guardar.
-- **Evitar dobles envíos** y acciones duplicadas (botón en vuelo deshabilitado).
-- El flujo del usuario no técnico se valida contra los **User Journeys** del discovery ([02_personas.md](docs/discovery/02_personas.md)); si un journey no se puede completar sin ayuda, el diseño se corrige.
+### 6.8 Flujos
+Entrada → acción → confirmación → retorno claro; siempre hay salida visible. No perder datos al navegar; avisar de cambios sin guardar. Los flujos se validan contra los journeys de [01_problema.md, Anexo A](docs_dev/discovery/01_problema.md).
 
 ---
 
-## 5. Reglas generales para Claude
+## 7. Tests
 
-- Antes de crear un fichero nuevo, verificar si ya existe uno donde encaje mejor el código.
-- Preferir editar ficheros existentes antes de crear nuevos.
-- No añadir funcionalidades no pedidas ni refactorizaciones no solicitadas.
-- No añadir comentarios que expliquen el qué — solo el porqué cuando sea no obvio.
-- Cuando se crea o modifica un documento de discovery, respetar el frontmatter y el framework de referencia indicado en la cabecera.
-- Cuando se genera una User Story, incluir siempre: formato `Como/quiero/para`, criterios de aceptación Gherkin, prioridad MoSCoW y estimación en talla de camiseta.
-- Cuando se identifica un riesgo nuevo durante el desarrollo, añadirlo al `08_risk_register.md`.
-- Cuando una decisión de diseño cambia durante la implementación, actualizar el ADR correspondiente antes de continuar.
-- Cuando se diseñe o genere cualquier interfaz o flujo de usuario, seguir los **Estándares de UX/UI** (§4); un prototipo fija la estructura, pero el estilo, el comportamiento y la accesibilidad los marca §4.
+**Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
+
+> **Estado actual (v2):** unitarios del dominio, tests de los 20 endpoints y de las entradas del sistema, y CI en GitHub Actions **funcionando** (`npm test`, cobertura ≈ 98 % de líneas). Pendientes: E2E con Playwright, integración contra Google y ESLint (PROXIMOS_PASOS, S9/S11).
+
+### 7.1 Pirámide y dónde se ejecuta cada nivel
+
+| Nivel | Qué prueba | Herramienta (gratuita) | Dónde se ejecuta | Quién lo lanza |
+|---|---|---|---|---|
+| **Unitario y de endpoints** ✅ | Dominio puro; endpoints y entradas del sistema con dobles de Google | Node ≥ 22: `node:test` + `node:assert` (sin dependencias). Los `.gs` se cargan en un contexto `vm` con dobles de `SpreadsheetApp`, `DriveApp`, `CalendarApp`, `MailApp`, `LockService`, `Session`, `Utilities` | Local (**Claude puede lanzarlos**) y **GitHub Actions** en cada push | Claude / CI |
+| **Integración** | Adaptadores reales: lectura y escritura en Sheets, Drive, Calendar y Mail | Suite propia en Apps Script (`pruebas_integracion.gs`) sobre un **Sheet de pruebas** separado con su propio proyecto de script | Editor de Apps Script del proyecto de pruebas | Usuario (Claude la prepara y lee el resultado que se le pegue) |
+| **E2E (interfaz)** | Flujos completos del cliente: navegación, formularios, validaciones, cascadas, modales, XSS, viewport móvil | **Playwright** + servidor local que resuelve los `include` y simula `google.script.run` con datos de prueba | Local (**Claude puede lanzarlos**) y GitHub Actions | Claude / CI |
+| **Smoke en producción** | Lo que solo existe en Google real: login, autorización, Calendar, emails, Drive, triggers | Checklist manual en DEVELOPMENT.md | URL `/dev` y producción tras desplegar | Usuario |
+| **Estático** | Estilo, variables no usadas, globals, patrones prohibidos (`var`, `innerHTML` sin escapar, IDs en el código) | ESLint (+ reglas propias) | Local y CI | Claude / CI |
+
+**Por qué no hay E2E automático contra la app real:** Google bloquea los inicios de sesión automatizados (2FA y detección de bots), y las credenciales de clasp solo viven en el equipo del desarrollador, nunca en GitHub ([ADR-0015](docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)). La integración podrá lanzarse desde el equipo con `clasp run-function` (se decide al llegar a T-04). Por eso lo exclusivamente "Google real" se cubre con integración manual y smoke.
+
+**Coste de CI:** GitHub Actions es gratis en repositorios públicos y tiene 2 000 min/mes gratis en privados; la suite prevista usa pocos minutos por ejecución.
+
+### 7.2 Principios FIRST
+- **Fast:** los unitarios, en segundos; sin red ni servicios reales.
+- **Independent:** cada test prepara sus datos; sin orden ni estado compartido.
+- **Repeatable:** misma salida siempre; la fecha "ahora" y los IDs se inyectan (nada de `new Date()` sin controlar).
+- **Self-validating:** pasa o falla con aserciones; nada de mirar logs a mano.
+- **Timely:** el test se escribe con el cambio (antes si es un defecto: primero el test que lo reproduce).
+
+### 7.3 Convenciones
+- Estructura: `tests/dominio/*.test.js` (funciones puras), `tests/endpoints/*.test.js` (API con dobles), `tests/e2e/<flujo>.spec.js` (S11), `tests/soporte/` (cargador `gas.js` y dobles `dobles.js`).
+- Nombre: `describe('RF-NN · qué')` + `it('debe … cuando …')`. Un escenario Gherkin ≈ un test.
+- Patrón AAA (Arrange, Act, Assert) y un único comportamiento por test.
+- Cobertura objetivo: ≥ 80 % de líneas en dominio; 100 % de las reglas de dinero, estado y solapamiento.
+- Comandos: `npm test` y `npm run test:cobertura` (disponibles); `npm run test:e2e` y `npm run lint` (previstos). Las respuestas de los endpoints se serializan en los tests como hace `google.script.run`.
+- Un defecto corregido lleva siempre su test de regresión.
+
+---
+
+## 8. Definition of Ready y Definition of Done
+
+### 8.1 Definition of Ready (antes de empezar una HU o tarea)
+- [ ] Tiene JTBD, criterios Gherkin verificables, MoSCoW y talla.
+- [ ] RF y RNF afectados identificados; ADR de referencia si aplica.
+- [ ] Decisiones abiertas resueltas (§2.1).
+- [ ] Cabe en un sprint (si no, dividirla).
+
+### 8.2 Definition of Done — HU o tarea
+- [ ] Código conforme a §3 y §4; sin comentarios ni código muerto.
+- [ ] Tests unitarios (y E2E si hay interfaz) escritos y **en verde**; test de regresión si era un defecto.
+- [ ] Criterios Gherkin verificados; camino feliz y de error.
+- [ ] UX/UI conforme a §6; usable en móvil.
+- [ ] Seguridad: autorización, validación en servidor, escape de HTML.
+- [ ] Trazabilidad actualizada: estado de la HU y el RF, *Implementación*, *Test*, matriz.
+- [ ] ADR y arc42 actualizados si cambió el diseño.
+- [ ] Desplegado en `/dev` y *smoke* hecho (por el usuario) si toca Google real.
+
+### 8.3 Definition of Done — Release
+- [ ] Todo Must del release terminado; los Should terminados o diferidos explícitamente.
+- [ ] Suite completa en verde en CI; integración y smoke ejecutados.
+- [ ] UAT de los journeys con Ana y Luis sin bloqueantes.
+- [ ] `Config`, catálogos y `Usuarios_Autorizados` con datos reales; sin datos de prueba.
+- [ ] Copia de seguridad reciente comprobada; triggers instalados.
+- [ ] CHANGELOG con la versión; documentación coherente (Revisión 1 sin hallazgos abiertos de severidad Alta o Crítica).

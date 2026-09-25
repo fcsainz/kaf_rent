@@ -1,0 +1,20 @@
+# Integración continua gratuita (RNF-29, RNF-33): lanza los tests en cada push y pull request.
+# No usa credenciales de Google: los tests simulan Sheets, Drive, Calendar y Mail (ADR-0015).
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests unitarios y de endpoints
+        run: npm test
+      - name: Cobertura
+        run: TZ=Europe/Madrid node --test --experimental-test-coverage "tests/**/*.test.js"

@@ -4,7 +4,55 @@ Todos los cambios relevantes del proyecto se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto se versiona de forma aproximada con [SemVer](https://semver.org/lang/es/). Las primeras versiones (≤ 0.5) reflejan solo **documentación y diseño**; a partir de ahí, también el **código** desplegado en `src/`.
 
-## [Unreleased]
+> **Renumeración (2026-09-25):** lo existente pasa a ser la **v1** y el trabajo que empieza ahora, la **v2**. Los commits antiguos etiquetados `v2.0 Version inicial completa` y `v2 Seguro, mejora interfaz…` corresponden a **1.0.0** y **1.1.0**.
+
+## [Unreleased] — en curso hacia 2.0.0
+
+### Documentación — reorganización (Sprint 7, 2026-09-25)
+- **CLAUDE.md reescrito:** arranque de sesión con tabla de sprints; regla de no decidir sin explicar y sin OK del usuario (con plantilla de decisión); commits solo al final de la sesión y por el usuario, tras una doble revisión (coherencia y huecos / semántica y código); principios SOLID, KISS, DRY, YAGNI, Clean Code y Clean Architecture ligera; estándares de documentación y trazabilidad; estrategia de tests gratuita (unitarios en Node, integración en un Sheet de pruebas, E2E con Playwright, smoke manual, CI en GitHub Actions, FIRST); DoR/DoD.
+- **Discovery rehecho** con trazabilidad P → JTBD → HU → RF/RNF: `01_problema.md` (visión, personas y problema fusionados, con JTBD), `02_historias_usuario.md` (HU-01..38, antes US-0NN, con estado real), `03_requisitos_funcionales.md` (RF-01..80, nuevo), `04_requisitos_no_funcionales.md` (RNF-01..38, ISO/IEC 25010:2023). Eliminados los documentos fusionados (visión, personas, story map, DoD, risk register).
+- **ADR migrados a MADR 4.0** en `docs/solution/adr/`, con índice, plantilla y trazabilidad a HU/RF/RNF.
+- **`SDD.md` → `arc42.md`** (12 secciones), que incorpora el registro de riesgos (más R-16 funciones expuestas y R-17 sin tests) y la deuda técnica.
+- **`09_roadmap.md` → `PROXIMOS_PASOS.md`**: decisiones pendientes, sprints S7–S13 y Fase 2, backlog con IDs e histórico.
+- **Trazabilidad en línea en cada documento** (↑/↓): JTBD → HU; HU ↑ Problema/JTBD ↓ RF/RNF/Sprint; RF ↑ HU ↓ RNF/Sprint (+ plan de test); RNF ↑ origen ↓ RF/Sprint. Lo que no tiene relación directa queda anotado ("Sin HU directa", "Sin RNF directo", "Sin RF directo"), con su motivo en la propia fila. Sin matriz aparte: `05_trazabilidad.md` se creó y se retiró en la misma sesión.
+- **ADR-0015 — clasp con credenciales locales multicuenta** (`--user operacion` / `--user fcsainz`, en `~/.clasprc.json`, nunca en GitHub); `.clasp.json.example`; DEVELOPMENT con el flujo clasp y la copia/pega como emergencia. Uso en móvil confirmado como Must (RNF-11). Sprints por objetivo, sin duración fija. Versionado: lo existente pasa a ser la v1 y el trabajo actual, la v2.
+- **Reorganización de carpetas:** `docs/` → `docs_dev/`, a la que también pasan `README.md` y `DEVELOPMENT.md` (en la raíz quedan `CLAUDE.md`, `PROXIMOS_PASOS.md` y `CHANGELOG.md`); nueva carpeta `docs_work/docs_ses/`; el código pasa de `src/` a `docs_dev/src/` (`rootDir` de clasp) y se elimina el README; enlaces y referencias actualizados.
+- **DEVELOPMENT.md y README** al día: `USER_DEPLOYING` ("Ejecutar como: Yo"), todos los HTML, `Config`, triggers y reconciliación de Calendar.
+
+### Código v2 — alineado con CLAUDE.md (S8 + S10, 2026-09-25)
+
+#### Changed
+- **Arquitectura en capas (Clean Architecture ligera, CLAUDE.md §3.3):** los 16 `.gs` pasan a 23 con prefijo de capa y cabecera `// Capa: …`: `api_*` (endpoints y entradas del sistema), `dominio_*` (funciones puras: validaciones, importes, solapamiento, IDs, ciclo de vida, agregados, fiscalidad) e `infra_*` (esquema, repositorios por campo, Drive, Calendar, correo, mantenimiento). Sin dependencias entre ficheros al cargar.
+- **Acceso al Sheet por campo, no por posición (REF-02):** el esquema define campo lógico → columna una sola vez (`infra_esquema.gs`); las columnas se localizan por cabecera.
+- **Una sola fórmula de importes (REF-01)** y validaciones compartidas entre alta y edición; plantilla única de endpoint `ejecutarEndpoint_` (REF-03).
+- Sin nombres de espacio en el código (B-10): colores de Calendar, carpeta de vídeos y espacios de Gastos salen del catálogo; el desplegable de espacios de Gastos se rellena desde el servidor (`cargarCategoriasGasto` devuelve `{ categorias, espacios }`). La semilla de `Carpeta_Videos_Id` queda vacía.
+- `Errores` ya no guarda datos personales del huésped en el contexto.
+
+#### Security
+- **B-01 (crítico):** todo lo interno lleva sufijo `_` (no invocable con `google.script.run`); solo quedan públicos los 20 endpoints y las entradas del sistema, que se protegen con `ejecutarTareaDelSistema_` (trigger real o ejecución directa). `recalcularEstadisticas` exige autorización.
+- **B-05:** el email del informe escapa todo dato; mensaje de la tabla de Gestionar sin `innerHTML`.
+
+#### Fixed
+- B-02 el buscador excluye canceladas · B-03 reescrituras atómicas (servicios, purgas, cache, resumen fiscal) · B-04 validación de dominio y bloqueo de canceladas (editar, servicios, archivos) · B-07 la poda borra carpetas de reserva vacías · B-09 el título del evento sigue al nombre del huésped · B-11 el evento de Calendar se crea tras guardar la reserva.
+
+#### Added
+- RF-51: la edición muestra "Falta: …" para completar la reserva · RF-55: sin subida de contrato si lo gestiona el canal (también en servidor).
+- **Tests (T-01..T-03):** `npm test` (84 tests: dominio + 20 endpoints + entradas del sistema, con dobles en memoria de los servicios de Google), cobertura ≈ 98 % de líneas, CI en GitHub Actions.
+
+### Revisión de cierre (2026-09-25)
+- **Proceso:** CLAUDE.md §2.2–§2.3 exige mostrar en el chat el informe de las dos revisiones antes de proponer el commit.
+- **Trazabilidad:** RF-28 citado de vuelta por HU-08..HU-14; RF-47 por HU-27; RF-57 ⇄ RNF-22.
+- **Código:** `subirVideo` audita el cambio y actualiza `Modificado_Por` (RNF-22); constantes con nombre para la espera del bloqueo, las horas de los triggers y los meses por trimestre; límites de archivo por defecto centralizados (`tamanoMaxContratoMB_`, `tamanoMaxVideoMB_`); funciones largas divididas (`construirEntradaReserva_`, `normalizarCambios_`, `enviarAvisoCierreCanales_`/`enviarConfirmacionReserva_`).
+- **Interfaz:** mensajes de error sin jerga técnica (§6.7); modal de confirmación accesible con rol de diálogo, foco inicial y Escape (§6.5).
+- **Tests:** el de estadísticas ya no depende del año en curso (FIRST: repetible); nuevo test de auditoría del vídeo.
+- **Docs:** `Carpeta_Raiz_Id` marcada como solo referencia; despliegue de la v2 aplazado hasta incluir las nuevas funcionalidades (PROXIMOS_PASOS, D-14).
+
+### Fixed (documentación S7)
+- Comentarios obsoletos en `auth.gs` (decía `USER_ACCESSING`) y `gestion.gs` (describía la lista antigua de activas); referencias `US-0NN` del código actualizadas a `HU-NN`. Sin cambios de comportamiento.
+
+---
+
+## [1.1.0] - 2026-07-27
 
 ### Added
 - **Coste fijo del canal en resumen de Crear Reserva:** cuando se selecciona un canal con `Coste_Fijo_Por_Reserva` (ej. seguro Cocopool 9,50 €), aparece una línea "Coste fijo del canal" en el resumen económico y se descuenta del `Importe_Neto`. La línea se oculta si el canal no tiene coste fijo. Campo rastreado en `costeFijoCanal` (variable de módulo en `cliente.html`); incluido ya en el campo `Coste_Canal_Fijo` del Sheet y en el recálculo autoritativo del servidor (ver ADR-0003).
@@ -17,7 +65,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ---
 
-## [2.0.0] - 2026-06-29
+## [1.0.0] - 2026-06-29
 
 ### Added
 - **Sprint 6 — Gastos / IRPF (ADR-0012):** `gastos.gs` con registro de gastos (con justificante en Drive, `Documentos/Gastos/{Ejercicio}/`, US-027), catálogo de categorías con deducible por defecto, y resumen fiscal por ejercicio y espacio con reparto a tercios (US-028): ingresos íntegros (de `Reservas`), gastos deducibles (comisiones + gastos registrados + amortización de `Config`), rendimiento neto y tercio por comunero; se persiste en `Resumen_Fiscal`. Nueva sección "Gastos" en la navegación (`gastos.html`). Gastos comunes repartidos 50/50 entre espacios.
@@ -79,6 +127,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Documentos de solución iniciales: SDD y ADR-0001 a ADR-0006.
 - `CLAUDE.md` con los estándares de código, documentación y principios de calidad del proyecto.
 
-[Unreleased]: cambios post-2.0 pendientes de consolidar en una versión.
-[2.0.0]: versión inicial completa — toda la funcionalidad de Fase 1 desplegada.
+[Unreleased]: reorganización documental y cambios hacia la v2.0.0.
+[1.1.0]: seguridad, mejoras de interfaz y correcciones (commit `v2 Seguro…`).
+[1.0.0]: versión inicial completa — toda la funcionalidad de Fase 1 (commit `v2.0 Version inicial completa`).
 [0.5.0]: línea base de documentación de discovery y diseño.

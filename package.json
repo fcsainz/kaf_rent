@@ -1,0 +1,12 @@
+{
+  "name": "kaf-rent",
+  "private": true,
+  "description": "Herramientas de desarrollo de KAF Rent (tests). Nada de esto se despliega en Apps Script.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "TZ=Europe/Madrid node --test \"tests/**/*.test.js\"",
+    "test:cobertura": "TZ=Europe/Madrid node --test --experimental-test-coverage \"tests/**/*.test.js\""
+  }
+}
