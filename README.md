@@ -4,7 +4,7 @@ Webapp de gestión de alquileres para los copropietarios de Calle 16, construida
 
 Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización manual de plataformas) por una única interfaz que centraliza el ciclo de vida de las reservas, evita solapamientos, avisa de la sincronización de canales y consolida los datos económicos y fiscales.
 
-> **Estado actual:** Fase 1 implementada (**v1**, código en [`src/`](../src/)). Sin tests automáticos todavía. En curso: **v2** (reorganización, seguridad y tests; ver sprints). Pendiente prioritario: **seguridad de las funciones expuestas** y la infraestructura de tests. Ver [PROXIMOS_PASOS.md](../PROXIMOS_PASOS.md).
+> **Estado actual:** Fase 1 implementada (**v1**, código en [`docs_dev/src/`](docs_dev/src/)). Sin tests automáticos todavía. En curso: **v2** (reorganización, seguridad y tests; ver sprints). Pendiente prioritario: **seguridad de las funciones expuestas** y la infraestructura de tests. Ver [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md).
 
 ---
 
@@ -30,7 +30,7 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 - **Backend:** Google Apps Script (V8, JavaScript ES2019+), ficheros `.gs`.
 - **Frontend:** HTML Service (HTML/CSS/JS servido desde Apps Script), mobile-first.
 - **Datos:** Google Sheets. **Archivos:** Google Drive. **Ocupación:** Google Calendar. **Email:** MailApp.
-- **Despliegue:** VS Code → `clasp` con credenciales locales de la cuenta operativa (en implantación, [ADR-0015](solution/adr/0015-despliegue-con-clasp-multicuenta.md)); Git y GitHub. Ver [DEVELOPMENT.md](DEVELOPMENT.md).
+- **Despliegue:** VS Code → `clasp` con credenciales locales de la cuenta operativa (en implantación, [ADR-0015](docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)); Git y GitHub. Ver [DEVELOPMENT.md](docs_dev/DEVELOPMENT.md).
 
 ## Estructura del repositorio
 
@@ -40,23 +40,25 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 ├── PROXIMOS_PASOS.md       # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
 ├── CHANGELOG.md            # Keep a Changelog + SemVer
 ├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
-├── src/                    # Código Apps Script (.gs + HTML Service)
-├── docs_dev/               # Documentación de desarrollo del producto
-│   ├── README.md           # Este documento
+├── docs_dev/               # Documentación y código de desarrollo del producto
+│   ├── src/                # Código Apps Script (.gs + HTML Service)
 │   ├── DEVELOPMENT.md      # Puesta en marcha, clasp, despliegue y día a día
 │   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
 │   └── solution/           # CÓMO: arc42.md, adr/ (MADR), design-system.md
 └── docs_work/
-    └── docs_ses/           # (propósito por definir, ver PROXIMOS_PASOS D-11)
+    ├── docs_ses/           # Apoyo técnico: SES.Hospedajes (referencia-tecnica-ses-hospedajes.md)
+    ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles (referencia-tecnica-irpf-alquileres.md)
+    ├── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out de Piscina/Jardín
+    └── (resto del propósito de docs_work por definir, ver PROXIMOS_PASOS D-11)
 ```
 
 ## Cómo leer la documentación
 
-1. [01_problema.md](discovery/01_problema.md): por qué existe el producto y para quién.
-2. [02_historias_usuario.md](discovery/02_historias_usuario.md) → [03](discovery/03_requisitos_funcionales.md) y [04](discovery/04_requisitos_no_funcionales.md): qué hace y con qué calidad; cada documento enlaza hacia arriba (↑) y hacia abajo (↓) con los demás.
-3. [arc42.md](solution/arc42.md) y los [ADR](solution/adr/README.md): cómo está construido y por qué.
-4. [CLAUDE.md](../CLAUDE.md): cómo se trabaja en el repositorio.
+1. [01_problema.md](docs_dev/discovery/01_problema.md): por qué existe el producto y para quién.
+2. [02_historias_usuario.md](docs_dev/discovery/02_historias_usuario.md) → [03](docs_dev/discovery/03_requisitos_funcionales.md) y [04](docs_dev/discovery/04_requisitos_no_funcionales.md): qué hace y con qué calidad; cada documento enlaza hacia arriba (↑) y hacia abajo (↓) con los demás.
+3. [arc42.md](docs_dev/solution/arc42.md) y los [ADR](docs_dev/solution/adr/README.md): cómo está construido y por qué.
+4. [CLAUDE.md](CLAUDE.md): cómo se trabaja en el repositorio.
 
 ## Acceso
 
-Aplicación privada: solo los correos activos en la hoja `Usuarios_Autorizados` pueden usarla (login con cuenta de Google). Ver [ADR-0001](solution/adr/0001-autenticacion-google-cuentas-autorizadas.md).
+Aplicación privada: solo los correos activos en la hoja `Usuarios_Autorizados` pueden usarla (login con cuenta de Google). Ver [ADR-0001](docs_dev/solution/adr/0001-autenticacion-google-cuentas-autorizadas.md).

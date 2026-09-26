@@ -39,7 +39,10 @@ Al retomar el trabajo, **antes de nada**, Claude:
 │   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
 │   └── solution/           # CÓMO: arc42.md, adr/ (MADR), design-system.md
 └── docs_work/
-    └── docs_ses/           # (propósito por definir, ver PROXIMOS_PASOS D-11)
+    ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
+    ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles
+    ├── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out (Piscina/Jardín)
+    └── (resto del propósito de docs_work por definir, ver PROXIMOS_PASOS D-11)
 ```
 
 ---
@@ -280,6 +283,11 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 | [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
 
 Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
+
+Además, `docs_work/docs_ses/`, `docs_work/doc_hacienda/` y `docs_work/doc_check/` guardan documentación de referencia externa (no sigue el estándar de discovery/solution, es material de apoyo técnico):
+- [referencia-tecnica-ses-hospedajes.md](docs_work/docs_ses/referencia-tecnica-ses-hospedajes.md) resume el RD 933/2021 y el webservice SES.Hospedajes para cuando se aborde la Fase 2 (Registro de viajeros, [ADR-0007](docs_dev/solution/adr/0007-registro-de-viajeros-para-reservas-de-habitacion.md)).
+- [referencia-tecnica-irpf-alquileres.md](docs_work/doc_hacienda/referencia-tecnica-irpf-alquileres.md) resume el marco legal del IRPF (gastos deducibles, amortización, prorrateo) para el módulo de Gastos ([ADR-0012](docs_dev/solution/adr/0012-modulo-gastos-irpf.md)).
+- `docs_work/doc_check/` guarda las checklists físicas de check-in/check-out (hoy solo Piscina/Jardín) que sirven de base para digitalizarlas (F-14 en PROXIMOS_PASOS).
 
 ### 5.2 Identificadores (estables, nunca se reutilizan)
 

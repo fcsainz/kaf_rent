@@ -8,6 +8,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased] — en curso hacia 2.0.0
 
+### Documentación — referencias legales y recogida de v2-N (2026-09-26)
+- **Referencia técnica SES.Hospedajes** (`docs_work/docs_ses/referencia-tecnica-ses-hospedajes.md`): RD 933/2021 y webservice de comunicación, para la Fase 2 (ADR-0007).
+- **Referencia técnica IRPF** (`docs_work/doc_hacienda/referencia-tecnica-irpf-alquileres.md`): Ley y Reglamento del IRPF, Manual Práctico de Renta y consulta DGT V1643-25, verificados contra el texto oficial; datos catastrales de la finca; hallazgo pendiente de decisión sobre la fórmula de reparto de gastos de ADR-0012 (D-15).
+- **v2-N recogida** (D-14): defecto de Calendar por perfil (B-14), invitación a Calendar (F-13), checklists digitales de check-in/check-out con módulo BBQ y nuevo criterio de cierre (F-14), Informe de Gestión mensual + análisis de precios (F-15), nuevo Informe Técnico con KPIs (F-16), roles de propietario soporte/gestión/admin (F-11), y ampliación de ADR-0007 con el flujo de comunicación a SES (con un hallazgo: el formulario ya en uso es un Google Form independiente, no lo decidido originalmente).
+
 ### Documentación — reorganización (Sprint 7, 2026-09-25)
 - **CLAUDE.md reescrito:** arranque de sesión con tabla de sprints; regla de no decidir sin explicar y sin OK del usuario (con plantilla de decisión); commits solo al final de la sesión y por el usuario, tras una doble revisión (coherencia y huecos / semántica y código); principios SOLID, KISS, DRY, YAGNI, Clean Code y Clean Architecture ligera; estándares de documentación y trazabilidad; estrategia de tests gratuita (unitarios en Node, integración en un Sheet de pruebas, E2E con Playwright, smoke manual, CI en GitHub Actions, FIRST); DoR/DoD.
 - **Discovery rehecho** con trazabilidad P → JTBD → HU → RF/RNF: `01_problema.md` (visión, personas y problema fusionados, con JTBD), `02_historias_usuario.md` (HU-01..38, antes US-0NN, con estado real), `03_requisitos_funcionales.md` (RF-01..80, nuevo), `04_requisitos_no_funcionales.md` (RNF-01..38, ISO/IEC 25010:2023). Eliminados los documentos fusionados (visión, personas, story map, DoD, risk register).
