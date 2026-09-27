@@ -160,6 +160,109 @@ test.describe('RF-34..RF-37 · avisos y calendario al crear', () => {
     assert.equal(reservas(e)[0].Calendar_Event_Id, '');
     assert.ok(e.hoja('Errores').filas().length >= 2);
   });
+
+  test('B-14 · si no se crea el evento de Calendar, la respuesta avisa al usuario', () => {
+    const e = crearEntornoConDatos();
+    e.calendario.fallar = true;
+    const r = crear(e, datosReservaPiscina());
+    assert.equal(r.success, true);
+    assert.match(r.aviso, /calendario/i);
+  });
+
+  test('B-14 · si el evento se crea, la respuesta no lleva aviso', () => {
+    const e = crearEntornoConDatos();
+    assert.equal(crear(e, datosReservaPiscina()).aviso, undefined);
+  });
+});
+
+test.describe('RF-83 · invitaciones del evento de Calendar', () => {
+  test('F-13 · el evento invita a los usuarios autorizados activos y envía la invitación', () => {
+    const e = crearEntornoConDatos();
+    crear(e, datosReservaPiscina());
+    const [ev] = e.calendario.eventos;
+    assert.equal(ev.opciones.guests, 'ana@test.com,luis@test.com,carlos@test.com');
+    assert.equal(ev.opciones.sendInvites, true);
+  });
+
+  test('F-13 · la reconciliación también invita', () => {
+    const e = crearEntornoConDatos();
+    e.calendario.fallar = true;
+    crear(e, datosReservaPiscina());
+    e.calendario.fallar = false;
+    e.comoPropietario(() => e.llamar('sincronizarReservasCalendario'));
+    assert.equal(e.calendario.eventos[0].opciones.guests, 'ana@test.com,luis@test.com,carlos@test.com');
+  });
+});
+
+test.describe('RF-31 · año de la referencia', () => {
+  test('B-15 · una reserva para el año siguiente lleva el año en que se crea', () => {
+    const e = crearEntornoConDatos();
+    const siguiente = new Date().getFullYear() + 1;
+    const r = crear(e, datosReservaHabitacion({ fechaEntrada: `${siguiente}-01-15`, fechaSalida: `${siguiente}-01-17` }));
+    assert.equal(r.success, true);
+    assert.equal(reservas(e)[0].ID_Reserva, `${new Date().getFullYear()}-001`);
+    assert.equal(r.id, `01/${String(new Date().getFullYear()).slice(2)}`);
+  });
+});
+
+test.describe('F-21 · enviar una incidencia al administrador', () => {
+  const conAdmin = () => {
+    const e = crearEntornoConDatos();
+    e.hoja('Usuarios_Autorizados').appendRow(['admin@test.com', 'Sí', 'Admin']);
+    return e;
+  };
+  const reservaSinEvento = (e) => {
+    e.calendario.fallar = true;
+    const r = crear(e, datosReservaPiscina());
+    e.correos.length = 0;
+    return r;
+  };
+
+  test('el error queda registrado con su pila técnica', () => {
+    const e = conAdmin();
+    reservaSinEvento(e);
+    const [error] = e.hoja('Errores').registros();
+    assert.match(JSON.parse(error.Contexto).pila, /Calendar no disponible/);
+  });
+
+  test('envía a las cuentas con rol Admin el detalle técnico, sin datos del huésped', () => {
+    const e = conAdmin();
+    const r = reservaSinEvento(e);
+    const res = e.llamar('notificarIncidencia', r.incidencia);
+    assert.equal(res.success, true);
+    assert.equal(e.correos.length, 1);
+    const [correo] = e.correos;
+    assert.equal(correo.to, 'admin@test.com');
+    assert.match(correo.subject, /Incidencia/);
+    assert.match(correo.body, /crearEventoReserva_/);
+    assert.match(correo.body, /Calendar no disponible/);
+    assert.match(correo.body, /ana@test\.com/);
+    assert.doesNotMatch(correo.body, /Grupo Ruiz/);
+  });
+
+  test('sin ninguna cuenta Admin activa, avisa al usuario y no envía nada', () => {
+    const e = crearEntornoConDatos();
+    const r = reservaSinEvento(e);
+    const res = e.llamar('notificarIncidencia', r.incidencia);
+    assert.equal(res.success, false);
+    assert.match(res.error, /administrador/);
+    assert.equal(e.correos.length, 0);
+  });
+
+  test('rechaza una referencia inválida o sin errores registrados', () => {
+    const e = conAdmin();
+    assert.equal(e.llamar('notificarIncidencia', '<script>').success, false);
+    assert.equal(e.llamar('notificarIncidencia', '2026-999').success, false);
+    assert.equal(e.correos.length, 0);
+  });
+
+  test('un usuario no autorizado no puede enviarla', () => {
+    const e = conAdmin();
+    const r = reservaSinEvento(e);
+    e.sesion.activo = 'intruso@test.com';
+    assert.equal(e.llamar('notificarIncidencia', r.incidencia).success, false);
+    assert.equal(e.correos.length, 0);
+  });
 });
 
 test.describe('RF-08/RF-11 · Inicio y buscador', () => {
@@ -178,5 +281,32 @@ test.describe('RF-08/RF-11 · Inicio y buscador', () => {
     assert.equal(e.llamar('buscarReservas', { nombre: 'marta', fecha: isoDentroDe(20) }).data.length, 0);
     e.llamar('cancelarReserva', reservas(e)[0].ID_Reserva);
     assert.equal(e.llamar('buscarReservas', { nombre: 'marta' }).data.length, 0);
+  });
+});
+
+test.describe('RF-84 · roles de usuario (F-11)', () => {
+  const conRoles = () => {
+    const e = crearEntornoConDatos();
+    [['admin@test.com', 'Sí', 'Admin'], ['soporte@test.com', 'Sí', 'Soporte'], ['sistema@test.com', 'Sí', 'Sistema'],
+      ['gestion@test.com', 'Sí', 'Gestión'], ['vieja@test.com', 'Sí', 'Copropietario']]
+      .forEach((f) => e.hoja('Usuarios_Autorizados').appendRow(f));
+    return e;
+  };
+
+  test('las invitaciones van a Admin, Gestión y roles antiguos o vacíos; nunca a Soporte ni a Sistema', () => {
+    const e = conRoles();
+    crear(e, datosReservaPiscina());
+    const invitados = e.calendario.eventos[0].opciones.guests.split(',');
+    ['ana@test.com', 'admin@test.com', 'gestion@test.com', 'vieja@test.com'].forEach((m) => assert.ok(invitados.includes(m), m));
+    ['soporte@test.com', 'sistema@test.com'].forEach((m) => assert.ok(!invitados.includes(m), m));
+  });
+
+  test('las incidencias van a Admin y Soporte, no a Gestión ni a Sistema', () => {
+    const e = conRoles();
+    e.calendario.fallar = true;
+    const r = crear(e, datosReservaPiscina());
+    e.correos.length = 0;
+    e.llamar('notificarIncidencia', r.incidencia);
+    assert.deepEqual(e.correos[0].to.split(',').sort(), ['admin@test.com', 'soporte@test.com']);
   });
 });

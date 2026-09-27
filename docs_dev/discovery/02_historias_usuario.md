@@ -16,7 +16,7 @@
 - **Prioridad MoSCoW:** M = Must · S = Should · C = Could · W = Won't (en esta fase).
 - **Estimación:** talla de camiseta — XS (≤1 h) · S (≈2 h) · M (4–6 h) · L (1–2 días) · XL (dividir).
 - **Estado:** ✅ Implementada · 🟡 Parcial (hay un hueco concreto, anotado) · 🔍 Por verificar (implementada en principio, sin comprobar contra el criterio) · ⏳ Pendiente.
-- **Trazabilidad en línea** (segunda línea de cada HU): **↑ Problema** y **↑ JTBD** hacia arriba ([01_problema.md](01_problema.md)); **↓ RF** ([03](03_requisitos_funcionales.md)), **↓ RNF** (la unión de los RNF de sus RF, [04](04_requisitos_no_funcionales.md)) y **↓ Sprint** en que se implementó → sprint pendiente, en **negrita** ([PROXIMOS_PASOS.md](../../PROXIMOS_PASOS.md)) hacia abajo. Las ADR se enlazan desde los RF.
+- **Trazabilidad en línea** (segunda línea de cada HU): **↑ Problema** y **↑ JTBD** hacia arriba ([01_problema.md](01_problema.md)); **↓ RF** ([03](03_requisitos_funcionales.md)), **↓ RNF** (la unión de los RNF de sus RF, [04](04_requisitos_no_funcionales.md)) y **↓ Sprint** en que se implementó → sprint pendiente, en **negrita** ([PROXIMOS_PASOS.md](../../docs_work/PROXIMOS_PASOS.md)) hacia abajo. Las ADR se enlazan desde los RF.
 
 ## Backbone (actividades del usuario)
 
@@ -44,10 +44,10 @@
 | HU-13 | US-011 | Datos de contacto del huésped | E-03 | P-11 | M | S | S2 | ✅ |
 | HU-14 | *(nueva)* | Importe del alquiler y resumen económico | E-03 | P-08, P-11 | M | M | S2 | ✅ |
 | HU-15 | US-012 | Bloqueo de solapamientos | E-03 | P-01 | M | L | S3 | ✅ |
-| HU-16 | US-013 | Guardar con estado inicial e ID de reserva | E-03 | P-04 | M | S | S3 | ✅ |
+| HU-16 | US-013 | Guardar con estado inicial e ID de reserva | E-03 | P-04 | M | S | S3 · **S14** (B-15) | ✅ |
 | HU-17 | US-014 | Aviso de cierre de canales | E-04 | P-02 | M | M | S3 | ✅ |
 | HU-18 | US-025 | Email de confirmación de reserva | E-04 | P-05 | S | S | S3 | ✅ |
-| HU-19 | US-026 | Evento de ocupación en Google Calendar | E-04 | P-05 | M | L | S4 → S8 ✔ · **S13** | 🟡 |
+| HU-19 | US-026 | Evento de ocupación en Google Calendar | E-04 | P-05 | M | L | S4 → S8 ✔ · **S14** (B-14, F-13) · **S13** | 🟡 |
 | HU-20 | US-020 | Aviso de reapertura de canales | E-04 | P-06 | M | S | S4 | ✅ |
 | HU-21 | US-023 | Lista de reservas activas con filtros | E-05 | P-04, P-05 | M | M | S4 | ✅ |
 | HU-22 | *(nueva)* | Ficha "Ver más" de solo lectura | E-05 | P-04, P-07 | S | S | S4 | ✅ |
@@ -57,7 +57,7 @@
 | HU-26 | US-018 | Cancelar una reserva | E-05 | P-06 | M | M | S4 | ✅ |
 | HU-27 | US-019 | Ver el historial de cambios | E-05 | P-03 | S | S | S4 | ✅ |
 | HU-28 | US-017 | Subir el contrato a Drive | E-06 | P-07 | M | L | S4 → S8 ✔ | ✅ |
-| HU-29 | US-029 | Marcar los checklists de check-in/check-out | E-06 | P-07 | S | S | S4 | ✅ |
+| HU-29 | US-029 | Checklists digitales de check-in/check-out (F-14) | E-06 | P-07 | S | L | S4 → **S16** | ✅ |
 | HU-30 | US-030 | Subir vídeos de entrada/salida a Drive | E-06 | P-07 | S | M | S4 → S8 ✔ | ✅ |
 | HU-31 | US-024 | Estadísticas por espacio | E-07 | P-08 | S | L | S5 | ✅ |
 | HU-32 | US-021 | Informes mensual y trimestral por email | E-07 | P-08 | S | L | S5 → **S12** | 🟡 |
@@ -67,6 +67,7 @@
 | HU-36 | *(ADR-0007)* | Estado del registro de viajeros en la reserva | E-09 | P-10 | W (Fase 2) | M | **Fase 2** | ⏳ |
 | HU-37 | *(backlog)* | Recordatorios automáticos de tareas pendientes | E-05 | P-04 | C | L | **S13** | ⏳ |
 | HU-38 | *(ADR-0005)* | Editar espacio, canal y fechas de una reserva | E-05 | P-01, P-04 | C | L | **S13** | ⏳ |
+| HU-39 | *(v2, F-21)* | Avisos que no pasan desapercibidos y envío de incidencias al administrador | E-04 | P-05, P-11 | M | M | **S14** | ✅ |
 
 ---
 
@@ -406,7 +407,7 @@ Scenario: Guardados simultáneos
 
 ### HU-16 — Guardar con estado inicial e ID de reserva
 **Antes:** US-013 · **MoSCoW:** M · **Talla:** S · **Estado:** ✅  
-**↑ Problema:** P-04 · **↑ JTBD:** JTBD-04 · **↓ RF:** RF-18, RF-31, RF-32, RF-33 · **↓ RNF:** RNF-07, RNF-09, RNF-27 · **↓ Sprint:** S3
+**↑ Problema:** P-04 · **↑ JTBD:** JTBD-04 · **↓ RF:** RF-18, RF-31, RF-32, RF-33 · **↓ RNF:** RNF-07, RNF-09, RNF-27 · **↓ Sprint:** S3 · **S14** (B-15: año de creación)
 
 Como copropietario, quiero que la reserva se cree con su estado inicial y una referencia correlativa para no rellenarlos a mano.
 
@@ -466,7 +467,7 @@ Scenario: Confirmación
 
 ### HU-19 — Evento de ocupación en Google Calendar
 **Antes:** US-026 · **MoSCoW:** M · **Talla:** L · **Estado:** 🟡  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41 · **↓ RNF:** RNF-13, RNF-16 · **↓ Sprint:** S4 → S8 ✔ · **S13**
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41, RF-82, RF-83 · **↓ RNF:** RNF-09, RNF-13, RNF-16, RNF-34 · **↓ Sprint:** S4 → S8 ✔ · **S14** (B-14, F-13) · **S13**
 
 Como copropietario, quiero que cada reserva aparezca en un calendario de ocupación para ver de un vistazo qué está ocupado.
 
@@ -477,6 +478,7 @@ Scenario: Crear evento
   When una reserva se guarda
   Then se crea un evento "NN/AA · Espacio — Huésped" en el calendario Config.Calendar_Id (o el de por defecto), con el color del espacio
   And su ID se guarda en Calendar_Event_Id
+  And los usuarios autorizados activos reciben la invitación de Calendar (F-13)
 
 Scenario: Actualizar evento
   When se editan el huésped, las fechas o el espacio de la reserva
@@ -489,6 +491,7 @@ Scenario: Eliminar evento
 Scenario: Calendar falla
   When la llamada a Calendar falla
   Then la reserva se guarda o cancela igualmente, Calendar_Event_Id queda vacío y el fallo va a Errores
+  And al crearla, el usuario ve un aviso que debe cerrar (HU-39)
 ```
 
 ### HU-20 — Aviso de reapertura de canales
@@ -504,6 +507,38 @@ Scenario: Cancelación en espacio con varios canales
 
 Scenario: Un solo canal
   Then no se envía aviso de reapertura
+```
+
+### HU-39 — Avisos que no pasan desapercibidos y envío de incidencias al administrador
+**Antes:** — (v2, F-21) · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
+**↑ Problema:** P-05, P-11 · **↑ JTBD:** JTBD-05, JTBD-11 · **↓ RF:** RF-81, RF-82 · **↓ RNF:** RNF-09, RNF-12, RNF-16, RNF-34 · **↓ Sprint:** **S14**
+
+Como copropietario, quiero que los errores y avisos de la app me obliguen a leerlos y que pueda mandar al administrador el detalle técnico con un botón, para que ningún fallo pase desapercibido ni dependa de que yo sepa explicarlo.
+
+```gherkin
+Scenario: Éxito
+  When una operación termina bien
+  Then se muestra un mensaje centrado que se cierra solo
+
+Scenario: Error o aviso
+  When una operación falla o termina con un aviso
+  Then se abre una ventana con el mensaje que solo se cierra al pulsar "Entendido" o Escape
+
+Scenario: Reserva guardada sin evento de Calendar
+  Given Calendar falla al crear el evento
+  When la reserva se guarda
+  Then la ventana de aviso ofrece "Enviar al administrador"
+
+Scenario: Enviar la incidencia
+  Given hay cuentas activas con Rol "Admin"
+  When pulsa "Enviar al administrador"
+  Then las cuentas Admin reciben un email con los errores registrados de esa reserva (fecha, función, mensaje y pila técnica), sin datos del huésped
+  And el usuario ve "Incidencia enviada al administrador."
+
+Scenario: Sin administrador configurado
+  Given no hay ninguna cuenta activa con Rol "Admin"
+  When pulsa "Enviar al administrador"
+  Then ve un error que le indica avisar a un copropietario y no se envía nada
 ```
 
 ---
@@ -719,17 +754,31 @@ Scenario: Contrato gestionado por el canal
 
 ### HU-29 — Marcar los checklists de check-in/check-out
 **Antes:** US-029 · **MoSCoW:** S · **Talla:** S · **Estado:** ✅  
-**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-56 · **↓ RNF:** RNF-22 · **↓ Sprint:** S4
+**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-50, RF-56, RF-85, RF-86, RF-87 · **↓ RNF:** RNF-11, RNF-14, RNF-22 · **↓ Sprint:** S4 → **S16** (F-14, [DD-01](../solution/design-docs/DD-01-checklists-digitales.md))
 
-Como copropietario, quiero marcar que he revisado los checklists de entrada y salida para dejar constancia del estado del espacio.
+Como copropietario, quiero hacer el check-in y el check-out punto por punto desde el móvil, dejando constancia de quién y cuándo, para no depender del papel y no cerrar una reserva sin revisar el espacio.
 
 ```gherkin
-Scenario: Marcar revisión
-  When marca el check-in (o el check-out) como revisado y guarda
-  Then el campo pasa de "Pendiente" a "Hecho" y se audita
+Scenario: Lista según la reserva
+  When abre la checklist de una reserva
+  Then ve los puntos de su espacio y momento; la barbacoa y los extras solo si están contratados;
+       en el check-out de la Habitación, "reponer office" o "recoger office" según la siguiente reserva
 
-Scenario: No condicionan el estado
-  Then Estado_Reserva puede ser "Completada" con los checklists pendientes
+Scenario: Marcar o "No aplica"
+  When marca un punto o pulsa "No aplica" y guarda
+  Then queda registrado con su usuario y fecha; un bloque entero "No aplica" en el check-in no sale en el check-out
+
+Scenario: Terminar con confirmación
+  Given todos los puntos están resueltos (y el WC del check-out de la Habitación tiene fecha)
+  When pulsa "Dar el check-out por terminado" y confirma
+  Then Checkout_Revisado pasa a "Hecho" y se audita
+
+Scenario: Vídeo y fotos
+  When sube el vídeo desde su punto o añade una foto de desperfectos
+  Then el archivo va a Drive y el punto se marca solo
+
+Scenario: Cierre
+  Then una reserva solo pasa a "Completada" con cobro ingresado y check-out hecho
 ```
 
 ### HU-30 — Subir vídeos de entrada/salida a Drive

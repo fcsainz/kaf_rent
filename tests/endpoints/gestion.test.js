@@ -19,6 +19,13 @@ const cambiosBase = (d, extra = {}) => ({
 
 const reserva = (e, id) => e.hoja('Reservas').registros().find((r) => r.ID_Reserva === id);
 
+// Deja el check-out en "Hecho" directamente en la hoja (lo que hace confirmarChecklist, probado en checklist.test.js).
+const marcarCheckoutHecho = (e, id) => {
+  const hoja = e.hoja('Reservas');
+  const fila = hoja.registros().findIndex((r) => r.ID_Reserva === id) + 2;
+  hoja.getRange(fila, hoja.cabeceras().indexOf('Checkout_Revisado') + 1).setValue('Hecho');
+};
+
 test.describe('RF-42/RF-43 · lista de gestión', () => {
   test('muestra las no canceladas y filtra por nombre y por rango', () => {
     const { e, idPiscina } = preparar();
@@ -44,6 +51,7 @@ test.describe('RF-44..RF-50 · ver y editar', () => {
 
   test('editar audita cada campo cambiado, recalcula importes y completa la reserva', () => {
     const { e, idHabitacion } = preparar();
+    marcarCheckoutHecho(e, idHabitacion);
     const d = e.llamar('obtenerReserva', idHabitacion).data;
     const r = e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { importeAlquiler: '400', cobro: 'Ingresado', nombre: 'Marta P. López' }));
     assert.equal(r.success, true, r.error);
@@ -54,6 +62,15 @@ test.describe('RF-44..RF-50 · ver y editar', () => {
     assert.equal(res.Modificado_Por, 'ana@test.com');
     const campos = e.hoja('Historial_Cambios').registros().map((h) => h.Campo);
     assert.deepEqual(campos.sort(), ['Estado de cobro', 'Estado de la reserva', 'Importe del alquiler', 'Nombre del huésped'].sort());
+  });
+
+  test('RF-56 · el formulario no puede marcar el check-out: solo la checklist', () => {
+    const { e, idHabitacion } = preparar();
+    const d = e.llamar('obtenerReserva', idHabitacion).data;
+    e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { cobro: 'Ingresado', checkout: 'Hecho' }));
+    const res = reserva(e, idHabitacion);
+    assert.equal(res.Checkout_Revisado, 'Pendiente');
+    assert.equal(res.Estado_Reserva, 'Abierta');
   });
 
   test('B-09 · cambiar el nombre actualiza el título del evento de Calendar', () => {
@@ -74,7 +91,8 @@ test.describe('RF-44..RF-50 · ver y editar', () => {
   test('RF-51 · la ficha indica qué falta para completar', () => {
     const { e, idHabitacion } = preparar();
     const d = e.llamar('obtenerReserva', idHabitacion).data;
-    assert.deepEqual(d.pendientes, ['Pendiente de cobro']);
+    assert.deepEqual(d.pendientes, ['Pendiente de cobro', 'Check-out sin hacer']);
+    marcarCheckoutHecho(e, idHabitacion);
     e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { cobro: 'Ingresado', incidencias: 'Con incidentes', incidenciaResuelta: 'No' }));
     assert.deepEqual(e.llamar('obtenerReserva', idHabitacion).data.pendientes, ['Incidencia sin resolver']);
   });

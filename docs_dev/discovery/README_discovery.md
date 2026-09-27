@@ -20,7 +20,7 @@ Documentación de **qué** se construye y **por qué**. El **cómo** está en [.
 | `06_nfr.md` | Rehecho como **04_requisitos_no_funcionales.md** |
 | `07_definition_of_done.md` | Pasa a **[CLAUDE.md §8](../../CLAUDE.md)** (regla de trabajo) |
 | `08_risk_register.md` | Pasa a **[arc42 §11](../solution/arc42.md#11-riesgos-y-deuda-técnica)** (riesgos y deuda técnica) |
-| `09_roadmap.md` | Pasa a **[PROXIMOS_PASOS.md](../../PROXIMOS_PASOS.md)** (sprints autogenerados + histórico) |
+| `09_roadmap.md` | Pasa a **[PROXIMOS_PASOS.md](../../docs_work/PROXIMOS_PASOS.md)** (sprints autogenerados + histórico) |
 
 ## Reglas
 

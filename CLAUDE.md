@@ -10,7 +10,8 @@ Reglas de trabajo, estándares y convenciones del proyecto. **Claude las sigue e
 
 Al retomar el trabajo, **antes de nada**, Claude:
 
-1. Lee [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md).
+0. **Comprueba el plugin `context-mode`** (lo primero, antes de cualquier otra herramienta): ejecuta `ctx_doctor` e informa al usuario en una línea. Si hay algún `[FAIL]`, lo muestra con su causa probable y propone el arreglo antes de seguir; si el plugin no está disponible, lo dice y continúa sin él.
+1. Lee [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md).
 2. Muestra al usuario:
    - **§0 Decisiones pendientes del usuario** (si las hay), primero.
    - La **tabla de sprints pendientes**: nº, objetivo, resumen corto de su contenido, estimación en horas y estado.
@@ -27,7 +28,6 @@ Al retomar el trabajo, **antes de nada**, Claude:
 ```
 .
 ├── CLAUDE.md               # Este documento: reglas de trabajo y estándares
-├── PROXIMOS_PASOS.md       # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
 ├── CHANGELOG.md            # Keep a Changelog + SemVer
 ├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
 ├── package.json            # Solo herramientas de desarrollo (npm test); nada se despliega
@@ -37,12 +37,12 @@ Al retomar el trabajo, **antes de nada**, Claude:
 │   ├── src/                # Código Apps Script (.gs + HTML Service); rootDir de clasp
 │   ├── DEVELOPMENT.md      # Puesta en marcha, clasp, despliegue y día a día
 │   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
-│   └── solution/           # CÓMO: arc42.md, adr/ (MADR), design-system.md
-└── docs_work/
+│   └── solution/           # CÓMO: arc42.md (+ C4), adr/ (MADR), design-docs/ (uno por funcionalidad grande), design-system.md
+└── docs_work/              # Carpeta de trabajo, fuera del núcleo (docs_dev): material que entra y sale según su utilidad, más lo permanente
+    ├── PROXIMOS_PASOS.md   # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
     ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
     ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles
-    ├── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out (Piscina/Jardín)
-    └── (resto del propósito de docs_work por definir, ver PROXIMOS_PASOS D-11)
+    └── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out (Piscina/Jardín)
 ```
 
 ---
@@ -280,14 +280,14 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 | [adr/](docs_dev/solution/adr/README.md) | **MADR 4.0** |
 | [design-system.md](docs_dev/solution/design-system.md) | Tokens de diseño |
 | [CHANGELOG.md](CHANGELOG.md) | Keep a Changelog + SemVer |
-| [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
+| [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
 
 Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
 
 Además, `docs_work/docs_ses/`, `docs_work/doc_hacienda/` y `docs_work/doc_check/` guardan documentación de referencia externa (no sigue el estándar de discovery/solution, es material de apoyo técnico):
 - [referencia-tecnica-ses-hospedajes.md](docs_work/docs_ses/referencia-tecnica-ses-hospedajes.md) resume el RD 933/2021 y el webservice SES.Hospedajes para cuando se aborde la Fase 2 (Registro de viajeros, [ADR-0007](docs_dev/solution/adr/0007-registro-de-viajeros-para-reservas-de-habitacion.md)).
 - [referencia-tecnica-irpf-alquileres.md](docs_work/doc_hacienda/referencia-tecnica-irpf-alquileres.md) resume el marco legal del IRPF (gastos deducibles, amortización, prorrateo) para el módulo de Gastos ([ADR-0012](docs_dev/solution/adr/0012-modulo-gastos-irpf.md)).
-- `docs_work/doc_check/` guarda las checklists físicas de check-in/check-out (hoy solo Piscina/Jardín) que sirven de base para digitalizarlas (F-14 en PROXIMOS_PASOS).
+- `docs_work/doc_check/` guarda las checklists de check-in/check-out: el PDF en papel original (Piscina/Jardín) y [checklists-check-in-out.md](docs_work/doc_check/checklists-check-in-out.md), el contenido aprobado de las 4 listas digitales (semilla de `Catálogo_Checklist`, F-14), con su histórico de versiones.
 
 ### 5.2 Identificadores (estables, nunca se reutilizan)
 
@@ -365,7 +365,7 @@ Paleta semántica con roles; el color **nunca** es el único portador de signifi
 WCAG 2.1 AA (contraste ≥ 4.5:1), áreas táctiles ≥ 44×44 px, etiquetas asociadas, navegación por teclado, foco visible, texto alternativo.
 
 ### 6.6 Feedback
-Indicador de carga en operaciones lentas. Éxito y error siempre comunicados; errores accionables. Nunca un fallo silencioso.
+Indicador de carga en operaciones lentas. Éxito y error siempre comunicados; errores accionables. Nunca un fallo silencioso. **Éxitos:** mensaje centrado que se cierra solo. **Errores y avisos:** ventana modal que el usuario debe cerrar, porque un mensaje que desaparece pasa desapercibido (decisión del usuario, 2026-09-27; componente en [design-system.md §6](docs_dev/solution/design-system.md)).
 
 ### 6.7 Microcopy
 Español claro y cercano, sin jerga ni nombres internos de hojas o campos. Errores: qué pasó y cómo solucionarlo en una frase. Etiquetas del dominio (Espacio, Reserva, Canal, Huésped).
@@ -379,7 +379,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 **Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
 
-> **Estado actual (v2):** unitarios del dominio, tests de los 20 endpoints y de las entradas del sistema, y CI en GitHub Actions **funcionando** (`npm test`, cobertura ≈ 98 % de líneas). Pendientes: E2E con Playwright, integración contra Google y ESLint (PROXIMOS_PASOS, S9/S11).
+> **Estado actual (v2):** unitarios del dominio, tests de los 21 endpoints y de las entradas del sistema, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). Pendientes: integración contra Google (T-04) y ESLint (PROXIMOS_PASOS, S9/S11).
 
 ### 7.1 Pirámide y dónde se ejecuta cada nivel
 
@@ -400,14 +400,14 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 - **Independent:** cada test prepara sus datos; sin orden ni estado compartido.
 - **Repeatable:** misma salida siempre; la fecha "ahora" y los IDs se inyectan (nada de `new Date()` sin controlar).
 - **Self-validating:** pasa o falla con aserciones; nada de mirar logs a mano.
-- **Timely:** el test se escribe con el cambio (antes si es un defecto: primero el test que lo reproduce).
+- **Timely:** los tests **unitarios y de endpoints** se escriben con el cambio (antes si es un defecto: primero el test que lo reproduce). Los **E2E de pantallas nuevas, la integración contra Google y la auditoría de accesibilidad** se hacen juntos antes de pasar a producción (§8.3), para no frenar el desarrollo sprint a sprint (decisión del usuario, 2026-09-27). Los E2E ya existentes siguen ejecutándose solos en CI.
 
 ### 7.3 Convenciones
-- Estructura: `tests/dominio/*.test.js` (funciones puras), `tests/endpoints/*.test.js` (API con dobles), `tests/e2e/<flujo>.spec.js` (S11), `tests/soporte/` (cargador `gas.js` y dobles `dobles.js`).
+- Estructura: `tests/dominio/*.test.js` (funciones puras), `tests/endpoints/*.test.js` (API con dobles), `tests/interfaz/*.test.js` (comprobaciones de la interfaz sin navegador, p. ej. contrastes), `tests/e2e/<flujo>.spec.js` (Playwright; `servidor.js` sirve la interfaz real y ejecuta el servidor real sobre los dobles), `tests/soporte/` (cargador `gas.js` y dobles `dobles.js`).
 - Nombre: `describe('RF-NN · qué')` + `it('debe … cuando …')`. Un escenario Gherkin ≈ un test.
 - Patrón AAA (Arrange, Act, Assert) y un único comportamiento por test.
 - Cobertura objetivo: ≥ 80 % de líneas en dominio; 100 % de las reglas de dinero, estado y solapamiento.
-- Comandos: `npm test` y `npm run test:cobertura` (disponibles); `npm run test:e2e` y `npm run lint` (previstos). Las respuestas de los endpoints se serializan en los tests como hace `google.script.run`.
+- Comandos: `npm test`, `npm run test:cobertura` y `npm run test:e2e` (disponibles); `npm run lint` (previsto). Las respuestas de los endpoints se serializan en los tests como hace `google.script.run`.
 - Un defecto corregido lleva siempre su test de regresión.
 
 ---
@@ -422,7 +422,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 ### 8.2 Definition of Done — HU o tarea
 - [ ] Código conforme a §3 y §4; sin comentarios ni código muerto.
-- [ ] Tests unitarios (y E2E si hay interfaz) escritos y **en verde**; test de regresión si era un defecto.
+- [ ] Tests unitarios y de endpoints escritos y **en verde** (incluidos los E2E existentes en CI); test de regresión si era un defecto. Los E2E de lo nuevo van en la DoD del release (§8.3).
 - [ ] Criterios Gherkin verificados; camino feliz y de error.
 - [ ] UX/UI conforme a §6; usable en móvil.
 - [ ] Seguridad: autorización, validación en servidor, escape de HTML.
@@ -432,7 +432,8 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 ### 8.3 Definition of Done — Release
 - [ ] Todo Must del release terminado; los Should terminados o diferidos explícitamente.
-- [ ] Suite completa en verde en CI; integración y smoke ejecutados.
+- [ ] E2E de las pantallas y flujos nuevos del release escritos; integración contra Google (chequeo de salud en real, T-04) y auditoría de accesibilidad hechas.
+- [ ] Suite completa en verde en CI; smoke en `/dev` ejecutado.
 - [ ] UAT de los journeys con Ana y Luis sin bloqueantes.
 - [ ] `Config`, catálogos y `Usuarios_Autorizados` con datos reales; sin datos de prueba.
 - [ ] Copia de seguridad reciente comprobada; triggers instalados.

@@ -21,25 +21,28 @@
       <button class="btn btn-secundario btn-nav" data-seccion="gestionar">Gestionar Reserva</button>
       <button class="btn btn-secundario btn-nav" data-seccion="estadisticas">Estadísticas</button>
       <button class="btn btn-secundario btn-nav" data-seccion="gastos">Gastos</button>
+      <button class="btn btn-secundario btn-nav" data-seccion="checklists" id="btn-nav-checklists" hidden>Checklists</button>
     </nav>
 
     <section id="seccion-inicio" class="seccion activa">
       <div class="panel">
         <h2>5 Últimas Reservas</h2>
-        <table id="tabla-inicio">
-          <thead>
-            <tr>
-              <th class="orden" data-clave="espacio" data-tipo="texto">Espacio</th>
-              <th class="orden" data-clave="inicioOrden" data-tipo="num">Fecha Inicio</th>
-              <th class="orden" data-clave="finOrden" data-tipo="num">Fecha Fin</th>
-              <th class="orden" data-clave="nombre" data-tipo="texto">Nombre</th>
-              <th class="orden" data-clave="neto" data-tipo="num">Importe Neto</th>
-            </tr>
-          </thead>
-          <tbody id="tabla-ultimas">
-            <tr><td colspan="5" class="vacio">Cargando…</td></tr>
-          </tbody>
-        </table>
+        <div class="tabla-scroll">
+          <table id="tabla-inicio">
+            <thead>
+              <tr>
+                <th class="orden" data-clave="espacio" data-tipo="texto">Espacio</th>
+                <th class="orden" data-clave="inicioOrden" data-tipo="num">Fecha Inicio</th>
+                <th class="orden" data-clave="finOrden" data-tipo="num">Fecha Fin</th>
+                <th class="orden" data-clave="nombre" data-tipo="texto">Nombre</th>
+                <th class="orden" data-clave="neto" data-tipo="num">Importe Neto</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-ultimas">
+              <tr><td colspan="5" class="vacio">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
         <p style="margin-top:var(--space-4)">
           <a class="enlace-acento" id="enlace-calendario" href="#" target="_blank">Ver calendario de ocupación →</a>
         </p>
@@ -61,14 +64,16 @@
         <div class="form-acciones">
           <button type="button" class="btn btn-secundario" id="btn-buscar">Buscar</button>
         </div>
-        <table>
-          <thead>
-            <tr><th>Ref.</th><th>Espacio</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Nombre</th></tr>
-          </thead>
-          <tbody id="tabla-busqueda">
-            <tr><td colspan="5" class="vacio">Introduce un nombre o una fecha y pulsa Buscar.</td></tr>
-          </tbody>
-        </table>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr><th>Ref.</th><th>Espacio</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Nombre</th></tr>
+            </thead>
+            <tbody id="tabla-busqueda">
+              <tr><td colspan="5" class="vacio">Introduce un nombre o una fecha y pulsa Buscar.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -291,10 +296,11 @@
 
           <div class="campo-fila">
             <div class="form-grupo"><label for="ed-checkin">Check-in revisado</label>
-              <select id="ed-checkin"><option>Pendiente</option><option>Hecho</option></select></div>
+              <select id="ed-checkin" disabled><option>Pendiente</option><option>Hecho</option></select></div>
             <div class="form-grupo"><label for="ed-checkout">Check-out revisado</label>
-              <select id="ed-checkout"><option>Pendiente</option><option>Hecho</option></select></div>
+              <select id="ed-checkout" disabled><option>Pendiente</option><option>Hecho</option></select></div>
           </div>
+          <p class="ayuda-campo">Se marcan al terminar cada checklist, más abajo.</p>
 
           <div class="form-grupo"><label for="ed-notas">Notas</label><textarea id="ed-notas" rows="3"></textarea></div>
 
@@ -313,21 +319,20 @@
           <p class="ayuda-campo" id="ed-contrato-enlace"></p>
         </div>
 
-        <div class="campo-fila">
-          <div class="form-grupo"><span class="etiqueta-bloque">Vídeo check-in</span>
-            <input type="file" id="ed-archivo-video-in" accept="video/*">
-            <button type="button" class="btn btn-secundario" id="btn-subir-video-in">Subir vídeo in</button></div>
-          <div class="form-grupo"><span class="etiqueta-bloque">Vídeo check-out</span>
-            <input type="file" id="ed-archivo-video-out" accept="video/*">
-            <button type="button" class="btn btn-secundario" id="btn-subir-video-out">Subir vídeo out</button></div>
+        <div style="margin-top:var(--space-5)">
+          <h3>Checklists</h3>
+          <p class="ayuda-campo">Los vídeos de inicio y fin se suben desde su punto de la checklist.</p>
+          <div id="checklists-reserva"></div>
         </div>
 
         <div style="margin-top:var(--space-5)">
           <h3>Historial de cambios</h3>
-          <table>
-            <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
-            <tbody id="tabla-historial"><tr><td colspan="5" class="vacio">Sin cambios registrados.</td></tr></tbody>
-          </table>
+          <div class="tabla-scroll">
+            <table>
+              <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
+              <tbody id="tabla-historial"><tr><td colspan="5" class="vacio">Sin cambios registrados.</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -340,6 +345,20 @@
           <button type="button" class="btn btn-secundario" id="btn-recalcular-stats">Recalcular ahora</button>
         </div>
         <div id="stats-zonas" class="stats-zonas"></div>
+      </div>
+    </section>
+
+    <section id="seccion-checklists" class="seccion">
+      <div class="panel">
+        <h2>Editar checklists</h2>
+        <p class="ayuda-campo">Solo administradores. Los puntos no se borran: se desactivan, para no perder el histórico de las reservas.</p>
+        <div class="campo-fila">
+          <div class="form-grupo"><label for="ck-espacio">Espacio</label>
+            <select id="ck-espacio"><option value="">Selecciona…</option></select></div>
+          <div class="form-grupo"><label for="ck-momento">Momento</label>
+            <select id="ck-momento"><option>Check-in</option><option>Check-out</option></select></div>
+        </div>
+        <div id="ck-lista"></div>
       </div>
     </section>
 
@@ -390,5 +409,6 @@
   <?!= include('cliente'); ?>
   <?!= include('gestion_interfaz'); ?>
   <?!= include('gastos_interfaz'); ?>
+  <?!= include('checklist_interfaz'); ?>
 </body>
 </html>

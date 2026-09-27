@@ -125,16 +125,20 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | API | `api_reservas.gs` | Crear reserva; Inicio y buscador | `crearReserva`, `cargarUltimasReservas`, `buscarReservas` | 0003, 0014 |
 | API | `api_gestion.gs` | Lista, ficha, edición auditada, servicios, cancelación, historial | `listarReservasActivas`, `obtenerReserva`, `actualizarReserva`, `cargarServiciosReserva`, `actualizarServiciosReserva`, `cancelarReserva`, `obtenerHistorial` | 0004, 0005 |
 | API | `api_documentos.gs` | Contrato y vídeos | `subirContrato`, `subirVideo` | 0014 |
+| API | `api_checklist.gs` | Checklists por reserva, fotos de desperfectos y editor del catálogo (Admin) | `cargarChecklist`, `guardarChecklist`, `confirmarChecklist`, `subirFotoDesperfecto`, `cargarCatalogoChecklist`, `guardarPuntoChecklist` | — |
 | API | `api_estadisticas.gs` | Estadísticas y enlace al calendario | `cargarEstadisticas`, `recalcularEstadisticas`, `obtenerEnlaceCalendario` | 0009, 0010 |
 | API | `api_gastos.gs` | Gastos y resumen fiscal | `cargarCategoriasGasto`, `registrarGasto`, `calcularResumenFiscal` | 0012 |
 | API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `instalarTriggers`, `sincronizarReservasCalendario`, `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
 | Dominio | `dominio_reservas.gs` | Validaciones, fechas, importes (fórmula única), solapamiento, IDs, ciclo de vida, edición, filtros | — | 0003–0005, 0014 |
 | Dominio | `dominio_informes.gs` | Agregados de estadísticas e informes, periodos | — | 0009 |
 | Dominio | `dominio_fiscal.gs` | Validación e ID de gastos, amortización, resumen a tercios | — | 0012 |
+| Dominio | `dominio_roles.gs` | Roles (Admin, Gestión, Soporte, Sistema) y sus permisos; rol vacío o antiguo = Gestión (F-11) | — | 0001 |
 | Infra | `infra_esquema.gs` | Hojas y campos lógico → columna (fuente única), semillas | — | — |
 | Infra | `infra_comun.gs` | Tablas por campo (lectura/escritura en bloque, reescritura atómica), fechas, formato, escape HTML, logs/errores | — | 0013 |
 | Infra | `infra_config.gs` | `Config` cacheada | — | — |
 | Infra | `infra_repositorio_reservas.gs` | Reservas, líneas de servicio, historial | — | 0005 |
+| Infra | `infra_repositorio_checklist.gs` | Catálogo y registro de checklists (escritura en bloque) | — | — |
+| Dominio | `dominio_checklist.gs` | Puntos aplicables, lista resuelta, días hasta la siguiente reserva, validación del editor (F-14) | — | — |
 | Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` | Gastos y resumen fiscal · cache de estadísticas e histórico de informes | — | 0009, 0012 |
 | Infra | `infra_catalogo.gs` | Catálogos (espacios, canales, servicios, categorías) | — | 0003 |
 | Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal) | — | 0006, 0010, 0014 |
@@ -162,9 +166,11 @@ Cliente ──crearReserva(datos)──► ejecutarEndpoint_ (autorización, try
                ├─ leerReservas_ → haySolapamiento_? → {success:false, Mensaje_Solapamiento}
                ├─ generarIdReserva_ → construirReservaNueva_                                  [dominio]
                ├─ anadirReserva_ + anadirLineasServicio_                                      [infra]
-               ├─ crearEventoReserva_ → guarda Calendar_Event_Id (fallo → '' + Errores; B-11)
+               ├─ crearEventoReserva_(invitados = usuarios activos, F-13) → guarda Calendar_Event_Id (fallo → '' + Errores; B-11)
                └─ notificarReservaCreada_ (cierre de canales + confirmación; fallos → Errores)
-            → {success:true, id:'NN/AA'}
+            → {success:true, id:'NN/AA'}  ·  sin evento: + {aviso, incidencia: ID}  (B-14)
+  [cliente] aviso → ventana modal → "Enviar al administrador" → notificarIncidencia(ID)
+            → erroresDeReserva_ (hoja Errores) → enviarIncidenciaAdmin_ → cuentas con Rol = Admin  (F-21)
 ```
 
 ### 6.3 Editar reserva (HU-23, HU-25)
@@ -254,15 +260,17 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | `Catálogo_Servicios_Extra` | Espacio, Nombre_Servicio, Activo, Coste_Unitario, Precio_Unitario | Servicios por espacio | 0003 |
 | `Catálogo_Categorias_Gasto` | Nombre_Categoria, Descripcion, Activo, Deducible_Default, Es_Amortizacion | Categorías fiscales (sembradas) | 0012 |
 | `Config` | Clave, Valor, Descripcion | Parámetros (§8.7) | — |
-| `Usuarios_Autorizados` | Email, Activo, Rol (reservado) | Control de acceso | 0001 |
+| `Usuarios_Autorizados` | Email, Activo, Rol (`Admin` = gestión + técnico · `Gestión` · `Soporte` = técnico · `Sistema` = cuenta de la app; vacío o `Copropietario` = Gestión; RF-84) | Control de acceso | 0001 |
 | `Logs` | Fecha_Hora, Tipo, Email, Detalle | Accesos (90 días) | 0001, 0013 |
-| `Errores` | Fecha_Hora, Funcion, Mensaje, Contexto | Errores (365 días) | 0013 |
+| `Errores` | Fecha_Hora, Funcion, Mensaje, Contexto (JSON; incluye `pila` técnica desde v2) | Errores (365 días) | 0013 |
 | `Historial_Cambios` | Fecha_Hora, Usuario, ID_Reserva, Campo, Valor_Anterior, Valor_Nuevo | Auditoría de negocio | 0005 |
 | `Historico_Informes` | Periodo, Tipo, Espacio, Canal, Num_Reservas, Ingresos_Brutos, Comisiones, Ingresos_Netos, Ocupacion | Archivo de informes (append-only; `Ocupacion` vacía, B-08) | 0009 |
 | `Estadisticas_Cache` | Zona, Total_Reservas_Anyo, Ingresos_Netos, Fecha_Actualizacion | Snapshot diario | 0009 |
 | `Gastos` | ID_Gasto, Fecha, Ejercicio, Concepto, Categoria, Espacio, Importe, Deducible, Pagado_Por, Justificante, Notas | Gastos | 0012 |
 | `Resumen_Fiscal` | Ejercicio, Espacio, Ingresos_Integros, Gastos_Deducibles, Rendimiento_Neto, Tercio_Comunero | Resumen persistido | 0012 |
 | `Registro_Viajeros` | ID_Reserva, Nombre_Completo, Tipo_Documento, Num_Documento, Num_Soporte, Nacionalidad, Fecha_Nacimiento, Direccion, Telefono, Email, Parentesco, Foto_Anverso, Foto_Reverso | Fase 2 (creada, sin uso) | 0007 |
+| `Catálogo_Checklist` | ID_Punto, Espacio, Momento, Bloque, Punto, Tipo (Casilla/Fecha/Video/Foto), Servicios_Requeridos, Condicion, Punto_Pareja, Orden, Activo | Puntos de las checklists; semilla = [checklists-check-in-out.md](../../docs_work/doc_check/checklists-check-in-out.md) | DD-01 |
+| `Registro_Checklist` | ID_Reserva, Momento, ID_Punto, Estado, Valor, Usuario, Fecha_Hora | Lo marcado en cada reserva (fila `OBSERVACIONES` para el texto libre) | DD-01 |
 
 ### 8.2 Modelo de importes
 
@@ -274,7 +282,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 - La fórmula vive en un único sitio: `calcularImportes_` (`dominio_reservas.gs`), con `comisionFija` para los servicios añadidos después (REF-01 resuelto).
 
 ### 8.3 Identificadores y referencias
-- Reserva: `AAAA-NNN` → `NN/AA` (pantalla) → `NN-AA` (Drive). El año es el de `Fecha_Hora_Inicio` (D-04).
+- Reserva: `AAAA-NNN` → `NN/AA` (pantalla) → `NN-AA` (Drive). El año es el **de creación de la reserva** (D-04, B-15); hasta v2 era el de `Fecha_Hora_Inicio`, y las referencias ya emitidas no cambian.
 - Gasto: `G{AAAA}-NNN`.
 
 ### 8.4 Fechas y zona horaria
@@ -291,10 +299,12 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 ### 8.6 Errores y registro
 - Todo endpoint: `try/catch` → `registrarError(funcion, error, contexto)` → `{ success: false, error: 'mensaje para el usuario' }`.
 - Integraciones (Calendar, Mail) capturan sus propios errores y no propagan (RNF-16).
-- `registrarLog`/`registrarError` nunca relanzan.
+- Acceso a hojas **por cabecera**: columnas en cualquier orden y columnas propias toleradas; si falta una del esquema, error claro (B-16). Excepción: `registrarLog_`/`registrarError_` escriben con `appendRow` en el orden del esquema (TD-01).
+- `registrarLog`/`registrarError` nunca relanzan. `registrarError_` guarda en `Contexto` la pila técnica del error.
+- Un fallo secundario que el usuario debe conocer vuelve en la respuesta como `aviso` (y, si procede, `incidencia`); el cliente lo muestra en ventana modal con opción de enviarlo a las cuentas `Admin` (F-21, RF-82).
 
 ### 8.7 Configuración (`Config`)
-Claves sembradas por `infra_esquema.gs`: `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default`, `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Cada_Dias`, `Backup_Max_Copias`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`. Se leen una vez por ejecución (`leerConfig`).
+Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default`, `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Cada_Dias`, `Backup_Max_Copias`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`. Se leen una vez por ejecución (`leerConfig`).
 
 ### 8.8 Concurrencia
 `LockService.getScriptLock()` (espera de 20 s) en crear, editar, cancelar, servicios y gastos.
@@ -361,6 +371,8 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-15 | Borrado de vídeos elimina la prueba ante daños | B | M | Baja | `Retencion_Videos_Dias` configurable; conservar a mano los vídeos con incidencia | Abierto |
 | R-16 | Funciones internas invocables desde el cliente con privilegios de la cuenta operativa | B | A | Media | Sufijo `_` en todo lo interno + `ejecutarTareaDelSistema_` en las entradas públicas; test automático (RNF-20) | **Mitigado en v2** (B-01) |
 | R-17 | Regresiones al tocar código sin tests automáticos | M | M | Media | Tests unitarios y de endpoints + CI (v2); faltan E2E e integración (S11) | **En mitigación** |
+| R-18 | La implementación publicada no coincide con el repositorio (versión o "Ejecutar como"): fallos que dependen de quién usa la app (B-14: sin evento de Calendar para una cuenta durante 3 meses) | M | A | **Alta** | Checklist de despliegue (ACC-03, T-06) que verifica "Ejecutar como: Yo" y la versión; avisos modales e incidencias al admin (F-21); Informe Técnico (F-16) | **En mitigación** |
+| R-19 | Cambios de estructura en hojas con datos reales (la app ya se usa, D-07) | M | A | **Alta** | D-19 (opción A): "Inicializar / reparar hojas" solo añade columnas al final y nunca toca las existentes; lectura por cabecera sin recurrir a la posición (error claro si falta); rellenos de datos antiguos con funciones puntuales y probadas; copia de seguridad antes. Queda: `registrarLog_`/`registrarError_` escriben por posición (TD-01) | **En mitigación** |
 
 *P/I:* A = alta · M = media · B = baja.
 
@@ -375,7 +387,7 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | TD-05 | Sin tests automáticos | 🟡 Unitarios + endpoints + CI en v2; faltan E2E e integración (S11) |
 | TD-06 | Sin linter | Pendiente (T-07, S9) |
 
-Los defectos funcionales (B-xx) están en [PROXIMOS_PASOS.md](../../PROXIMOS_PASOS.md).
+Los defectos funcionales (B-xx) están en [PROXIMOS_PASOS.md](../../docs_work/PROXIMOS_PASOS.md).
 
 ---
 

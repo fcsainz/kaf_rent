@@ -4,12 +4,14 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { crearEntornoConDatos, ficherosGs, leerFuente } = require('../soporte/gas');
 
-// Endpoints que usa la interfaz (20).
+// Endpoints que usa la interfaz (28).
 const ENDPOINTS = [
   'cargarEspaciosFormulario', 'cargarOpcionesEspacio', 'crearReserva', 'cargarUltimasReservas', 'buscarReservas',
   'listarReservasActivas', 'obtenerReserva', 'actualizarReserva', 'cargarServiciosReserva', 'actualizarServiciosReserva',
   'cancelarReserva', 'obtenerHistorial', 'subirContrato', 'subirVideo', 'obtenerEnlaceCalendario',
   'cargarEstadisticas', 'recalcularEstadisticas', 'cargarCategoriasGasto', 'registrarGasto', 'calcularResumenFiscal',
+  'notificarIncidencia', 'cargarChecklist', 'guardarChecklist', 'confirmarChecklist', 'subirFotoDesperfecto',
+  'cargarCatalogoChecklist', 'guardarPuntoChecklist', 'obtenerPerfil',
 ];
 // Puntos de entrada de Google (web, plantillas, menú, triggers) y utilidades de editor, todas protegidas.
 const ENTRADAS_SISTEMA = ['doGet', 'include', 'onOpen', 'tareasNocturnas', 'informesProgramados', 'instalarTriggers', 'inicializarBaseDeDatos', 'sincronizarReservasCalendario'];

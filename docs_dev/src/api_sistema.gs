@@ -53,11 +53,12 @@ const instalarTriggers = (e) => ejecutarTareaDelSistema_('instalarTriggers', e, 
 const sincronizarReservasCalendario = (e) => ejecutarTareaDelSistema_('sincronizarReservasCalendario', e, () => {
   const lectura = leerReservas_();
   const calendario = obtenerCalendario_();
+  const invitados = obtenerEmailsGestion_();
   let creados = 0;
   let omitidos = 0;
   lectura.entradas.forEach(({ reserva, filaSheet }) => {
     if (!esModificable_(reserva) || existeEvento_(calendario, reserva.calendarEventId)) { omitidos += 1; return; }
-    const eventoId = crearEventoReserva_(reserva);
+    const eventoId = crearEventoReserva_(reserva, invitados);
     if (!eventoId) { omitidos += 1; return; }
     guardarCampoReserva_(lectura.tabla, filaSheet, 'calendarEventId', eventoId);
     creados += 1;
@@ -65,19 +66,36 @@ const sincronizarReservasCalendario = (e) => ejecutarTareaDelSistema_('sincroniz
   return { success: true, creados, omitidos };
 });
 
-// Crea las hojas que falten, fija sus cabeceras y siembra los datos iniciales si están vacías. Idempotente (RF-72).
+// Añade al final las columnas del esquema que falten; nunca renombra, mueve ni borra las existentes (B-16).
+const anadirColumnasQueFaltan_ = (hoja, cabecerasEsquema) => {
+  const actuales = cabecerasDe_(hoja);
+  const faltan = columnasQueFaltan_(actuales, cabecerasEsquema);
+  if (faltan.length > 0) hoja.getRange(1, actuales.length + 1, 1, faltan.length).setValues([faltan]).setFontWeight('bold');
+  return faltan;
+};
+
+// La semilla está en el orden del esquema; se coloca por cabecera por si la hoja tiene otro orden.
+const sembrarSiVacia_ = (hoja, definicion) => {
+  if (!definicion.semilla || hoja.getLastRow() >= 2) return;
+  const columnas = mapaColumnas_(definicion.campos, cabecerasDe_(hoja), definicion.nombre);
+  const numColumnas = hoja.getLastColumn();
+  const campos = Object.keys(definicion.campos);
+  const filas = definicion.semilla.map((valores) => filaDesdeRegistro_(
+    campos.reduce((registro, campo, i) => ({ ...registro, [campo]: valores[i] }), {}), columnas, numColumnas));
+  hoja.getRange(2, 1, filas.length, numColumnas).setValues(filas);
+};
+
+// Crea las hojas que falten, añade las columnas que falten y siembra las vacías. Idempotente y sin tocar datos (RF-72).
 const inicializarBaseDeDatos = (e) => ejecutarTareaDelSistema_('inicializarBaseDeDatos', e, () => {
   const libro = obtenerSpreadsheet_();
-  const resultado = { creadas: [], existentes: [] };
+  const resultado = { creadas: [], existentes: [], columnasAnadidas: {} };
   ESQUEMA_HOJAS.forEach((definicion) => {
     const existente = libro.getSheetByName(definicion.nombre);
     const hoja = existente || libro.insertSheet(definicion.nombre);
-    const cabeceras = Object.values(definicion.campos);
-    hoja.getRange(1, 1, 1, cabeceras.length).setValues([cabeceras]).setFontWeight('bold');
+    const faltan = anadirColumnasQueFaltan_(hoja, Object.values(definicion.campos));
+    if (existente && faltan.length > 0) resultado.columnasAnadidas[definicion.nombre] = faltan;
     hoja.setFrozenRows(1);
-    if (definicion.semilla && hoja.getLastRow() < 2) {
-      hoja.getRange(2, 1, definicion.semilla.length, cabeceras.length).setValues(definicion.semilla);
-    }
+    sembrarSiVacia_(hoja, definicion);
     resultado[existente ? 'existentes' : 'creadas'].push(definicion.nombre);
   });
   eliminarHojaPorDefecto_(libro);

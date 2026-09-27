@@ -45,7 +45,7 @@ Documento de referencia para construir cualquier interfaz de KAF Rent. La direcc
 
 | Token | Hex | Fondo suave | Uso |
 |---|---|---|---|
-| `--c-success` | `#4C8C4A` | `#E6F2E6` | éxito, cobro ingresado, completada |
+| `--c-success` | `#468144` | `#E6F2E6` | éxito, cobro ingresado, completada |
 | `--c-warning` | `#D08A1E` | `#FBEFD9` | aviso, reserva abierta/pendiente |
 | `--c-error` | `#B23A2E` | `#F7E2DF` | error, acción destructiva |
 | `--c-info` | `#4A6D7C` | `#E5EDF0` | información neutra |
@@ -153,6 +153,7 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 - **Active:** un paso más (600 → 700) o ligero `scale(.99)`.
 - **Focus:** **anillo visible siempre** — `outline: 2px solid var(--c-accent-500); outline-offset: 2px;` (nunca quitar el foco sin sustituirlo).
 - **Disabled:** `opacity: .5; cursor: not-allowed;` y color neutro; sin hover.
+- **Área táctil:** todo botón y enlace de acción mide al menos 44 px de alto (`min-height: 44px` en `.btn`, `.btn-pequeno` y `.enlace-acento`); lo verifica `tests/e2e/accesibilidad.spec.js`.
 
 ---
 
@@ -184,16 +185,21 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 ### Tarjetas / paneles
 - Fondo `--c-surface`, borde `--c-border`, `--radius-lg`, `--shadow-sm`, padding `--space-5`.
 
-### Modales (confirmación de acciones destructivas)
-- Overlay `rgba(42,36,32,.45)`; contenedor `--c-surface`, `--radius-lg`, `--shadow-lg`.
-- Texto que explica la consecuencia; botón destructivo (`--c-error`) claramente diferenciado del de volver.
+### Modales (confirmación, errores y avisos)
+- Un único componente para toda la app (`crearDialogo` en `cliente.html`): overlay `rgba(42,36,32,.45)`; contenedor `--c-surface`, `--radius-lg`, `--shadow-lg`.
+- Accesible: `role="dialog"` (confirmación) o `alertdialog` (error/aviso), `aria-modal`, título y texto asociados, foco en el primer botón (la opción segura), Tab no sale de la ventana y Escape cierra.
+- **Confirmación:** texto que explica la consecuencia; botón destructivo claramente diferenciado del de volver.
+- **Error:** título "No se ha podido completar" en `--c-error`, borde superior `--c-error`, botón "Entendido".
+- **Aviso:** título "Atención", borde superior `--c-warning`; puede añadir una acción (p. ej. "Enviar al administrador", F-21).
 
 ### Estados vacíos
 - Icono o ilustración ligera + mensaje claro + acción ("No hay reservas registradas" + botón "Crear Reserva"). Nunca pantalla en blanco.
 
 ### Feedback
 - **Carga:** spinner/indicador en operaciones que tarden (GAS puede tardar segundos).
-- **Éxito/Error:** toast o banner; los errores, accionables (qué pasó + cómo resolver). Sin fallo silencioso.
+- **Éxito:** mensaje centrado en pantalla (`.toast-exito`, `--c-success`) que se cierra solo a los 3,5 s.
+- **Error y aviso:** ventana modal que el usuario debe cerrar (ver Modales); nunca un mensaje que desaparece solo. Los errores, accionables (qué pasó + cómo resolver). Sin fallo silencioso.
+- Un único punto de entrada: `mostrarMensaje(texto, 'exito' | 'error' | 'aviso')`.
 
 ---
 
@@ -213,7 +219,7 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
   --c-primary-500:#B5562E; --c-primary-600:#9A4727; --c-primary-700:#8E4322; --c-primary-900:#4F2412;
   --c-accent-50:#F2F4EC; --c-accent-100:#E2E8D4; --c-accent-500:#5E7C46; --c-accent-600:#4D6739; --c-accent-700:#3D522E;
   /* Semánticos */
-  --c-success:#4C8C4A; --c-success-bg:#E6F2E6;
+  --c-success:#468144; --c-success-bg:#E6F2E6;
   --c-warning:#D08A1E; --c-warning-bg:#FBEFD9;
   --c-error:#B23A2E;   --c-error-bg:#F7E2DF;
   --c-info:#4A6D7C;    --c-info-bg:#E5EDF0;

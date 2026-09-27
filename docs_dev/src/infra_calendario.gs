@@ -16,11 +16,13 @@ const colorDelEspacio_ = (espacio) => {
   return posicion >= 0 ? paleta[posicion % paleta.length] : null;
 };
 
-// Devuelve el ID del evento creado, o '' si no se pudo.
-const crearEventoReserva_ = (reserva) => {
+// Devuelve el ID del evento creado, o '' si no se pudo. Los invitados reciben la invitación de Calendar (F-13).
+const crearEventoReserva_ = (reserva, invitados = []) => {
   try {
     const evento = obtenerCalendario_().createEvent(tituloEventoReserva_(reserva), reserva.inicio, reserva.fin, {
       description: `Canal: ${reserva.canal}\nReserva ${referenciaMostrada_(reserva.id)}`,
+      guests: invitados.join(','),
+      sendInvites: invitados.length > 0,
     });
     const color = colorDelEspacio_(reserva.espacio);
     if (color) evento.setColor(color);

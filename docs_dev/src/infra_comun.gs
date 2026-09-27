@@ -14,12 +14,23 @@ const obtenerHoja_ = (nombre) => obtenerSpreadsheet_().getSheetByName(nombre);
 
 // ---------- Tablas: lectura en bloque y acceso por campo lógico (REF-02) ----------
 
-// Índice de cada campo: la columna cuya cabecera coincide; si no existe, su posición en el esquema.
-const mapaColumnas_ = (campos, cabecerasHoja) => Object.keys(campos).reduce((mapa, campo, posicion) => {
+// Índice de cada campo: la columna cuya cabecera coincide. Si falta, error claro: nunca se lee ni se escribe
+// en otra columna por posición, porque las hojas tienen datos reales y se editan a mano (B-16, D-19).
+const mapaColumnas_ = (campos, cabecerasHoja, nombreHoja) => Object.keys(campos).reduce((mapa, campo) => {
   const indice = cabecerasHoja.indexOf(campos[campo]);
-  mapa[campo] = indice >= 0 ? indice : posicion;
+  if (indice < 0) {
+    throw new Error(`Falta la columna "${campos[campo]}" en la hoja "${nombreHoja}". Ejecuta KAF Rent → Inicializar / reparar hojas.`);
+  }
+  mapa[campo] = indice;
   return mapa;
 }, {});
+
+// Cabeceras del esquema que no están en la hoja, en el orden del esquema.
+const columnasQueFaltan_ = (cabecerasHoja, cabecerasEsquema) => cabecerasEsquema.filter((c) => !cabecerasHoja.includes(c));
+
+const cabecerasDe_ = (hoja) => (hoja.getLastColumn() > 0
+  ? hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map((c) => String(c).trim())
+  : []);
 
 const registroDesdeFila_ = (fila, columnas) =>
   Object.keys(columnas).reduce((registro, campo) => {
@@ -47,7 +58,7 @@ const leerTabla_ = (nombreHoja) => {
   const ultimaFila = hoja.getLastRow();
   const numColumnas = Math.max(hoja.getLastColumn(), Object.keys(campos).length);
   const valores = ultimaFila > 0 ? hoja.getRange(1, 1, ultimaFila, numColumnas).getValues() : [[]];
-  const columnas = mapaColumnas_(campos, valores[0].map((c) => String(c).trim()));
+  const columnas = mapaColumnas_(campos, valores[0].map((c) => String(c).trim()), nombreHoja);
   const entradas = valores.slice(1)
     .map((fila, i) => ({ filaSheet: i + 2, valores: fila, registro: registroDesdeFila_(fila, columnas) }))
     .filter((entrada) => !filaVacia_(entrada.valores));
@@ -148,8 +159,23 @@ const registrarError_ = (funcion, error, contexto) => {
   try {
     const hoja = obtenerHoja_(HOJA_ERRORES);
     const mensaje = error && error.message ? error.message : String(error);
-    if (hoja) hoja.appendRow([new Date(), funcion, mensaje, JSON.stringify(contexto || {})]);
+    const pila = error && error.stack ? { pila: String(error.stack) } : {};
+    if (hoja) hoja.appendRow([new Date(), funcion, mensaje, JSON.stringify({ ...(contexto || {}), ...pila })]);
   } catch (e) {
     // Sin destino posible para el error: se ignora a propósito.
   }
 };
+
+// Contexto de un error registrado; {} si no es JSON válido (filas antiguas o editadas a mano).
+const contextoDeError_ = (registro) => {
+  try {
+    return JSON.parse(texto_(registro.contexto) || '{}');
+  } catch (error) {
+    return {};
+  }
+};
+
+// Errores registrados de una reserva (por su ID interno), los más recientes primero.
+const erroresDeReserva_ = (id) => registrosDe_(HOJA_ERRORES)
+  .filter((registro) => contextoDeError_(registro).id === id)
+  .reverse();

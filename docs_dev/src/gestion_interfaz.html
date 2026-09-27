@@ -141,6 +141,7 @@
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
           rellenarEdicion(res.data);
           cargarHistorial(id);
+          cargarChecklistsReserva(id);
         })
         .withFailureHandler(() => mostrarMensaje('No se pudo abrir la reserva.', 'error'))
         .obtenerReserva(id);
@@ -364,40 +365,6 @@
       });
     };
 
-    // Modal accesible (CLAUDE.md §6.5): rol de diálogo, foco en la opción segura y Escape para volver.
-    const confirmarAccion = (texto, onConfirm) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.setAttribute('role', 'dialog');
-      modal.setAttribute('aria-modal', 'true');
-      modal.setAttribute('aria-labelledby', 'modal-titulo');
-      const titulo = document.createElement('h3');
-      titulo.id = 'modal-titulo';
-      titulo.textContent = 'Confirmar';
-      const parrafo = document.createElement('p');
-      parrafo.textContent = texto;
-      const acciones = document.createElement('div');
-      acciones.className = 'form-acciones';
-      const volver = document.createElement('button');
-      volver.className = 'btn btn-secundario';
-      volver.textContent = 'No, volver';
-      const confirmar = document.createElement('button');
-      confirmar.className = 'btn btn-primario';
-      confirmar.textContent = 'Sí, continuar';
-      const origen = document.activeElement;
-      const cerrar = () => { overlay.remove(); if (origen) origen.focus(); };
-      volver.addEventListener('click', cerrar);
-      confirmar.addEventListener('click', () => { cerrar(); onConfirm(); });
-      overlay.addEventListener('keydown', (evento) => { if (evento.key === 'Escape') cerrar(); });
-      acciones.append(volver, confirmar);
-      modal.append(titulo, parrafo, acciones);
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-      volver.focus();
-    };
-
     // ----- Subida de archivos a Drive (HU-28/30) -----
     // opciones: { maxMB?: number } — si se pasa maxMB, el cliente rechaza el archivo antes de leerlo en memoria.
     // Evita el cuelgue en móvil al intentar base64-encodificar vídeos grandes.
@@ -430,21 +397,6 @@
           .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el contrato.', 'error'); })
           .subirContrato(reservaActualId, archivo);
       });
-    };
-
-    const subirVideoUI = (momento, idInput, idBoton) => {
-      if (!reservaActualId) return;
-      leerArchivo($(idInput), (archivo) => {
-        const boton = $(idBoton);
-        boton.disabled = true;
-        google.script.run
-          .withSuccessHandler((res) => {
-            boton.disabled = false;
-            mostrarMensaje(res.success ? 'Vídeo subido.' : res.error, res.success ? 'exito' : 'error');
-          })
-          .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el vídeo.', 'error'); })
-          .subirVideo(reservaActualId, momento, archivo);
-      }, { maxMB: 100 });
     };
 
     // ----- Edición de servicios extra en reservas existentes (HU-24) -----
@@ -637,8 +589,6 @@
       $('btn-cancelar-reserva').addEventListener('click', cancelarReservaUI);
       $('ed-incidencias').addEventListener('change', toggleIncidencia);
       $('btn-subir-contrato').addEventListener('click', subirContratoUI);
-      $('btn-subir-video-in').addEventListener('click', () => subirVideoUI('In', 'ed-archivo-video-in', 'btn-subir-video-in'));
-      $('btn-subir-video-out').addEventListener('click', () => subirVideoUI('Out', 'ed-archivo-video-out', 'btn-subir-video-out'));
       $('btn-guardar-servicios').addEventListener('click', guardarServiciosEdicion);
       cargarListaGestion();
     };

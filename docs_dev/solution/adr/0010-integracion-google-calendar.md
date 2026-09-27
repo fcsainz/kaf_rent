@@ -35,6 +35,7 @@ Opción elegida: "Google Calendar de la cuenta operativa, enlazado", porque da l
 - **Cancelar** → se elimina el evento.
 - **Editar** huésped → se actualiza el título del evento (*revisión 2026-09-25, v2, B-09*). Fechas y espacio → pendiente de HU-38 (hoy no se editan).
 - *Revisión 2026-09-25 (v2, B-11):* el evento se crea **después** de guardar la reserva, para no dejar eventos huérfanos si falla el guardado.
+- *Revisión 2026-09-27 (v2, F-13, decisión del usuario):* el evento invita a todos los usuarios activos de `Usuarios_Autorizados`, que reciben la invitación de Calendar y pueden aceptarla (RF-83). La reconciliación (RF-40) también invita.
 - **Un único calendario** (`Config.Calendar_Id`, vacío = por defecto) enlazado desde el Inicio con `Config.Calendar_Url` (no embebido).
 - **Robustez:** si Calendar falla, la reserva se guarda igual, `Calendar_Event_Id` queda vacío y el fallo va a `Errores`. La utilidad `sincronizarReservasCalendario` (editor) crea los eventos que falten.
 - Requiere ejecutar como la cuenta operativa (ADR-0001).

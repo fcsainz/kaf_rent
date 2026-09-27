@@ -7,6 +7,10 @@
   },
   "scripts": {
     "test": "TZ=Europe/Madrid node --test \"tests/**/*.test.js\"",
-    "test:cobertura": "TZ=Europe/Madrid node --test --experimental-test-coverage \"tests/**/*.test.js\""
+    "test:cobertura": "TZ=Europe/Madrid node --test --experimental-test-coverage \"tests/**/*.test.js\"",
+    "test:e2e": "TZ=Europe/Madrid playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }

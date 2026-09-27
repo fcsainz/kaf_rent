@@ -172,7 +172,9 @@ const estadoInicialContrato_ = (gestionContrato) =>
 const calcularEstadoReserva_ = (r) => {
   if (r.estado === ESTADO_RESERVA.CANCELADA) return ESTADO_RESERVA.CANCELADA;
   const sinIncidenciaAbierta = r.incidencias !== INCIDENCIAS.CON || r.incidenciaResuelta === SI;
-  return r.cobro === COBRO.INGRESADO && sinIncidenciaAbierta ? ESTADO_RESERVA.COMPLETADA : ESTADO_RESERVA.ABIERTA;
+  // F-14: cerrar exige cobro y check-out hecho (DD-01 §3.5).
+  return r.cobro === COBRO.INGRESADO && r.checkout === REVISION.HECHO && sinIncidenciaAbierta
+    ? ESTADO_RESERVA.COMPLETADA : ESTADO_RESERVA.ABIERTA;
 };
 
 // Qué falta para completar la reserva (RF-51).
@@ -180,6 +182,7 @@ const motivosPendientes_ = (r) => {
   if (r.estado === ESTADO_RESERVA.CANCELADA) return [];
   const motivos = [];
   if (r.cobro !== COBRO.INGRESADO) motivos.push('Pendiente de cobro');
+  if (r.checkout !== REVISION.HECHO) motivos.push('Check-out sin hacer');
   if (r.incidencias === INCIDENCIAS.CON && r.incidenciaResuelta !== SI) motivos.push('Incidencia sin resolver');
   return motivos;
 };

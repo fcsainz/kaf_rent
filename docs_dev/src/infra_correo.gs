@@ -3,13 +3,15 @@
 
 const NOMBRE_APP_EMAIL = 'KAF Rent';
 
-const enviarCorreo_ = (nombreFuncion, contexto, mensaje) => {
-  const destinatarios = obtenerEmailsNotificacion_();
-  if (destinatarios.length === 0) return;
+// Devuelve si se envió, para quien necesite contárselo al usuario.
+const enviarCorreo_ = (nombreFuncion, contexto, mensaje, destinatarios = obtenerEmailsNotificacion_()) => {
+  if (destinatarios.length === 0) return false;
   try {
     MailApp.sendEmail({ to: destinatarios.join(','), ...mensaje });
+    return true;
   } catch (error) {
     registrarError_(nombreFuncion, error, contexto);
+    return false;
   }
 };
 
@@ -99,3 +101,25 @@ const enviarInforme_ = (tipo, periodo, agregados) =>
     subject: `[${NOMBRE_APP_EMAIL}] Informe ${tipo} — ${periodo}`,
     htmlBody: htmlInforme_(tipo, periodo, agregados),
   });
+
+// Incidencia enviada por un usuario desde el aviso de la app (F-21): detalle técnico, sin datos del huésped (RNF-34).
+const enviarIncidenciaAdmin_ = ({ id, informante, errores }, destinatarios) => {
+  const ref = referenciaMostrada_(id);
+  const bloque = (e) => [
+    `Fecha: ${formatearFechaHora_(e.fecha)}`,
+    `Función: ${texto_(e.funcion)}`,
+    `Mensaje: ${texto_(e.mensaje)}`,
+    `Contexto técnico: ${texto_(e.contexto)}`,
+  ].join('\n');
+  return enviarCorreo_('enviarIncidenciaAdmin_', { id }, {
+    subject: `[${NOMBRE_APP_EMAIL}] Incidencia — reserva ${ref}`,
+    body: [
+      `${informante} ha enviado una incidencia desde la app sobre la reserva ${ref} (ID ${id}).`,
+      `Enviada: ${formatearFechaHora_(new Date())}`,
+      '',
+      `Errores registrados (${errores.length}, del más reciente al más antiguo):`,
+      '',
+      errores.map(bloque).join('\n\n'),
+    ].join('\n'),
+  }, destinatarios);
+};

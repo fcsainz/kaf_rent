@@ -7,7 +7,7 @@
 - `V1643-2025.pdf` — Consulta vinculante de la DGT (15-09-2025), sobre alquiler turístico de una habitación en la vivienda habitual del contribuyente.
 - `Croquis_Medidas_Interior_2026.jpg` / `Croquis_Medidas_Exterior_2026.jpg` — medidas de los espacios (ver §5, con preguntas pendientes).
 
-**Aviso:** información recopilada de fuentes oficiales, no asesoramiento fiscal. Pendiente de validar con el gestor (**EXT-01**, PROXIMOS_PASOS).
+**Aviso:** información recopilada de fuentes oficiales, no asesoramiento fiscal. No hay gestor: los criterios se fijan con esta documentación pública y legal (decisión del usuario, 2026-09-27).
 
 ---
 
@@ -81,10 +81,22 @@ El art. 23.2 LIRPF permite reducir el rendimiento neto (50-90 %) en arrendamient
 
 ### Exterior (`Croquis_Medidas_Exterior_2026.jpg`)
 
-Confirmado: **toda la zona "1"** (y sus subzonas 1A-1E) es lo que se alquila como Piscina/Jardín. Las zonas **2 y 3 no se alquilan**.
+Confirmado por el usuario (2026-09-27): **toda la zona "1" se alquila junta** como Piscina/Jardín; las subzonas 1A-1E (chillout, piscina, WC exterior, BBQ, pérgola) son solo referencias de uso y no hace falta medirlas por separado. Las zonas **2 y 3 no se alquilan**.
 
-| Subzona | Nombre | m² |
+Lectura del croquis (2026-09-27): los números grandes son las **áreas de las franjas** en que se divide la zona 1, y su suma coincide con el "~513 m²" del pie del plano:
+
+| Franja de la zona 1 | Cálculo en el croquis | m² |
 |---|---|---|
+| Banda superior (contiene 1A, 1B, 1C y 1D) | 26 × 11,5 | 299 |
+| Franja entre la banda superior y la casa | 9,90 × 2,20 | 21,8 |
+| Rincón junto a la casa | rotulado | 24,8 |
+| Lateral derecho (contiene 1E) | rotulado | 83,3 |
+| Franja inferior (jardín) | 11,2 × 7,5 | 84 |
+| **Total "producto Piscina/Jardín" (zona 1)** | | **≈ 513** |
+
+(La lectura anterior de "299" como la piscina, 29,9 m², era errónea: es la banda superior entera.)
+
+---|---|---|
 | 1 (general, parte inferior) | Jardín | 84 |
 | 1A | Zona chillout | *(sin rotular en el croquis)* |
 | 1B | Piscina | ≈ 29,9 (rotulado "299", leído como 29,9) |
@@ -107,18 +119,26 @@ Confirmado: **toda la zona "1"** (y sus subzonas 1A-1E) es lo que se alquila com
 | Referencia catastral | 7178417VK7677N0001TQ |
 | Linderos | Norte: Calle Número 16, 45 · Sur: Calle Número 16, 49 · Este: Ronda Hispanoamericana, 291 · Oeste: Calle Número 16, 47 |
 
-**⚠️ Discrepancia sin resolver:** el croquis exterior suma **≈ 513 m²** de parcela dibujada, pero el catastro dice **906 m²** de terreno. Puede que el croquis solo mida la zona próxima a la casa (jardín + instalaciones) y el resto de la parcela (906 − 513 ≈ 393 m²) sea terreno no relevante para el alquiler (acceso, otras zonas no cedidas) — pero esto es una suposición mía, no un hecho confirmado. Antes de calcular ningún porcentaje real conviene aclarar qué parte del terreno catastral corresponde al plano dibujado.
+**Relación con el catastro:** los ≈ 513 m² son solo la zona 1; el resto del terreno catastral (906 − 513 ≈ 393 m²) corresponde a la huella de la casa y a las zonas 2 y 3, que no se alquilan (deducido del croquis, pendiente de confirmar por el usuario).
 
 **Régimen fiscal aplicable, ya confirmado:** la vivienda **es la residencia habitual de los tres copropietarios** (lo dice también ADR-0012), que alquilan partes de ella de forma ocasional. Esto encaja de forma casi directa con el supuesto de la consulta DGT V1643-25 (§3), no solo por analogía. En los días en que el jardín/piscina no están alquilados, los copropietarios lo usan personalmente — es simplemente su vivienda habitual, así que **no aplica imputación de renta inmobiliaria** en esos días (esa imputación es para segundas residencias sin uso, no para la vivienda habitual). Lo que sí sigue aplicando es el prorrateo por días: solo los días efectivamente alquilados de cada zona generan gasto deducible.
 
 ---
 
+## 6bis. Criterio de cálculo adoptado — provisional (2026-09-27)
+
+Aceptado por el usuario como base para seguir; **se cierra al validarlo con los gastos y reservas reales de un ejercicio** (D-15 en PROXIMOS_PASOS). Ejemplo numérico completo en la conversación del 2026-09-27, que se convertirá en test al revisar ADR-0012.
+
+- **Dos cálculos**, uno por producto. Los gastos se asignan a la **pieza física** que usan, no al producto: interior de la Habitación (46,4 m²), exterior (zona 1, ≈ 513 m²) o finca (906 m², catastro). El huésped de la Habitación puede usar el exterior; el de Piscina/Jardín no puede entrar al interior (V1643-25: "dependerá de los pactos contractuales").
+- **Tiempo:** la Habitación se cuenta por noches / 365. El exterior, por horas alquiladas / ventana útil diaria (11:00–23:00 = 12 h, irá en `Config`) → días equivalentes / 365. Si los dos productos coinciden, las horas del exterior se imputan a Piscina/Jardín (se cuenta una sola vez).
+- **Tipos de gasto:** (A) de la reserva (comisiones) → 100 %; (B) de una sola pieza (jardinero y productos de piscina → exterior; reparación en la Habitación → interior) → × tiempo de esa pieza; (C) generales de la finca (IBI, seguro, suministros sin contador) → × superficie de la pieza / 906 × tiempo; (D) amortización (art. 14 RIRPF, sin suelo) → casa × (46,4 / 223,35 construidos) × tiempo del interior; instalaciones exteriores × 3 % × tiempo del exterior; mobiliario × 10 % × tiempo del interior.
+- **Límite** del art. 23.1.a LIRPF: intereses + reparación y conservación ≤ ingresos; el exceso, a los 4 años siguientes.
+- **Faltan para validarlo:** gastos y reservas reales, valor de construcción de la casa, coste de las instalaciones exteriores y del mobiliario, y la clasificación de cada gasto por pieza y tipo.
+
 ## 7. Preguntas que siguen abiertas
 
-1. M² individuales de las subzonas 1A, 1C, 1D y 1E del exterior (falta para cerrar el total del producto Piscina/Jardín).
-2. A qué corresponde el "83,3" y a qué subzona el "24,8" del croquis exterior.
-3. Relación entre el plano a mano (~513 m²) y el terreno catastral (906 m²).
-4. Facturas desglosadas de la reforma por partidas, para clasificar cada una como reparación o mejora (§2) — el usuario indica que esto se afronta más adelante, no ahora.
+1. ~~M² de las subzonas y relación croquis-catastro~~ → resuelto (§5-§6, 2026-09-27).
+2. Facturas desglosadas de la reforma por partidas, para clasificar cada una como reparación o mejora (§2) — el usuario indica que esto se afronta más adelante, no ahora.
 
 ---
 

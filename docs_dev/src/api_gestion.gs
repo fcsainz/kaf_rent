@@ -64,7 +64,9 @@ const actualizarReserva = (id, cambios) => ejecutarEndpoint_('actualizarReserva'
 
   const email = obtenerEmailSesion_();
   const ahora = new Date();
-  const { reserva, diffs } = aplicarCambios_(entrada.reserva, cambios, email, ahora);
+  // RF-56: check-in y check-out solo cambian al confirmar su checklist, nunca desde el formulario.
+  const sinRevisiones = { ...cambios, checkin: entrada.reserva.checkin, checkout: entrada.reserva.checkout };
+  const { reserva, diffs } = aplicarCambios_(entrada.reserva, sinRevisiones, email, ahora);
   guardarReserva_(lectura.tabla, entrada, reserva);
   registrarHistorial_(id, diffs, email, ahora);
   if (reserva.nombre !== entrada.reserva.nombre) actualizarTituloEvento_(reserva);

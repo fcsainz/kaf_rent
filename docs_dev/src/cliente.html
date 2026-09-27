@@ -228,7 +228,8 @@
       .withSuccessHandler((res) => {
         boton.disabled = false;
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-        mostrarMensaje('Reserva ' + res.id + ' guardada correctamente.', 'exito');
+        if (res.aviso) mostrarAvisoConIncidencia('Reserva ' + res.id + ': ' + res.aviso, res.incidencia);
+        else mostrarMensaje('Reserva ' + res.id + ' guardada correctamente.', 'exito');
         reiniciarFormulario();
       })
       .withFailureHandler(() => {
@@ -326,22 +327,115 @@
     document.querySelectorAll('#form-reserva .error-campo').forEach((el) => el.remove());
   };
 
-  let temporizadorToast = null;
-  const mostrarMensaje = (texto, tipo) => {
-    let toast = $('toast-global');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'toast-global';
-      toast.setAttribute('role', 'status');
-      toast.setAttribute('aria-live', 'polite');
-      document.body.appendChild(toast);
+  // ----- Mensajes al usuario (F-21) -----
+  // Éxito: aviso centrado que se cierra solo. Error y aviso: ventana que el usuario debe cerrar, para que no pase desapercibida.
+  const DURACION_EXITO_MS = 3500;
+  let temporizadorExito = null;
+
+  const mostrarExito = (texto) => {
+    let aviso = $('toast-global');
+    if (!aviso) {
+      aviso = document.createElement('div');
+      aviso.id = 'toast-global';
+      aviso.setAttribute('role', 'status');
+      aviso.setAttribute('aria-live', 'polite');
+      document.body.appendChild(aviso);
     }
-    toast.className = 'toast toast-' + (tipo || 'info');
-    toast.textContent = texto;
-    toast.style.display = 'block';
-    if (temporizadorToast) clearTimeout(temporizadorToast);
-    temporizadorToast = setTimeout(() => { toast.style.display = 'none'; }, 4500);
+    aviso.className = 'toast toast-exito';
+    aviso.textContent = texto;
+    aviso.style.display = 'block';
+    if (temporizadorExito) clearTimeout(temporizadorExito);
+    temporizadorExito = setTimeout(() => { aviso.style.display = 'none'; }, DURACION_EXITO_MS);
   };
+
+  // Ventana modal accesible (CLAUDE.md §6.5): rol de diálogo, foco dentro, Tab no se escapa y Escape cierra.
+  // botones: [{ texto, clase, alPulsar, cierra = true }]; el primero recibe el foco (la opción segura).
+  const crearDialogo = ({ titulo, texto, tipo = 'info', botones }) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-' + tipo;
+    modal.setAttribute('role', tipo === 'info' ? 'dialog' : 'alertdialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'modal-titulo');
+    modal.setAttribute('aria-describedby', 'modal-texto');
+    const cabecera = document.createElement('h3');
+    cabecera.id = 'modal-titulo';
+    cabecera.textContent = titulo;
+    const parrafo = document.createElement('p');
+    parrafo.id = 'modal-texto';
+    parrafo.textContent = texto;
+    const acciones = document.createElement('div');
+    acciones.className = 'form-acciones';
+    const origen = document.activeElement;
+    const cerrar = () => { overlay.remove(); if (origen) origen.focus(); };
+    const elementos = botones.map(({ texto: etiqueta, clase = 'btn-secundario', alPulsar, cierra = true }) => {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn ' + clase;
+      boton.textContent = etiqueta;
+      boton.addEventListener('click', () => { if (cierra) cerrar(); if (alPulsar) alPulsar(boton); });
+      return boton;
+    });
+    overlay.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Escape') { cerrar(); return; }
+      if (evento.key !== 'Tab') return;
+      const primero = elementos[0];
+      const ultimo = elementos[elementos.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) { evento.preventDefault(); ultimo.focus(); }
+      else if (!evento.shiftKey && document.activeElement === ultimo) { evento.preventDefault(); primero.focus(); }
+    });
+    acciones.append(...elementos);
+    modal.append(cabecera, parrafo, acciones);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    elementos[0].focus();
+    return cerrar;
+  };
+
+  const TITULOS_DIALOGO = { error: 'No se ha podido completar', aviso: 'Atención' };
+
+  // Punto único de feedback de toda la app: 'exito' se cierra solo; 'error' y 'aviso' exigen cerrarlos.
+  const mostrarMensaje = (texto, tipo) => {
+    if (tipo === 'exito') { mostrarExito(texto); return; }
+    const clase = tipo === 'aviso' ? 'aviso' : 'error';
+    crearDialogo({ titulo: TITULOS_DIALOGO[clase], texto, tipo: clase, botones: [{ texto: 'Entendido', clase: 'btn-primario' }] });
+  };
+
+  // Aviso con opción de mandar a los administradores el detalle técnico del error (F-21).
+  const mostrarAvisoConIncidencia = (texto, incidencia) => {
+    const enviar = (boton) => {
+      boton.disabled = true;
+      boton.textContent = 'Enviando…';
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res.success) { boton.disabled = false; boton.textContent = 'Enviar al administrador'; mostrarMensaje(res.error, 'error'); return; }
+          cerrar();
+          mostrarExito('Incidencia enviada al administrador.');
+        })
+        .withFailureHandler(() => {
+          boton.disabled = false;
+          boton.textContent = 'Enviar al administrador';
+          mostrarMensaje('No se pudo enviar la incidencia. Inténtalo más tarde.', 'error');
+        })
+        .notificarIncidencia(incidencia);
+    };
+    const cerrar = crearDialogo({
+      titulo: TITULOS_DIALOGO.aviso, texto, tipo: 'aviso',
+      botones: [
+        { texto: 'Entendido', clase: 'btn-secundario' },
+        { texto: 'Enviar al administrador', clase: 'btn-primario', cierra: false, alPulsar: enviar },
+      ],
+    });
+  };
+
+  const confirmarAccion = (texto, onConfirm) => crearDialogo({
+    titulo: 'Confirmar', texto,
+    botones: [
+      { texto: 'No, volver', clase: 'btn-secundario' },
+      { texto: 'Sí, continuar', clase: 'btn-primario', alPulsar: onConfirm },
+    ],
+  });
 
   // ----- Inicio: 5 últimas reservas, ordenable (HU-04) -----
   let ultimasReservas = [];

@@ -1,6 +1,8 @@
 // Capa: API — crear reservas (HU-08..HU-19) y lecturas del Inicio: últimas reservas y buscador (HU-04, HU-06).
 
 const NUM_ULTIMAS_RESERVAS = 5;
+// B-14: el fallo de Calendar no bloquea la reserva (RNF-16), pero no puede quedar oculto al usuario.
+const AVISO_SIN_EVENTO_CALENDARIO = 'La reserva se ha guardado, pero no se pudo crear su evento en el calendario. Avisa al administrador para que lo revise.';
 
 // Contexto de error sin datos personales del huésped (RNF-34).
 const contextoReserva_ = (d) => (d ? { espacio: d.espacio, canal: d.canal, fechaUnica: d.fechaUnica, fechaEntrada: d.fechaEntrada } : {});
@@ -47,20 +49,38 @@ const construirEntradaReserva_ = (datos, espacio, canal, fechas) => {
 // Bajo bloqueo: comprueba el solapamiento contra el Sheet, guarda y, después, sincroniza Calendar y avisa (B-11).
 const guardarReservaNueva_ = (entrada, email, ahora) => {
   const lectura = leerReservas_();
+  const invitados = obtenerEmailsGestion_(); // Antes de escribir: si falla, no queda nada a medias.
   const reservas = lectura.entradas.map((e) => e.reserva);
   if (haySolapamiento_(reservas, entrada.espacio, entrada.inicio, entrada.fin)) {
     return { success: false, error: obtenerConfig_('Mensaje_Solapamiento', 'Ya existe una reserva para ese espacio en esas fechas.') };
   }
-  const id = generarIdReserva_(reservas.map((r) => r.id), entrada.inicio.getFullYear());
+  // D-04: la referencia lleva el año en que se crea la reserva, no el de la estancia (B-15).
+  const id = generarIdReserva_(reservas.map((r) => r.id), ahora.getFullYear());
   const reserva = construirReservaNueva_(entrada, { id, email, ahora });
   const filaSheet = anadirReserva_(lectura.tabla, reserva);
   anadirLineasServicio_(id, entrada.lineas);
 
-  const calendarEventId = crearEventoReserva_(reserva);
+  const calendarEventId = crearEventoReserva_(reserva, invitados);
   if (calendarEventId) guardarCampoReserva_(lectura.tabla, filaSheet, 'calendarEventId', calendarEventId);
   notificarReservaCreada_(reserva);
-  return { success: true, id: referenciaMostrada_(id) };
+  const respuesta = { success: true, id: referenciaMostrada_(id) };
+  return calendarEventId ? respuesta : { ...respuesta, aviso: AVISO_SIN_EVENTO_CALENDARIO, incidencia: id };
 };
+
+// F-21: el usuario reenvía a los administradores los errores registrados de una reserva. Solo viaja el ID;
+// el contenido lo arma el servidor desde la hoja Errores, así que el cliente no puede inyectar nada.
+const MAX_ERRORES_INCIDENCIA = 5;
+const FORMATO_ID_RESERVA = /^\d{4}-\d{3}$/;
+
+const notificarIncidencia = (id) => ejecutarEndpoint_('notificarIncidencia', { id }, () => {
+  if (!FORMATO_ID_RESERVA.test(texto_(id))) return { success: false, error: 'Referencia de incidencia no válida.' };
+  const errores = erroresDeReserva_(id).slice(0, MAX_ERRORES_INCIDENCIA);
+  if (errores.length === 0) return { success: false, error: 'No hay errores registrados para esta reserva.' };
+  const admins = obtenerEmailsSoporte_();
+  if (admins.length === 0) return { success: false, error: 'No hay ningún administrador configurado. Avisa a un copropietario.' };
+  const enviado = enviarIncidenciaAdmin_({ id, informante: obtenerEmailSesion_(), errores }, admins);
+  return enviado ? { success: true } : { success: false, error: 'No se pudo enviar el email. Inténtalo más tarde.' };
+}, { errorUsuario: 'No se pudo enviar la incidencia. Inténtalo más tarde.' });
 
 // Proyección ligera para las tablas; incluye claves numéricas para ordenar fechas en el cliente.
 const proyeccionListado_ = (r) => ({

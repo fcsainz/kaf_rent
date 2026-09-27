@@ -25,5 +25,5 @@ Formato **[MADR 4.0](https://adr.github.io/madr/)** (Markdown Architectural Deci
 - **Una decisión relevante = un ADR.** Es relevante si tiene alternativas reales, afecta a varios módulos o es cara de revertir.
 - **Nadie decide sin OK:** Claude redacta el ADR como `proposed`, lo explica con pros y contras y solo pasa a `accepted` cuando el usuario lo aprueba ([CLAUDE.md §2.1](../../../CLAUDE.md)).
 - **No se reescribe la historia:** si una decisión cambia, se crea un ADR nuevo y el anterior pasa a `superseded by ADR-NNNN`. Los ajustes menores se anotan como *Revisión AAAA-MM-DD* dentro del ADR y actualizan `date`.
-- Cada ADR enlaza en *Más información* sus **HU, RF y RNF**, y sus cuestiones abiertas con el ID de [PROXIMOS_PASOS.md](../../../PROXIMOS_PASOS.md).
+- Cada ADR enlaza en *Más información* sus **HU, RF y RNF**, y sus cuestiones abiertas con el ID de [PROXIMOS_PASOS.md](../../../docs_work/PROXIMOS_PASOS.md).
 - La sección 9 de [arc42](../arc42.md#9-decisiones-de-arquitectura) remite a este índice.

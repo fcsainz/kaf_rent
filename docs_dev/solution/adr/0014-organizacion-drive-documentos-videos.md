@@ -74,4 +74,4 @@ Opción elegida: "Correlativo anual global + carpetas por espacio y reserva", po
 ## Más información
 
 * **Trazabilidad:** HU-16, HU-28, HU-30 · RF-31, RF-54, RF-57, RF-58, RF-65, RF-70 · RNF-07, RNF-35, RNF-36
-* **Cuestiones abiertas:** catálogo de `{tipo}` de documento (F-10); año del correlativo: año de inicio de la estancia (así está implementado) o año de registro (D-04).
+* **Cuestiones abiertas:** catálogo de `{tipo}` de documento (F-10); ~~año del correlativo~~ → resuelto (D-04, 2026-09-27): año en que se crea la reserva (B-15); las referencias ya emitidas no cambian.

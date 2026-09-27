@@ -4,7 +4,7 @@
     --c-primary-50:#FBF1EC; --c-primary-100:#F6E0D5; --c-primary-300:#DD9A7B;
     --c-primary-500:#B5562E; --c-primary-600:#9A4727; --c-primary-700:#8E4322; --c-primary-900:#4F2412;
     --c-accent-50:#F2F4EC; --c-accent-100:#E2E8D4; --c-accent-500:#5E7C46; --c-accent-600:#4D6739; --c-accent-700:#3D522E;
-    --c-success:#4C8C4A; --c-success-bg:#E6F2E6;
+    --c-success:#468144; --c-success-bg:#E6F2E6;
     --c-warning:#D08A1E; --c-warning-bg:#FBEFD9;
     --c-error:#B23A2E;   --c-error-bg:#F7E2DF;
     --c-info:#4A6D7C;    --c-info-bg:#E5EDF0;
@@ -52,7 +52,7 @@
   }
   .btn {
     font-family: var(--font-body); font-weight: 600; font-size: 1rem;
-    padding: 10px 16px; border-radius: var(--radius-md);
+    padding: 10px 16px; border-radius: var(--radius-md); min-height: 44px; /* área táctil (RNF-12) */
     border: 1px solid transparent; cursor: pointer;
     transition: background .15s, border-color .15s;
   }
@@ -63,7 +63,7 @@
   .btn-secundario { background: transparent; color: var(--c-primary-700); border-color: var(--c-primary-500); }
   .btn-secundario:hover { background: var(--c-primary-50); }
   .btn-nav.activo { background: var(--c-primary-500); color: #fff; }
-  .btn-pequeno { padding: 6px 12px; font-size: 0.85rem; }
+  .btn-pequeno { padding: 6px 12px; font-size: 0.85rem; min-height: 44px; }
 
   .seccion { display: none; }
   .seccion.activa { display: block; }
@@ -88,7 +88,7 @@
   tbody tr:hover { background: var(--c-primary-50); }
 
   .vacio { color: var(--c-text-muted); padding: var(--space-4); text-align: center; }
-  .enlace-acento { color: var(--c-accent-700); font-weight: 600; text-decoration: none; }
+  .enlace-acento { color: var(--c-accent-700); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
 
   /* Acceso denegado */
   .denegado { max-width: 480px; margin: 12vh auto; text-align: center; padding: var(--space-6); }
@@ -135,6 +135,20 @@
   }
   .modal h3 { margin-bottom: var(--space-3); }
   .modal p { color: var(--c-text-muted); margin: 0 0 var(--space-5); }
+  .modal-error h3 { color: var(--c-error); }
+  .modal-error { border-top: 4px solid var(--c-error); }
+  .modal-aviso { border-top: 4px solid var(--c-warning); }
+
+  /* Checklists (F-14) */
+  details.checklist { border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); background: var(--c-surface); }
+  details.checklist summary { font-weight: 600; min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+  .checklist-bloque { margin: var(--space-4) 0 var(--space-2); font-size: 1rem; color: var(--c-primary-700); }
+  .checklist-punto { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--c-border); flex-wrap: wrap; }
+  .checklist-control { display: flex; align-items: center; gap: var(--space-3); flex: 1 1 200px; min-height: 44px; }
+  .checklist-control input[type="checkbox"] { width: 24px; height: 24px; flex: 0 0 auto; }
+  .checklist-control label { cursor: pointer; }
+  .checklist-punto.no-aplica label, .checklist-punto.no-aplica input[type="text"] { color: var(--c-text-muted); text-decoration: line-through; }
+  .btn-no-aplica[aria-pressed="true"] { background: var(--c-surface-alt); border-color: var(--c-text-muted); color: var(--c-text); }
 
   /* Estadísticas */
   .stats-zonas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
@@ -226,14 +240,13 @@
     .form-acciones .btn { flex: 0 0 auto; }
   }
 
-  /* Toast de feedback */
+  /* Aviso de éxito centrado (se cierra solo; errores y avisos van en ventana modal, F-21) */
   .toast {
-    position: fixed; left: 50%; bottom: var(--space-5); transform: translateX(-50%);
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
     max-width: 92%; padding: var(--space-3) var(--space-5);
     border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
     font-weight: 600; color: #fff; z-index: 100; text-align: center;
   }
   .toast-exito { background: var(--c-success); }
   .toast-error { background: var(--c-error); }
-  .toast-info { background: var(--c-info); }
 </style>

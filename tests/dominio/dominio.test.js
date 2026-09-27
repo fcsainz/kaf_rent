@@ -121,17 +121,18 @@ test.describe('RF-29, RF-31 · solapamiento e identificadores', () => {
   });
 });
 
-test.describe('RF-50, RF-51 · ciclo de vida', () => {
+test.describe('RF-50, RF-51 · ciclo de vida (cierre = cobro + check-out hecho, F-14)', () => {
   const casos = [
-    ['Ingresado', 'Sin incidentes', '', 'Completada', []],
-    ['Ingresado', 'Con incidentes', 'Sí', 'Completada', []],
-    ['Ingresado', 'Con incidentes', 'No', 'Abierta', ['Incidencia sin resolver']],
-    ['No ingresado', 'Sin incidentes', '', 'Abierta', ['Pendiente de cobro']],
-    ['No ingresado', 'Con incidentes', '', 'Abierta', ['Pendiente de cobro', 'Incidencia sin resolver']],
+    ['Ingresado', 'Hecho', 'Sin incidentes', '', 'Completada', []],
+    ['Ingresado', 'Hecho', 'Con incidentes', 'Sí', 'Completada', []],
+    ['Ingresado', 'Pendiente', 'Sin incidentes', '', 'Abierta', ['Check-out sin hacer']],
+    ['Ingresado', 'Hecho', 'Con incidentes', 'No', 'Abierta', ['Incidencia sin resolver']],
+    ['No ingresado', 'Hecho', 'Sin incidentes', '', 'Abierta', ['Pendiente de cobro']],
+    ['No ingresado', 'Pendiente', 'Con incidentes', '', 'Abierta', ['Pendiente de cobro', 'Check-out sin hacer', 'Incidencia sin resolver']],
   ];
-  casos.forEach(([cobro, incidencias, incidenciaResuelta, estado, pendientes]) => {
-    test(`${cobro} + ${incidencias} ${incidenciaResuelta} → ${estado}`, () => {
-      const r = reservaBase({ cobro, incidencias, incidenciaResuelta });
+  casos.forEach(([cobro, checkout, incidencias, incidenciaResuelta, estado, pendientes]) => {
+    test(`${cobro} + check-out ${checkout} + ${incidencias} ${incidenciaResuelta} → ${estado}`, () => {
+      const r = reservaBase({ cobro, checkout, incidencias, incidenciaResuelta });
       assert.equal(fn('calcularEstadoReserva_')(r), estado);
       assert.deepEqual(plano(fn('motivosPendientes_')({ ...r, estado })), pendientes);
     });
@@ -155,11 +156,11 @@ test.describe('RF-45..RF-48 · aplicar cambios', () => {
   });
   test('recalcula importes y estado, y marca autor y fecha', () => {
     const r = reservaBase();
-    const { reserva, diffs } = fn('aplicarCambios_')(r, cambiosDe(r, { importeAlquiler: '400', cobro: 'Ingresado' }), 'luis@x', HOY);
+    const { reserva, diffs } = fn('aplicarCambios_')(r, cambiosDe(r, { importeAlquiler: '400', cobro: 'Ingresado', checkout: 'Hecho' }), 'luis@x', HOY);
     assert.equal(reserva.bruto, 420);
     assert.equal(reserva.estado, 'Completada');
     assert.equal(reserva.modificadoPor, 'luis@x');
-    assert.deepEqual(plano(diffs).map((x) => x.campo), ['Importe del alquiler', 'Estado de cobro', 'Estado de la reserva']);
+    assert.deepEqual(plano(diffs).map((x) => x.campo), ['Importe del alquiler', 'Estado de cobro', 'Check-out revisado', 'Estado de la reserva']);
   });
   test('no muta la reserva original (inmutabilidad)', () => {
     const r = reservaBase();
@@ -244,9 +245,15 @@ test.describe('Infraestructura pura', () => {
   test('RNF-26 · escapar HTML', () => {
     assert.equal(fn('escaparHtml_')('<img src=x onerror="a()">&\''), '&lt;img src=x onerror=&quot;a()&quot;&gt;&amp;&#39;');
   });
-  test('REF-02 · columnas por cabecera y, si falta, por posición del esquema', () => {
-    const m = fn('mapaColumnas_')({ a: 'A', b: 'B', c: 'C' }, ['B', 'A']);
-    assert.deepEqual(plano(m), { a: 1, b: 0, c: 2 });
+  test('REF-02 · columnas por cabecera, en cualquier orden y con columnas ajenas', () => {
+    const m = fn('mapaColumnas_')({ a: 'A', b: 'B' }, ['X', 'B', 'A'], 'H');
+    assert.deepEqual(plano(m), { a: 2, b: 1 });
+  });
+  test('B-16 · si falta una cabecera, error claro y nunca la posición del esquema', () => {
+    assert.throws(() => fn('mapaColumnas_')({ a: 'A', b: 'B', c: 'C' }, ['B', 'A'], 'H'), /Falta la columna "C" en la hoja "H"/);
+  });
+  test('B-16 · columnas que faltan, en el orden del esquema', () => {
+    assert.deepEqual([...fn('columnasQueFaltan_')(['B', 'Z'], ['A', 'B', 'C'])], ['A', 'C']);
   });
   test('toca copia según la cadencia', () => {
     const t = fn('tocaCopia_');

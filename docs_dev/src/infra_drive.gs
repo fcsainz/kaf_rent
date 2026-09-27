@@ -67,3 +67,9 @@ const nombreContrato_ = (reserva, archivo) =>
 
 const nombreVideo_ = (reserva, momento, archivo) =>
   `Video ${momento} ${referenciaDrive_(reserva.id)} ${reserva.nombre} ${fechaCorta_(reserva.inicio)}.${extensionDe_(archivo.nombre)}`;
+
+const TIPOS_FOTO = ['jpg', 'jpeg', 'png', 'heic'];
+const TAMANO_MAX_FOTO_MB = 15;
+
+const nombreFotoDesperfecto_ = (reserva, archivo, ahora) =>
+  `${referenciaDrive_(reserva.id)} - desperfecto - ${Utilities.formatDate(ahora, zonaHoraria_(), 'ddMMyy-HHmmss')}.${extensionDe_(archivo.nombre)}`;

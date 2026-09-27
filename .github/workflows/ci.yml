@@ -14,7 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Dependencias de desarrollo
+        run: npm ci
       - name: Tests unitarios y de endpoints
         run: npm test
       - name: Cobertura
         run: TZ=Europe/Madrid node --test --experimental-test-coverage "tests/**/*.test.js"
+      - name: Navegador para los E2E
+        run: npx playwright install --with-deps chromium
+      - name: Tests E2E de la interfaz (escritorio y móvil)
+        run: npm run test:e2e

@@ -1,6 +1,6 @@
 # Desarrollo y despliegue — KAF Rent
 
-El código de la app vive en [`docs_dev/src/`](src/) (Google Apps Script). Se edita en VS Code, se versiona con Git y se sincroniza con Google mediante **clasp** con las credenciales locales de la cuenta operativa ([ADR-0015](solution/adr/0015-despliegue-con-clasp-multicuenta.md)). **Estado:** en implantación. Hasta completar ACC-02 y T-08 ([PROXIMOS_PASOS.md](../PROXIMOS_PASOS.md)), se sigue copiando y pegando (ver "Emergencia").
+El código de la app vive en [`docs_dev/src/`](src/) (Google Apps Script). Se edita en VS Code, se versiona con Git y se sincroniza con Google mediante **clasp** con las credenciales locales de la cuenta operativa ([ADR-0015](solution/adr/0015-despliegue-con-clasp-multicuenta.md)). **Estado:** en implantación. Hasta completar ACC-02 y T-08 ([PROXIMOS_PASOS.md](../docs_work/PROXIMOS_PASOS.md)), se sigue copiando y pegando (ver "Emergencia").
 
 ## clasp (flujo normal, una vez configurado)
 
@@ -77,7 +77,7 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
    - Los `.gs`, como tipo **Script** (mismo nombre, sin extensión).
    - Los HTML, como tipo **HTML**, con el **nombre exacto sin extensión**: `index`, `estilos`, `cliente`, `gestion_interfaz`, `gastos_interfaz`, `acceso-denegado`.
    - El manifiesto `appsscript.json` se edita tras activar "Mostrar el archivo de manifiesto" en `Configuración del proyecto`.
-5. **Inicializar las hojas:** en el Sheet, menú **KAF Rent → Inicializar / reparar hojas** (o ejecuta `inicializarBaseDeDatos` desde el editor). Crea todas las hojas con sus cabeceras y siembra `Config`, `Catálogo_Espacios` y `Catálogo_Categorias_Gasto`. Es idempotente.
+5. **Inicializar las hojas:** en el Sheet, menú **KAF Rent → Inicializar / reparar hojas** (o ejecuta `inicializarBaseDeDatos` desde el editor). Crea todas las hojas con sus cabeceras y siembra `Config`, `Catálogo_Espacios` y `Catálogo_Categorias_Gasto`. Es idempotente y **seguro con datos reales** (desde v2, B-16): en las hojas existentes solo añade al final las columnas que falten, sin renombrar ni mover las demás. Úsalo **tras cada despliegue** que cambie el esquema. Puedes mover columnas o añadir las tuyas; lo que no debes hacer es **renombrar una cabecera** del esquema: la app daría un error claro y "reparar" añadiría una columna nueva vacía con el nombre correcto.
 6. **Rellenar `Config`:** como mínimo `Emails_Notificacion` (los tres, separados por comas), `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Calendar_Id` (vacío = calendario por defecto) y `Calendar_Url`. Lista completa en [arc42 §8.7](solution/arc42.md#87-configuración-config). (`Carpeta_Raiz_Id` es solo de referencia.)
 7. **Catálogos:** rellena `Catálogo_Canales` y `Catálogo_Servicios_Extra` (y revisa `Catálogo_Espacios`).
 8. **Usuarios:** en `Usuarios_Autorizados`, añade las tres cuentas personales (Email, Activo = `Sí`).
@@ -94,19 +94,21 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 - Tras cambiar un `.gs` o un HTML en VS Code: `clasp --user operacion push` (o, en emergencia, vuelve a pegar ese fichero en el editor).
 - Prueba en la URL **`/dev`** (`Implementar → Probar implementaciones`), que usa el último código guardado; recárgala tras pegar.
 - Crea una **nueva versión de implementación** solo cuando quieras publicar a los usuarios (`Gestionar implementaciones → Editar → Nueva versión`). La URL de producción no cambia.
-- Tras publicar, haz el **smoke test** (checklist pendiente de redactar, tarea T-06 en [PROXIMOS_PASOS.md](../PROXIMOS_PASOS.md)). Como mínimo: una cuenta autorizada entra y una no autorizada ve "Acceso denegado"; crear, editar y cancelar una reserva de prueba (Calendar y emails incluidos) y borrarla después.
+- Tras publicar, haz el **smoke test** (checklist pendiente de redactar, tarea T-06 en [PROXIMOS_PASOS.md](../docs_work/PROXIMOS_PASOS.md)). Como mínimo: una cuenta autorizada entra y una no autorizada ve "Acceso denegado"; crear, editar y cancelar una reserva de prueba (Calendar y emails incluidos) y borrarla después.
 
 ## Tests
 
-Requisito: Node ≥ 22 (sin dependencias que instalar).
+Requisito: Node ≥ 22. Para los E2E, una vez: `npm ci` y `npx playwright install --with-deps chromium` (el `--with-deps` instala librerías del sistema y pide `sudo`).
 
 ```bash
-npm test                 # dominio + endpoints (con dobles en memoria de Sheets, Drive, Calendar, Mail…)
+npm test                 # dominio + endpoints + contrastes (con dobles en memoria de Sheets, Drive, Calendar, Mail…)
 npm run test:cobertura   # igual, con informe de cobertura por fichero .gs
+npm run test:e2e         # interfaz en Chromium, escritorio y móvil (393 px), contra tests/e2e/servidor.js
 ```
 
 - Los tests cargan los `.gs` de `docs_dev/src/` como lo hace Apps Script (un único ámbito global) y simulan los servicios de Google (`tests/soporte/`). Nada de `tests/` ni `package.json` se sube a Apps Script (clasp solo sube `docs_dev/src`).
 - GitHub Actions (`.github/workflows/ci.yml`) lanza la batería en cada push, sin credenciales.
-- Pendientes (PROXIMOS_PASOS): E2E de la interfaz con Playwright, integración contra un Sheet de pruebas y ESLint. Estrategia completa en [CLAUDE.md §7](../CLAUDE.md).
+- Los E2E arrancan solos `tests/e2e/servidor.js`: sirve las plantillas reales (resolviendo `include`) y responde a `google.script.run` ejecutando el código real del servidor sobre los dobles. Las rutas `/__test/*` solo existen ahí para preparar escenarios.
+- Pendientes (PROXIMOS_PASOS): integración contra un Sheet de pruebas (T-04) y ESLint (T-07). Estrategia completa en [CLAUDE.md §7](../CLAUDE.md).
 
 > `.gitignore` excluye `.clasp.json` (local, con el `scriptId`; se versiona `.clasp.json.example`), `.clasprc.json` y `node_modules/`.

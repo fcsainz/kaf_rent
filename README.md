@@ -4,7 +4,7 @@ Webapp de gestión de alquileres para los copropietarios de Calle 16, construida
 
 Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización manual de plataformas) por una única interfaz que centraliza el ciclo de vida de las reservas, evita solapamientos, avisa de la sincronización de canales y consolida los datos económicos y fiscales.
 
-> **Estado actual:** Fase 1 implementada (**v1**, código en [`docs_dev/src/`](docs_dev/src/)). Sin tests automáticos todavía. En curso: **v2** (reorganización, seguridad y tests; ver sprints). Pendiente prioritario: **seguridad de las funciones expuestas** y la infraestructura de tests. Ver [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md).
+> **Estado actual:** Fase 1 implementada (**v1**, código en [`docs_dev/src/`](docs_dev/src/)). Sin tests automáticos todavía. En curso: **v2** (reorganización, seguridad y tests; ver sprints). Pendiente prioritario: **seguridad de las funciones expuestas** y la infraestructura de tests. Ver [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md).
 
 ---
 

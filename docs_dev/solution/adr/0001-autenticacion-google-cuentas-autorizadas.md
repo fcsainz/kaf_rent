@@ -42,6 +42,8 @@ Opción elegida: "Login de Google + lista `Usuarios_Autorizados` + ejecución co
 
 > *Revisión 2026-06-29:* inicialmente se eligió `USER_ACCESSING`; se cambió a `USER_DEPLOYING` porque `CalendarApp.getCalendarById()` no encontraba el calendario del grupo desde las cuentas personales. `getActiveUser()` sigue devolviendo el email real de quien accede.
 
+> *Revisión 2026-09-27 (v2, F-11, decisión del usuario):* la columna `Rol` deja de estar reservada. Roles: **Admin** (gestión + técnico), **Gestión**, **Soporte** (técnico) y **Sistema** (cuenta de la app, sin avisos ni invitaciones). Vacío o `Copropietario` = Gestión, por compatibilidad. Hoy el rol decide quién recibe las invitaciones de Calendar (gestión) y las incidencias (técnico); el acceso a la app sigue dependiendo solo de `Activo` (RF-84, `dominio_roles.gs`).
+
 ### Consecuencias
 
 * Buena, porque cuesta cero y reutiliza el login de Google, sin contraseñas que custodiar.

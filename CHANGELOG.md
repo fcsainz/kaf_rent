@@ -8,6 +8,32 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased] — en curso hacia 2.0.0
 
+### Código y documentación — S14, S11, S15 y S16 (2026-09-27)
+
+#### Added
+- **Checklists digitales de check-in y check-out (F-14, S16, [DD-01](docs_dev/solution/design-docs/DD-01-checklists-digitales.md)):** 4 listas (Exterior/Interior × entrada/salida) desde el catálogo `Catálogo_Checklist` (138 puntos, semilla = `docs_work/doc_check/checklists-check-in-out.md` v1.0, verificada por test); "No aplica" en cada punto; barbacoa y extras según lo contratado; office de la Habitación según la siguiente reserva (`Config.Dias_Office_Reponer`); WC con fecha; confirmación antes de terminar; vídeo desde su punto y fotos de desperfectos a Drive; registro por punto con usuario y hora (`Registro_Checklist`); editor del catálogo para Admin (pestaña "Checklists"). RF-85..RF-87.
+- **Roles (F-11, S15):** Admin, Gestión, Soporte y Sistema en `Usuarios_Autorizados.Rol`; vacío o "Copropietario" = Gestión (RF-84, `dominio_roles.gs`).
+- **Avisos que no pasan desapercibidos (F-21, S14):** errores y avisos en ventana modal que hay que cerrar; éxitos en mensaje centrado que se cierra solo; botón "Enviar al administrador" con el detalle técnico del error (pila incluida, sin datos del huésped). RF-81, RF-82, HU-39.
+- **Invitaciones de Calendar (F-13, S14):** cada evento invita a los usuarios con permiso de gestión (RF-83).
+- **Tests E2E con Playwright (T-05, S11):** servidor local que ejecuta el código real sobre dobles de Google; journeys J-1..J-6, avisos, seguridad, móvil (393 px) y áreas táctiles; en CI. Test de contraste de todos los pares de color. 153 tests unitarios y de endpoints + 29 E2E.
+- **Plantilla de design doc** (`docs_dev/solution/design-docs/`, D-09: arc42 + C4 + un design doc por funcionalidad grande).
+
+#### Changed
+- **Cierre de una reserva = cobro ingresado + check-out terminado** (RF-50); check-in/check-out ya no se editan a mano (RF-56, también bloqueado en el servidor).
+- **La referencia `NN/AA` lleva el año en que se crea la reserva** (B-15, D-04).
+- **"Inicializar / reparar hojas" es seguro con datos reales** (B-16, D-19): solo añade al final las columnas que falten; la lectura por cabecera ya no usa la posición del esquema si falta una columna (error claro).
+- Botones y enlaces con área táctil ≥ 44 px; verde de éxito `#468144` (contraste AA) (B-12).
+- **Tests:** unitarios y de endpoints con cada cambio; E2E de pantallas nuevas, integración y accesibilidad antes de pasar a producción (CLAUDE.md §7.2, §8.3).
+
+#### Fixed
+- **B-14:** el evento de Calendar no se creaba cuando registraba la reserva `esperanzavegafdez` (la implementación publicada se ejecuta como quien accede); ahora el fallo se avisa al usuario y se puede enviar al admin. Pendiente en el despliegue: "Ejecutar como: Yo" y reconciliación.
+- **B-17:** en móvil, las tablas del Inicio, la búsqueda y el historial ensanchaban la página; ahora se desplazan dentro de su contenedor.
+
+#### Documentación
+- Decisiones de la sesión: D-04, D-05, D-07, D-08, D-09, D-11, D-16 (exterior por horas sobre la franja 11:00–23:00), D-17 (finca 906 m²), D-19; método provisional de prorrateo IRPF (sin gestor: legislación pública) en la referencia técnica §6bis; medidas del croquis exterior resueltas (zona 1 ≈ 513 m²).
+- `PROXIMOS_PASOS.md` se queda en `docs_work/` (enlaces corregidos); `docs_work/` definida como carpeta de trabajo.
+- Nuevos riesgos R-18 (implementación publicada distinta del repositorio) y R-19 (cambios de estructura con datos reales).
+
 ### Documentación — referencias legales y recogida de v2-N (2026-09-26)
 - **Referencia técnica SES.Hospedajes** (`docs_work/docs_ses/referencia-tecnica-ses-hospedajes.md`): RD 933/2021 y webservice de comunicación, para la Fase 2 (ADR-0007).
 - **Referencia técnica IRPF** (`docs_work/doc_hacienda/referencia-tecnica-irpf-alquileres.md`): Ley y Reglamento del IRPF, Manual Práctico de Renta y consulta DGT V1643-25, verificados contra el texto oficial; datos catastrales de la finca; hallazgo pendiente de decisión sobre la fórmula de reparto de gastos de ADR-0012 (D-15).
@@ -21,7 +47,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **`09_roadmap.md` → `PROXIMOS_PASOS.md`**: decisiones pendientes, sprints S7–S13 y Fase 2, backlog con IDs e histórico.
 - **Trazabilidad en línea en cada documento** (↑/↓): JTBD → HU; HU ↑ Problema/JTBD ↓ RF/RNF/Sprint; RF ↑ HU ↓ RNF/Sprint (+ plan de test); RNF ↑ origen ↓ RF/Sprint. Lo que no tiene relación directa queda anotado ("Sin HU directa", "Sin RNF directo", "Sin RF directo"), con su motivo en la propia fila. Sin matriz aparte: `05_trazabilidad.md` se creó y se retiró en la misma sesión.
 - **ADR-0015 — clasp con credenciales locales multicuenta** (`--user operacion` / `--user fcsainz`, en `~/.clasprc.json`, nunca en GitHub); `.clasp.json.example`; DEVELOPMENT con el flujo clasp y la copia/pega como emergencia. Uso en móvil confirmado como Must (RNF-11). Sprints por objetivo, sin duración fija. Versionado: lo existente pasa a ser la v1 y el trabajo actual, la v2.
-- **Reorganización de carpetas:** `docs/` → `docs_dev/`, a la que también pasan `README.md` y `DEVELOPMENT.md` (en la raíz quedan `CLAUDE.md`, `PROXIMOS_PASOS.md` y `CHANGELOG.md`); nueva carpeta `docs_work/docs_ses/`; el código pasa de `src/` a `docs_dev/src/` (`rootDir` de clasp) y se elimina el README; enlaces y referencias actualizados.
+- **Reorganización de carpetas:** `docs/` → `docs_dev/`, a la que también pasan `README.md` y `DEVELOPMENT.md` (en la raíz quedan `CLAUDE.md` y `CHANGELOG.md`; `PROXIMOS_PASOS.md` vive en `docs_work/`); nueva carpeta `docs_work/docs_ses/`; el código pasa de `src/` a `docs_dev/src/` (`rootDir` de clasp) y se elimina el README; enlaces y referencias actualizados.
 - **DEVELOPMENT.md y README** al día: `USER_DEPLOYING` ("Ejecutar como: Yo"), todos los HTML, `Config`, triggers y reconciliación de Calendar.
 
 ### Código v2 — alineado con CLAUDE.md (S8 + S10, 2026-09-25)

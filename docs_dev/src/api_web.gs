@@ -17,3 +17,8 @@ const renderizarVista_ = (nombreArchivo, datos) => {
 
 // Público porque lo invocan las plantillas (<?!= include('…') ?>); solo devuelve HTML estático de la interfaz.
 const include = (nombreArchivo) => HtmlService.createHtmlOutputFromFile(nombreArchivo).getContent();
+
+// Perfil de quien usa la app, para mostrar u ocultar opciones (el servidor vuelve a comprobarlo en cada endpoint).
+const obtenerPerfil = () => ejecutarEndpoint_('obtenerPerfil', {}, () => ({
+  success: true, data: { email: obtenerEmailSesion_(), esAdmin: sesionEsAdmin_() },
+}));

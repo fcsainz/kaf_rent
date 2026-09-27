@@ -39,5 +39,6 @@ const subirVideo = (id, momento, archivo) => ejecutarEndpoint_('subirVideo', { i
   const ahora = new Date();
   guardarReserva_(lectura.tabla, entrada, { ...entrada.reserva, [campo]: url, modificadoPor: email, fechaModificacion: ahora });
   registrarHistorial_(entrada.reserva.id, [{ campo: etiqueta, anterior: entrada.reserva[campo], nuevo: url }], email, ahora);
+  marcarVideoEnChecklist_(lectura, entrada.reserva, momento, url);
   return { success: true, url };
 }, { bloqueo: true, errorUsuario: 'No se pudo subir el vídeo. Si es muy grande, súbelo directamente a Drive.' });

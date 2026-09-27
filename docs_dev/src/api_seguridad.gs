@@ -16,16 +16,37 @@ const obtenerEmailSesion_ = () => {
   }
 };
 
+const usuariosActivos_ = () => registrosDe_(HOJA_USUARIOS).filter((u) => esVerdadero_(u.activo));
+
 const esUsuarioAutorizado_ = (email) => {
   if (!email) return false;
   try {
     const objetivo = email.toLowerCase();
-    return registrosDe_(HOJA_USUARIOS).some((u) => texto_(u.email).toLowerCase() === objetivo && esVerdadero_(u.activo));
+    return usuariosActivos_().some((u) => texto_(u.email).toLowerCase() === objetivo);
   } catch (error) {
     registrarError_('esUsuarioAutorizado_', error, {});
     return false;
   }
 };
+
+const emailsConPermiso_ = (permiso) => usuariosActivos_()
+  .filter((u) => tienePermiso_(u.rol, permiso))
+  .map((u) => texto_(u.email))
+  .filter((email) => email.length > 0);
+
+const rolDe_ = (email) => {
+  const objetivo = texto_(email).toLowerCase();
+  const usuario = usuariosActivos_().find((u) => texto_(u.email).toLowerCase() === objetivo);
+  return usuario ? usuario.rol : '';
+};
+
+const sesionEsAdmin_ = () => esRolAdmin_(rolDe_(obtenerEmailSesion_()));
+
+// Reciben las incidencias técnicas (F-21): Admin y Soporte (RF-84).
+const obtenerEmailsSoporte_ = () => emailsConPermiso_(PERMISO.TECNICO);
+
+// Invitados a los eventos de ocupación (F-13): quien gestiona reservas, no Soporte ni la cuenta Sistema (RF-84).
+const obtenerEmailsGestion_ = () => emailsConPermiso_(PERMISO.GESTION);
 
 // Comprueba el acceso al cargar la app y lo deja registrado (RF-02..RF-04).
 const verificarAcceso_ = (email) => {
