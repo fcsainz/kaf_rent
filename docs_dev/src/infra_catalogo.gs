@@ -14,6 +14,7 @@ const obtenerCanalesActivos_ = (espacio) => registrosDe_(HOJA_CAT_CANALES)
     comision: c.comision === '' ? '' : Number(c.comision),
     gestionContrato: texto_(c.gestionContrato),
     costeFijo: numero_(c.costeFijo),
+    requiereRef: esVerdadero_(c.requiereRef),
   }));
 
 const obtenerServiciosActivos_ = (espacio) => registrosDe_(HOJA_CAT_SERVICIOS)

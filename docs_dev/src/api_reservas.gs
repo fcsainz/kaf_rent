@@ -20,6 +20,8 @@ const prepararReserva_ = (datos, ahora) => {
   if (!espacio) return invalido_('El espacio seleccionado no es válido.');
   const canal = obtenerCanalesActivos_(datos.espacio).find((c) => c.nombre === datos.canal);
   if (!canal) return invalido_('El canal seleccionado no es válido para este espacio.');
+  const ref = validarRefCanal_(datos.refCanal, canal.nombre, canal.requiereRef);
+  if (!ref.valido) return ref;
 
   const horas = { checkIn: obtenerConfig_('Hora_CheckIn_Default', '16:00'), checkOut: obtenerConfig_('Hora_CheckOut_Default', '12:00') };
   const fechas = construirFechas_(espacio.modoFecha, datos, horas, inicioDelDia_(ahora));
@@ -39,7 +41,7 @@ const construirEntradaReserva_ = (datos, espacio, canal, fechas) => {
   return {
     espacio: espacio.nombre, canal: canal.nombre, modoFecha: espacio.modoFecha, gestionContrato: canal.gestionContrato,
     inicio: fechas.inicio, fin: fechas.fin,
-    nombre: texto_(datos.nombre), telefono: texto_(datos.telefono), email: texto_(datos.email),
+    nombre: texto_(datos.nombre), telefono: texto_(datos.telefono), email: texto_(datos.email), refCanal: texto_(datos.refCanal),
     adultos: parseInt(datos.adultos, 10), menores: parseInt(datos.menores, 10) || 0,
     comisionPct, costeFijoCanal: canal.costeFijo, importeAlquiler, lineas, totalesServicios: totales,
     importes: calcularImportes_({ importeAlquiler, serviciosPrecio: totales.precio, serviciosCoste: totales.coste, comisionPct, costeFijoCanal: canal.costeFijo }),

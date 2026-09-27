@@ -21,7 +21,7 @@ const proyeccionGestion_ = (r) => ({
 const fechaOpcional_ = (fecha) => (esFechaValida_(fecha) ? formatearFechaHora_(fecha) : '');
 
 const proyeccionFicha_ = (r) => ({
-  id: r.id, ref: referenciaMostrada_(r.id), espacio: r.espacio, canal: r.canal,
+  id: r.id, ref: referenciaMostrada_(r.id), espacio: r.espacio, canal: r.canal, refCanal: r.refCanal,
   inicioTexto: formatearFechaHora_(r.inicio), finTexto: formatearFechaHora_(r.fin),
   serviciosExtra: r.serviciosExtra, registroViajeros: r.registroViajeros,
   nombre: r.nombre, telefono: r.telefono, email: r.email, adultos: r.adultos, menores: r.menores,
@@ -55,12 +55,21 @@ const obtenerReserva = (id) => ejecutarEndpoint_('obtenerReserva', { id }, () =>
   return entrada ? { success: true, data: proyeccionFicha_(entrada.reserva) } : { success: false, error: MENSAJE_NO_ENCONTRADA };
 }, { errorUsuario: 'No se pudo cargar la reserva.' });
 
+// RF-88: el catálogo dice si el canal exige el código; la regla vive en el dominio.
+const validarRefCanalEditada_ = (reserva, refCanal) => {
+  if (refCanal === undefined) return { valido: true };
+  const canal = obtenerCanalesActivos_(reserva.espacio).find((c) => c.nombre === reserva.canal);
+  return validarRefCanal_(refCanal, reserva.canal, refCanalObligatoriaAlEditar_(canal && canal.requiereRef, reserva.refCanal));
+};
+
 // Guarda la edición, recalcula importes y estado y audita campo a campo (RF-45..RF-50).
 const actualizarReserva = (id, cambios) => ejecutarEndpoint_('actualizarReserva', { id }, () => {
   const validacion = validarCambiosReserva_(cambios);
   if (!validacion.valido) return { success: false, error: validacion.error };
   const { lectura, entrada, error } = reservaModificable_(id);
   if (error) return { success: false, error };
+  const refValida = validarRefCanalEditada_(entrada.reserva, cambios.refCanal);
+  if (!refValida.valido) return { success: false, error: refValida.error };
 
   const email = obtenerEmailSesion_();
   const ahora = new Date();

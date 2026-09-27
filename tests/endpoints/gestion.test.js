@@ -166,3 +166,36 @@ test.describe('RF-52/RF-53 · cancelar e historial', () => {
     assert.deepEqual(e.llamar('obtenerHistorial', idPiscina).data, []);
   });
 });
+
+test.describe('RF-88 · código de reserva del canal', () => {
+  test('crear en un canal que lo exige sin código se rechaza y no guarda nada', () => {
+    const e = crearEntornoConDatos();
+    const r = e.llamar('crearReserva', datosReservaHabitacion({ refCanal: '' }));
+    assert.deepEqual([r.success, r.error], [false, 'El código de reserva de Airbnb es obligatorio.']);
+    assert.equal(e.hoja('Reservas').registros().length, 0);
+  });
+
+  test('en un canal que no lo exige es opcional; si viene, se guarda y se ve en la ficha', () => {
+    const { e, idPiscina, idHabitacion } = preparar();
+    assert.equal(reserva(e, idPiscina).Ref_Canal, '');
+    assert.equal(e.llamar('obtenerReserva', idHabitacion).data.refCanal, 'HMTEST1234');
+  });
+
+  test('editar no permite borrarlo si el canal lo exige, pero sí cambiarlo (y se audita)', () => {
+    const { e, idHabitacion } = preparar();
+    const d = e.llamar('obtenerReserva', idHabitacion).data;
+    assert.equal(e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { refCanal: '' })).success, false);
+    assert.equal(e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { refCanal: 'HMNUEVO999' })).success, true);
+    assert.equal(reserva(e, idHabitacion).Ref_Canal, 'HMNUEVO999');
+    assert.ok(e.hoja('Historial_Cambios').registros().some((h) => h.Campo === 'Código de reserva del canal'));
+  });
+
+  test('una reserva anterior sin código se sigue pudiendo editar sin rellenarlo', () => {
+    const { e, idHabitacion } = preparar();
+    const hoja = e.hoja('Reservas');
+    const fila = hoja.registros().findIndex((r) => r.ID_Reserva === idHabitacion) + 2;
+    hoja.getRange(fila, hoja.cabeceras().indexOf('Ref_Canal') + 1).setValue('');
+    const d = e.llamar('obtenerReserva', idHabitacion).data;
+    assert.equal(e.llamar('actualizarReserva', idHabitacion, cambiosBase(d, { refCanal: '', notas: 'x' })).success, true);
+  });
+});

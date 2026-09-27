@@ -46,7 +46,7 @@ Webapp única para gestionar el alquiler de **Piscina/Jardín** (por franjas hor
 | Técnica | Todas las funciones globales de los `.gs` comparten ámbito, y cualquiera sin sufijo `_` es invocable desde el cliente con `google.script.run` (→ RNF-20, B-01). |
 | Técnica | Un fichero HTML no puede llamarse igual que un `.gs` (de ahí `gestion_interfaz`, `gastos_interfaz`). |
 | Organizativa | Un único desarrollador y mantenedor (R-06). Coste cero también en herramientas: tests y CI gratuitos (RNF-33). |
-| Organizativa | Despliegue con **clasp** y credenciales locales con nombre (`--user operacion`); ninguna credencial en GitHub; copia/pega manual solo como emergencia ([ADR-0015](adr/0015-despliegue-con-clasp-multicuenta.md), [DEVELOPMENT.md](../DEVELOPMENT.md)). |
+| Organizativa | Despliegue con **clasp** y credenciales locales con nombre (`--user familia`); ninguna credencial en GitHub; copia/pega manual solo como emergencia ([ADR-0015](adr/0015-despliegue-con-clasp-multicuenta.md), [DEVELOPMENT.md](../DEVELOPMENT.md)). |
 | Convenciones | Estándares de código, documentación, UX/UI, tests y proceso en [CLAUDE.md](../../CLAUDE.md). |
 
 ---
@@ -142,7 +142,7 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` | Gastos y resumen fiscal · cache de estadísticas e histórico de informes | — | 0009, 0012 |
 | Infra | `infra_catalogo.gs` | Catálogos (espacios, canales, servicios, categorías) | — | 0003 |
 | Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal) | — | 0006, 0010, 0014 |
-| Infra | `infra_mantenimiento.gs` | Copias, purgas y poda de vídeos | — | 0013, 0014 |
+| Infra | `infra_mantenimiento.gs` | Copias (rotación abuelo-padre-hijo), purgas y poda de vídeos | — | 0013, 0014, 0016 |
 
 **Reglas de la capa API (RNF-20):** toda función interna termina en `_` (Apps Script no la expone a `google.script.run`); solo quedan públicos los 20 endpoints de la interfaz y las entradas del sistema, que se protegen con `ejecutarTareaDelSistema_` (solo trigger real del proyecto o ejecución directa desde editor/menú). Lo verifica `tests/endpoints/seguridad.test.js`.
 
@@ -192,11 +192,11 @@ Cliente ──crearReserva(datos)──► ejecutarEndpoint_ (autorización, try
 | Elemento | Detalle |
 |---|---|
 | Cuenta | `operaciontangai@gmail.com`: propietaria del Sheet, el proyecto de script (vinculado al Sheet), Drive y Calendar |
-| Web App | "Ejecutar como: **Yo**" (`USER_DEPLOYING`) · acceso "**Cualquiera con cuenta de Google**" |
+| Web App | "Ejecutar como: **usuario que accede**" (`USER_ACCESSING`, ADR-0017; Sheet, carpetas y calendario compartidos con cada usuario) · acceso "**Cualquiera con cuenta de Google**" |
 | Versiones | `/dev` para probar; nueva implementación solo para publicar |
 | Triggers | `tareasNocturnas` (diario 03:00) e `informesProgramados` (día 1, 07:00), instalados con `instalarTriggers()` |
 | Entornos | Hoy solo producción. Para los tests de integración se usará un **Sheet de pruebas** separado (CLAUDE.md §7) |
-| Código fuente | Git + GitHub; se sube con `clasp --user operacion push` desde el equipo (ADR-0015); copia/pega como emergencia |
+| Código fuente | Git + GitHub; se sube con `clasp --user familia push` desde el equipo (ADR-0015); copia/pega como emergencia |
 
 ---
 
@@ -249,6 +249,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | 36 | Video_In_Url | URL | Subida o pegado a mano |
 | 37 | Video_Out_Url | URL | Ídem |
 | 38 | Coste_Canal_Fijo | Número | Snapshot de `Coste_Fijo_Por_Reserva` del canal |
+| 39 | Ref_Canal | Texto | Código de la reserva en la plataforma (≤ 40); obligatorio si el canal tiene `Requiere_Ref_Canal` = Sí (RF-88) |
 
 #### Otras hojas
 
@@ -256,7 +257,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 |---|---|---|---|
 | `Reserva_Servicios` | ID_Reserva, Nombre_Servicio, Cantidad, Coste_Unitario_Snapshot, Precio_Unitario_Snapshot | Líneas de servicios extra | 0003 |
 | `Catálogo_Espacios` | Nombre_Espacio, Activo, Modo_Fecha | Espacios y modo de fecha | 0003 |
-| `Catálogo_Canales` | Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato, Coste_Fijo_Por_Reserva | Canales por espacio | 0003, 0004 |
+| `Catálogo_Canales` | Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato, Coste_Fijo_Por_Reserva, Requiere_Ref_Canal | Canales por espacio; `Requiere_Ref_Canal` = Sí exige el código de la plataforma (RF-88) | 0003, 0004 |
 | `Catálogo_Servicios_Extra` | Espacio, Nombre_Servicio, Activo, Coste_Unitario, Precio_Unitario | Servicios por espacio | 0003 |
 | `Catálogo_Categorias_Gasto` | Nombre_Categoria, Descripcion, Activo, Deducible_Default, Es_Amortizacion | Categorías fiscales (sembradas) | 0012 |
 | `Config` | Clave, Valor, Descripcion | Parámetros (§8.7) | — |
@@ -291,7 +292,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 
 ### 8.5 Seguridad
 - Autenticación de Google y autorización por lista en `doGet` y en cada endpoint (`ejecutarEndpoint_` → `sesionAutorizada_`).
-- **Regla de exposición (RNF-20, implantada en v2):** toda función global sin sufijo `_` es invocable desde el cliente y se ejecuta con los permisos de la cuenta operativa; por eso todo lo interno termina en `_`. Las entradas que Google necesita públicas (triggers, menú, utilidades de editor) pasan por `ejecutarTareaDelSistema_`: solo se ejecutan desde un trigger real del proyecto (`e.triggerUid`) o de forma directa (usuario activo = usuario efectivo); los intentos desde la web quedan en `Logs` como `SISTEMA_DENEGADO`.
+- **Regla de exposición (RNF-20, implantada en v2):** toda función global sin sufijo `_` es invocable desde el cliente (se ejecuta con los permisos de quien navega, ADR-0017); por eso todo lo interno termina en `_`. Las entradas que Google necesita públicas (triggers, menú, utilidades de editor) pasan por `ejecutarTareaDelSistema_`: solo se ejecutan desde un trigger real del proyecto (`e.triggerUid`) o de forma directa por la propietaria del Sheet desde el editor o el menú (ADR-0017); los intentos desde la web quedan en `Logs` como `SISTEMA_DENEGADO`.
 - Validación autoritativa en el servidor, incluidos los valores de dominio; el cliente solo mejora la UX (RNF-24).
 - Salida HTML escapada: `escaparHtml_` en el servidor y `textContent` en el cliente (RNF-26).
 - `Errores` no guarda datos personales del huésped en el contexto (RNF-34).
@@ -304,7 +305,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 - Un fallo secundario que el usuario debe conocer vuelve en la respuesta como `aviso` (y, si procede, `incidencia`); el cliente lo muestra en ventana modal con opción de enviarlo a las cuentas `Admin` (F-21, RF-82).
 
 ### 8.7 Configuración (`Config`)
-Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default`, `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Cada_Dias`, `Backup_Max_Copias`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`. Se leen una vez por ejecución (`leerConfig`).
+Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default`, `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23). Se leen una vez por ejecución (`leerConfig`).
 
 ### 8.8 Concurrencia
 `LockService.getScriptLock()` (espera de 20 s) en crear, editar, cancelar, servicios y gastos.
@@ -316,7 +317,7 @@ Respuesta siempre `{ success: boolean, data?, error? }` (algunos endpoints usan 
 Hub + secciones (ADR-0008), mobile-first, tokens de [design-system.md](design-system.md) (ADR-0011), estándares de UX de CLAUDE.md §6.
 
 ### 8.11 Almacenamiento en Drive
-`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (15 copias). ADR-0013, ADR-0014.
+`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (rotación abuelo-padre-hijo: 7 diarias, 4 semanales, 12 mensuales). ADR-0013, ADR-0014, ADR-0016.
 
 ### 8.12 Testabilidad
 Ver CLAUDE.md §7. **Implantado en v2:** `npm test` carga los `.gs` en un contexto `vm` (un ámbito global, como Apps Script) con dobles en memoria de Sheets, Drive, Calendar, Mail, Lock, Session y ScriptApp (`tests/soporte/`). Hay tests unitarios del dominio y tests de los 20 endpoints y de las entradas del sistema; cobertura ≈ 98 % de líneas; CI en GitHub Actions. Pendiente (S11): E2E de la interfaz con Playwright e integración contra un Sheet de pruebas.
@@ -361,15 +362,15 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-05 | Emails automáticos en spam | M | B | Baja | Añadir el remitente a contactos; asuntos consistentes | Abierto |
 | R-06 | Único desarrollador (punto único de fallo) | A | A | **Alta** | Documentación, trazabilidad, arquitectura simple, tests; emergencia: usar el Sheet directamente | Aceptado |
 | R-07 | Google depreca funciones de Apps Script | B | A | **Media** | Código modular; datos exportables (RNF-32) | Abierto |
-| R-08 | Pérdida o corrupción de datos del Sheet | B | A | **Media** | Copias automáticas (ADR-0013) + historial de versiones | Mitigado |
+| R-08 | Pérdida o corrupción de datos del Sheet | B | A | **Media** | Copias automáticas con rotación abuelo-padre-hijo (ADR-0013, ADR-0016) + historial de versiones | Mitigado |
 | R-09 | Compromiso de una cuenta autorizada | B | A | **Media** | 2FA; revocación inmediata en `Usuarios_Autorizados`; revisión de `Logs` | Abierto |
 | R-10 | Baja adopción por usuarios no técnicos | M | M | **Media** | UAT con journeys; simplicidad; recoger feedback | Abierto (UAT sin registrar, D-07) |
 | R-11 | Formulario público de viajeros con documentos de identidad | M | A | **Alta** | Casar con reserva real, política de borrado, acceso restringido, aviso de privacidad, revisión legal previa | Abierto (Fase 2) |
 | R-12 | El trigger nocturno no se ejecuta | B | B | Baja | Fecha de actualización visible; fallos en `Errores`; recálculo manual | Abierto |
 | R-13 | Cuenta operativa única comprometida o perdida | B | A | **Media** | 2FA, custodia de credenciales y códigos de recuperación, copias | Abierto |
-| R-14 | Ventana de copia limitada (~30 días) | B | M | Baja | Ampliar `Backup_Max_Copias`; exportación externa (F-09) | Abierto |
+| R-14 | Ventana de copia limitada (~30 días) | B | M | Baja | Rotación abuelo-padre-hijo: ~12 meses (ADR-0016); queda la copia fuera de Google (F-09) | Mitigado |
 | R-15 | Borrado de vídeos elimina la prueba ante daños | B | M | Baja | `Retencion_Videos_Dias` configurable; conservar a mano los vídeos con incidencia | Abierto |
-| R-16 | Funciones internas invocables desde el cliente con privilegios de la cuenta operativa | B | A | Media | Sufijo `_` en todo lo interno + `ejecutarTareaDelSistema_` en las entradas públicas; test automático (RNF-20) | **Mitigado en v2** (B-01) |
+| R-16 | Funciones internas o de sistema invocables desde el cliente | B | A | Media | Sufijo `_` en todo lo interno + `ejecutarTareaDelSistema_` en las entradas públicas; test automático (RNF-20) | **Mitigado en v2** (B-01) |
 | R-17 | Regresiones al tocar código sin tests automáticos | M | M | Media | Tests unitarios y de endpoints + CI (v2); faltan E2E e integración (S11) | **En mitigación** |
 | R-18 | La implementación publicada no coincide con el repositorio (versión o "Ejecutar como"): fallos que dependen de quién usa la app (B-14: sin evento de Calendar para una cuenta durante 3 meses) | M | A | **Alta** | Checklist de despliegue (ACC-03, T-06) que verifica "Ejecutar como: Yo" y la versión; avisos modales e incidencias al admin (F-21); Informe Técnico (F-16) | **En mitigación** |
 | R-19 | Cambios de estructura en hojas con datos reales (la app ya se usa, D-07) | M | A | **Alta** | D-19 (opción A): "Inicializar / reparar hojas" solo añade columnas al final y nunca toca las existentes; lectura por cabecera sin recurrir a la posición (error claro si falta); rellenos de datos antiguos con funciones puntuales y probadas; copia de seguridad antes. Queda: `registrarLog_`/`registrarError_` escriben por posición (TD-01) | **En mitigación** |

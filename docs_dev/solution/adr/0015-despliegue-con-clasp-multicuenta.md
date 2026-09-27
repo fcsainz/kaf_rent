@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-25
+date: 2026-09-27
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: —
 informed: Resto de copropietarios (PER-02, PER-03)
@@ -29,8 +29,9 @@ Hasta la v1, el código se sincronizaba copiando y pegando cada fichero en el ed
 
 Opción elegida: "clasp con credenciales con nombre en el equipo", porque clasp (≥ 3) admite varias cuentas con `--user` y guarda las credenciales en `~/.clasprc.json`, fuera de cualquier repositorio.
 
-- Credenciales: `clasp login --user operacion` (operaciontangai@gmail.com) y `clasp login --user fcsainz` (fcsainz@gmail.com), una vez por equipo, válidas para todos los proyectos.
-- **KAF Rent usa siempre `--user operacion`.**
+- Credenciales: `clasp login --user familia` (operaciontangai@gmail.com) y `clasp login --user fcsainz` (fcsainz@gmail.com), una vez por equipo, válidas para todos los proyectos.
+- **KAF Rent usa siempre `--user familia`.**
+- *Revisión 2026-09-27:* la credencial de `operaciontangai@gmail.com` se llama `familia` (antes se documentó como `operacion`); solo cambia el nombre local, no la cuenta.
 - `.clasp.json` (con `scriptId` y `rootDir: "docs_dev/src"`) es local y no se versiona; se versiona `.clasp.json.example` como plantilla.
 - Instalación global (`npm install -g @google/clasp`) para reutilizarla en todos los proyectos.
 - **GitHub nunca recibe credenciales:** en CI solo corren lint, tests unitarios y E2E simulados.
@@ -47,7 +48,7 @@ Opción elegida: "clasp con credenciales con nombre en el equipo", porque clasp 
 
 ### Confirmación
 
-* `clasp --user operacion show-file-status` (o `status`) sin diferencias tras el primer `push`.
+* `clasp --user familia show-file-status` (o `status`) sin diferencias tras el primer `push`.
 * Smoke test tras cada `deploy` (T-06).
 
 ## Pros y contras de las opciones

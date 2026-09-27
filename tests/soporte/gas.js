@@ -46,7 +46,7 @@ const crearEntornoConDatos = (opciones = {}) => {
   anadir('Catálogo_Canales', [
     ['Piscina / Jardín', 'Cocopool', 'Sí', 15, 'Automática', 9.5],
     ['Piscina / Jardín', 'Directo', 'Sí', 0, 'Manual', 0],
-    ['Habitación Interior', 'Airbnb', 'Sí', 3, 'Automática', 0],
+    ['Habitación Interior', 'Airbnb', 'Sí', 3, 'Automática', 0, 'Sí'],
     ['Habitación Interior', 'Booking', 'No', 15, 'Automática', 0],
   ]);
   anadir('Catálogo_Servicios_Extra', [
@@ -84,7 +84,7 @@ const datosReservaHabitacion = (cambios = {}) => ({
   espacio: 'Habitación Interior', canal: 'Airbnb', comision: '3',
   fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33),
   adultos: '2', menores: '0', importeAlquiler: '300',
-  nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com',
+  nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com', refCanal: 'HMTEST1234',
   servicios: [{ nombre: 'Desayuno', cantidad: '2' }],
   ...cambios,
 });

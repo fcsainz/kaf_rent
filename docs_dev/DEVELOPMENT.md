@@ -7,14 +7,14 @@ El código de la app vive en [`docs_dev/src/`](src/) (Google Apps Script). Se ed
 **Una vez por equipo** (sirve para todos tus proyectos):
 1. Activa la *Google Apps Script API* en <https://script.google.com/home/usersettings> con cada cuenta.
 2. `npm install -g @google/clasp`
-3. `clasp login --user operacion` (con `operaciontangai@gmail.com`) y `clasp login --user fcsainz` (con `fcsainz@gmail.com`). Las credenciales quedan en `~/.clasprc.json`: **nunca** se copian al repositorio ni a GitHub.
+3. `clasp login --user familia` (con `operaciontangai@gmail.com`) y `clasp login --user fcsainz` (con `fcsainz@gmail.com`). Las credenciales quedan en `~/.clasprc.json`: **nunca** se copian al repositorio ni a GitHub.
 
-**Una vez por proyecto:** copia `.clasp.json.example` como `.clasp.json` (no se versiona) y pon el `scriptId` (editor → Configuración del proyecto → ID de secuencia de comandos). **Antes del primer `push`:** `clasp --user operacion pull` en una carpeta temporal y compara con `docs_dev/src/`, porque `push` **sustituye** todo el código remoto.
+**Una vez por proyecto:** copia `.clasp.json.example` como `.clasp.json` (no se versiona) y pon el `scriptId` (editor → Configuración del proyecto → ID de secuencia de comandos). **Antes del primer `push`:** `clasp --user familia pull` en una carpeta temporal y compara con `docs_dev/src/`, porque `push` **sustituye** todo el código remoto.
 
 **Día a día:**
 ```bash
-clasp --user operacion push            # sube docs_dev/src/ al proyecto (sustituye lo remoto)
-clasp --user operacion deploy -i <ID_IMPLEMENTACION> -d "v2.x ..."   # publica en la URL de producción
+clasp --user familia push            # sube docs_dev/src/ al proyecto (sustituye lo remoto)
+clasp --user familia deploy -i <ID_IMPLEMENTACION> -d "v2.x ..."   # publica en la URL de producción
 ```
 Con clasp **no se edita en el editor web**: lo que se cambie allí se pierde en el siguiente `push`.
 
@@ -28,7 +28,7 @@ Arquitectura, modelo de datos y claves de `Config`: [docs_dev/solution/arc42.md]
 
 ```
 docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
-├── appsscript.json                 Manifiesto: Europe/Madrid, V8, Web App (USER_DEPLOYING, ANYONE)
+├── appsscript.json                 Manifiesto: Europe/Madrid, V8, Web App (USER_ACCESSING, ANYONE; ADR-0017)
 │
 ├── api_web.gs                      API: doGet() e include() de plantillas
 ├── api_seguridad.gs                API: identidad, autorización, ejecutarEndpoint_, ejecutarTareaDelSistema_
@@ -77,13 +77,13 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
    - Los `.gs`, como tipo **Script** (mismo nombre, sin extensión).
    - Los HTML, como tipo **HTML**, con el **nombre exacto sin extensión**: `index`, `estilos`, `cliente`, `gestion_interfaz`, `gastos_interfaz`, `acceso-denegado`.
    - El manifiesto `appsscript.json` se edita tras activar "Mostrar el archivo de manifiesto" en `Configuración del proyecto`.
-5. **Inicializar las hojas:** en el Sheet, menú **KAF Rent → Inicializar / reparar hojas** (o ejecuta `inicializarBaseDeDatos` desde el editor). Crea todas las hojas con sus cabeceras y siembra `Config`, `Catálogo_Espacios` y `Catálogo_Categorias_Gasto`. Es idempotente y **seguro con datos reales** (desde v2, B-16): en las hojas existentes solo añade al final las columnas que falten, sin renombrar ni mover las demás. Úsalo **tras cada despliegue** que cambie el esquema. Puedes mover columnas o añadir las tuyas; lo que no debes hacer es **renombrar una cabecera** del esquema: la app daría un error claro y "reparar" añadiría una columna nueva vacía con el nombre correcto.
+5. **Inicializar las hojas:** en el Sheet, **con la cuenta propietaria (`operaciontangai`)**, menú **KAF Rent → Inicializar / reparar hojas** (o ejecuta `inicializarBaseDeDatos` desde el editor). Crea todas las hojas con sus cabeceras y siembra `Config`, `Catálogo_Espacios` y `Catálogo_Categorias_Gasto`. Es idempotente y **seguro con datos reales** (desde v2, B-16): en las hojas existentes solo añade al final las columnas que falten, sin renombrar ni mover las demás. Úsalo **tras cada despliegue** que cambie el esquema. Puedes mover columnas o añadir las tuyas; lo que no debes hacer es **renombrar una cabecera** del esquema: la app daría un error claro y "reparar" añadiría una columna nueva vacía con el nombre correcto.
 6. **Rellenar `Config`:** como mínimo `Emails_Notificacion` (los tres, separados por comas), `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Calendar_Id` (vacío = calendario por defecto) y `Calendar_Url`. Lista completa en [arc42 §8.7](solution/arc42.md#87-configuración-config). (`Carpeta_Raiz_Id` es solo de referencia.)
 7. **Catálogos:** rellena `Catálogo_Canales` y `Catálogo_Servicios_Extra` (y revisa `Catálogo_Espacios`).
 8. **Usuarios:** en `Usuarios_Autorizados`, añade las tres cuentas personales (Email, Activo = `Sí`).
-9. **Compartir (opcional, recomendado):** comparte el Sheet, la carpeta de Drive y el Calendar con las tres cuentas personales. **La Web App no lo necesita** (se ejecuta como la cuenta operativa), pero así cada persona puede consultarlos directamente en Drive, Sheets o Calendar.
+9. **Compartir (obligatorio, [ADR-0017](solution/adr/0017-ejecutar-como-usuario-que-accede.md)):** la Web App se ejecuta como quien accede, así que cada usuario de `Usuarios_Autorizados` necesita permiso de **edición** en el Sheet y en las carpetas de vídeos y documentos, y **"Hacer cambios en eventos"** en el calendario de `Calendar_Id`. Sin eso, a esa persona le fallará lo que no tenga compartido (B-14). Cada alta de usuario repite este paso.
 10. **Desplegar la Web App:** `Implementar → Nueva implementación → Aplicación web`:
-    - **"Ejecutar como" → Yo** (`operaciontangai@gmail.com`, equivale a `USER_DEPLOYING`). El valor del diálogo **manda sobre** `appsscript.json`: compruébalo siempre.
+    - **"Ejecutar como" → Usuario que accede a la aplicación web** (`USER_ACCESSING`). **Nunca "Yo":** con cuentas `@gmail.com` la app no sabría quién entra y bloquearía a todos (ADR-0017). El valor del diálogo **manda sobre** `appsscript.json`: compruébalo siempre.
     - **"Quién tiene acceso" → Cualquier usuario con cuenta de Google.**
     - Comparte la URL con los tres.
 11. **Triggers:** ejecuta **una vez** `instalarTriggers` desde el editor (crea `tareasNocturnas` diario a las 03:00 e `informesProgramados` el día 1 a las 07:00). Acepta los permisos que pida.
@@ -91,7 +91,7 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 
 ## Día a día
 
-- Tras cambiar un `.gs` o un HTML en VS Code: `clasp --user operacion push` (o, en emergencia, vuelve a pegar ese fichero en el editor).
+- Tras cambiar un `.gs` o un HTML en VS Code: `clasp --user familia push` (o, en emergencia, vuelve a pegar ese fichero en el editor).
 - Prueba en la URL **`/dev`** (`Implementar → Probar implementaciones`), que usa el último código guardado; recárgala tras pegar.
 - Crea una **nueva versión de implementación** solo cuando quieras publicar a los usuarios (`Gestionar implementaciones → Editar → Nueva versión`). La URL de producción no cambia.
 - Tras publicar, haz el **smoke test** (checklist pendiente de redactar, tarea T-06 en [PROXIMOS_PASOS.md](../docs_work/PROXIMOS_PASOS.md)). Como mínimo: una cuenta autorizada entra y una no autorizada ve "Acceso denegado"; crear, editar y cancelar una reserva de prueba (Calendar y emails incluidos) y borrarla después.

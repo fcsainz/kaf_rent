@@ -120,7 +120,7 @@ Formato del JTBD (*job story*): **Cuando** [situación], **quiero** [motivación
 | **JTBD-08** | P-08 | **Cuando** reviso cómo va el negocio, **quiero** conocer reservas, ingresos brutos y netos y comisiones por espacio y canal, **para** decidir precios y canales con datos. | HU-12, HU-14, HU-24, HU-31, HU-32 |
 | **JTBD-09** | P-09 | **Cuando** llega la declaración de la renta, **quiero** tener los ingresos, los gastos deducibles con justificante y el tercio de cada copropietario, **para** declarar bien y deducir todo lo que la ley permite. | HU-33, HU-34 |
 | **JTBD-10** | P-10 | **Cuando** un huésped se aloja en la Habitación, **quiero** que él mismo aporte sus datos de viajero de forma sencilla, **para** cumplir con el registro obligatorio sin perseguirle. | HU-35, HU-36 |
-| **JTBD-11** | P-11 | **Cuando** tengo que registrar una reserva, **quiero** un formulario que me guíe, solo me ofrezca opciones válidas y calcule los importes, **para** hacerlo sin ayuda y sin errores. | HU-05, HU-08, HU-09, HU-10, HU-11, HU-12, HU-13, HU-14, HU-39 |
+| **JTBD-11** | P-11 | **Cuando** tengo que registrar una reserva, **quiero** un formulario que me guíe, solo me ofrezca opciones válidas y calcule los importes, **para** hacerlo sin ayuda y sin errores. | HU-05, HU-08, HU-09, HU-10, HU-11, HU-12, HU-13, HU-14, HU-39, HU-40 |
 | **JTBD-12** | P-12 | **Cuando** alguien accede a los datos del negocio, **quiero** que solo puedan hacerlo los tres copropietarios y que los datos no se pierdan, **para** cumplir el RGPD y no depender de la suerte. | HU-01, HU-02 |
 
 > Qué historias resuelven cada JTBD: columna **↓ Historias (HU)**; cada HU remite de vuelta a su problema y su JTBD en [02_historias_usuario.md](02_historias_usuario.md).

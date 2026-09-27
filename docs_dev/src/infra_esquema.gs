@@ -32,11 +32,11 @@ const CAMPOS_RESERVA = {
   registroViajeros: 'Registro_Viajeros_Estado', checkin: 'Checkin_Revisado', checkout: 'Checkout_Revisado',
   calendarEventId: 'Calendar_Event_Id', notas: 'Notas', registradoPor: 'Registrado_Por', fechaRegistro: 'Fecha_Registro',
   modificadoPor: 'Modificado_Por', fechaModificacion: 'Fecha_Última_Modificación', videoInUrl: 'Video_In_Url',
-  videoOutUrl: 'Video_Out_Url', costeFijoCanal: 'Coste_Canal_Fijo',
+  videoOutUrl: 'Video_Out_Url', costeFijoCanal: 'Coste_Canal_Fijo', refCanal: 'Ref_Canal',
 };
 const CAMPOS_LINEA_SERVICIO = { idReserva: 'ID_Reserva', nombre: 'Nombre_Servicio', cantidad: 'Cantidad', coste: 'Coste_Unitario_Snapshot', precio: 'Precio_Unitario_Snapshot' };
 const CAMPOS_ESPACIO = { nombre: 'Nombre_Espacio', activo: 'Activo', modoFecha: 'Modo_Fecha' };
-const CAMPOS_CANAL = { espacio: 'Espacio', nombre: 'Nombre_Canal', activo: 'Activo', comision: '%_Comisión_Default', gestionContrato: 'Gestión_Contrato', costeFijo: 'Coste_Fijo_Por_Reserva' };
+const CAMPOS_CANAL = { espacio: 'Espacio', nombre: 'Nombre_Canal', activo: 'Activo', comision: '%_Comisión_Default', gestionContrato: 'Gestión_Contrato', costeFijo: 'Coste_Fijo_Por_Reserva', requiereRef: 'Requiere_Ref_Canal' };
 const CAMPOS_SERVICIO = { espacio: 'Espacio', nombre: 'Nombre_Servicio', activo: 'Activo', coste: 'Coste_Unitario', precio: 'Precio_Unitario' };
 const CAMPOS_CATEGORIA_GASTO = { nombre: 'Nombre_Categoria', descripcion: 'Descripcion', activo: 'Activo', deducibleDefault: 'Deducible_Default', esAmortizacion: 'Es_Amortizacion' };
 const CAMPOS_CONFIG = { clave: 'Clave', valor: 'Valor', descripcion: 'Descripcion' };
@@ -239,13 +239,15 @@ const ESQUEMA_HOJAS = [
       ['Carpeta_Videos_Id', '', 'ID de la carpeta de vídeos in/out (ADR-0014)'],
       ['Carpeta_Documentos_Id', '', 'ID de la carpeta de documentos/contratos (ADR-0014)'],
       ['Carpeta_Backups_Id', '', 'ID de la carpeta de copias de seguridad del Sheet (ADR-0013)'],
-      ['Backup_Cada_Dias', '2', 'Cada cuántos días se copia el Sheet (ADR-0013)'],
-      ['Backup_Max_Copias', '15', 'Número máximo de copias de seguridad a conservar (ADR-0013)'],
+      ['Backup_Diarias', '7', 'Copias diarias que se conservan: una por día (rotación abuelo-padre-hijo, ADR-0016)'],
+      ['Backup_Semanales', '4', 'Copias semanales que se conservan: la última de cada semana (ADR-0016)'],
+      ['Backup_Mensuales', '12', 'Copias mensuales que se conservan: la última de cada mes (ADR-0016)'],
       ['Retencion_Logs_Dias', '90', 'Días que se conservan las filas de Logs (ADR-0013)'],
       ['Retencion_Errores_Dias', '365', 'Días que se conservan las filas de Errores (ADR-0013)'],
       ['Retencion_Videos_Dias', '180', 'Días que se conservan los vídeos in/out en Drive (ADR-0014)'],
-      ['Calendar_Id', '', 'ID del calendario de ocupación; vacío = calendario por defecto de la cuenta operativa (ADR-0010)'],
+      ['Calendar_Id', '', 'ID del calendario de ocupación; vacío = calendario por defecto de quien use la app (ADR-0010, ADR-0017)'],
       ['Calendar_Url', '', 'Enlace al calendario para el botón del Inicio (ADR-0010)'],
+      ['Icono_Url', '', 'Enlace público directo al icono PNG de 192 px (pestaña y acceso directo del móvil; D-23)'],
       ['Dias_Office_Reponer', '3', 'Checklist de salida de la Habitación: si la siguiente reserva empieza en estos días o menos, se repone el office; si no, se recoge entero (F-14)'],
     ],
   },

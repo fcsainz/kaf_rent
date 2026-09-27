@@ -10,9 +10,21 @@ const doGet = () => {
 const renderizarVista_ = (nombreArchivo, datos) => {
   const plantilla = HtmlService.createTemplateFromFile(nombreArchivo);
   plantilla.datos = datos || {};
-  return plantilla.evaluate()
+  return conIcono_(plantilla.evaluate()
     .setTitle(NOMBRE_APP)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1'));
+};
+
+// Icono de la pestaña y, si el móvil lo acepta, del acceso directo (D-23). Un enlace roto nunca impide abrir la app.
+const conIcono_ = (salida) => {
+  const url = obtenerConfig_('Icono_Url', '');
+  if (!url) return salida;
+  try {
+    return salida.setFaviconUrl(url);
+  } catch (error) {
+    registrarError_('conIcono_', error, {});
+    return salida;
+  }
 };
 
 // Público porque lo invocan las plantillas (<?!= include('…') ?>); solo devuelve HTML estático de la interfaz.

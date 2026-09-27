@@ -32,7 +32,7 @@ const ETIQUETAS_EDICION = {
   importeAlquiler: 'Importe del alquiler', comisionPct: '% Comisión', cobro: 'Estado de cobro',
   contratoEstado: 'Estado del contrato', incidencias: 'Incidencias', incidenteComunicado: 'Incidente comunicado',
   compensacion: 'Compensación de daños', incidenciaResuelta: 'Incidencia resuelta', checkin: 'Check-in revisado',
-  checkout: 'Check-out revisado', notas: 'Notas',
+  checkout: 'Check-out revisado', notas: 'Notas', refCanal: 'Código de reserva del canal',
 };
 const ETIQUETA_ESTADO = 'Estado de la reserva';
 const ETIQUETA_SERVICIOS = 'Servicios extra';
@@ -89,6 +89,19 @@ const validarDominios_ = (cambios) => {
   const campo = Object.keys(DOMINIOS_EDICION).find((c) => !DOMINIOS_EDICION[c].includes(texto_(cambios[c])));
   return campo ? invalido_(`Valor no permitido en "${ETIQUETAS_EDICION[campo]}".`) : valido_();
 };
+
+const MAX_LONGITUD_REF_CANAL = 40;
+
+// RF-88: el código de la reserva en la plataforma; obligatorio si el catálogo del canal lo exige (p. ej. Airbnb).
+const validarRefCanal_ = (refCanal, nombreCanal, obligatoria) => {
+  const ref = texto_(refCanal);
+  if (obligatoria && !ref) return invalido_(`El código de reserva de ${nombreCanal} es obligatorio.`);
+  if (ref.length > MAX_LONGITUD_REF_CANAL) return invalido_(`El código de reserva no puede pasar de ${MAX_LONGITUD_REF_CANAL} caracteres.`);
+  return valido_();
+};
+
+// Al editar, solo es obligatorio si el canal lo exige y la reserva ya lo tenía (las anteriores sin código siguen editándose).
+const refCanalObligatoriaAlEditar_ = (canalLaExige, refAnterior) => Boolean(canalLaExige) && texto_(refAnterior) !== '';
 
 const primeraInvalida_ = (validaciones) => validaciones.find((v) => !v.valido) || valido_();
 
@@ -230,6 +243,7 @@ const construirReservaNueva_ = (entrada, { id, email, ahora }) => ({
   videoInUrl: '',
   videoOutUrl: '',
   costeFijoCanal: entrada.costeFijoCanal,
+  refCanal: entrada.refCanal,
 });
 
 // Normaliza los campos editables recibidos del cliente sobre una copia de la reserva.
@@ -251,6 +265,7 @@ const normalizarCambios_ = (reserva, c) => ({
   checkin: texto_(c.checkin),
   checkout: texto_(c.checkout),
   notas: c.notas === undefined || c.notas === null ? '' : String(c.notas),
+  refCanal: c.refCanal === undefined ? texto_(reserva.refCanal) : texto_(c.refCanal),
 });
 
 // Aplica una edición: recalcula importes y estado y devuelve la reserva nueva y los cambios a auditar (RF-45..RF-50).

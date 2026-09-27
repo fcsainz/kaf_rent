@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; ejecución (USER_DEPLOYING) sustituida por ADR-0017
 date: 2026-09-25
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: Resto de copropietarios (PER-02, PER-03)
@@ -7,6 +7,8 @@ informed: Resto de copropietarios (PER-02, PER-03)
 ---
 
 # ADR-0001: Autenticación con cuenta de Google y lista de cuentas autorizadas en el Sheet
+
+> **Sustituido en parte (2026-09-27):** la ejecución como la cuenta operativa (`USER_DEPLOYING`) no identifica a los usuarios con cuentas `@gmail.com`; la app se ejecuta como el usuario que accede y los recursos se comparten ([ADR-0017](0017-ejecutar-como-usuario-que-accede.md)). El resto sigue vigente.
 
 ## Contexto y planteamiento del problema
 

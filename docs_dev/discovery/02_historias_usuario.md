@@ -66,8 +66,9 @@
 | HU-35 | *(ADR-0007)* | Formulario público de registro de viajeros | E-09 | P-10 | W (Fase 2) | XL | **Fase 2** | ⏳ |
 | HU-36 | *(ADR-0007)* | Estado del registro de viajeros en la reserva | E-09 | P-10 | W (Fase 2) | M | **Fase 2** | ⏳ |
 | HU-37 | *(backlog)* | Recordatorios automáticos de tareas pendientes | E-05 | P-04 | C | L | **S13** | ⏳ |
-| HU-38 | *(ADR-0005)* | Editar espacio, canal y fechas de una reserva | E-05 | P-01, P-04 | C | L | **S13** | ⏳ |
+| HU-38 | *(ADR-0005)* | Editar canal y fechas de una reserva (sin cambiar de espacio) | E-05 | P-01, P-04 | C | L | **S13** | ⏳ |
 | HU-39 | *(v2, F-21)* | Avisos que no pasan desapercibidos y envío de incidencias al administrador | E-04 | P-05, P-11 | M | M | **S14** | ✅ |
+| HU-40 | *(v2, F-22)* | Código de reserva del canal (obligatorio en Airbnb) | E-03 | P-11 | M | S | 2026-09-27 | ✅ |
 
 ---
 
@@ -431,6 +432,28 @@ Scenario: Feedback
 
 ---
 
+### HU-40 — Código de reserva del canal
+**Antes:** *(nueva, 2026-09-27)* · **MoSCoW:** M · **Talla:** S · **Estado:** ✅  
+**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-88 · **↓ RNF:** RNF-24, RNF-27 · **↓ Sprint:** sin sprint (petición directa, 2026-09-27)
+
+Como copropietario, quiero anotar en la reserva el código que le da la plataforma (p. ej. el de Airbnb) para encontrarla allí y cuadrar cobros sin buscar por nombre y fechas.
+
+```gherkin
+Scenario: Canal que exige el código
+  Given el canal tiene Requiere_Ref_Canal = "Sí" en Catálogo_Canales (hoy: Airbnb)
+  When guarda la reserva sin código
+  Then ve "El código de reserva de Airbnb es obligatorio" y no se guarda nada
+
+Scenario: Resto de canales
+  When guarda sin código en un canal que no lo exige
+  Then se guarda sin error
+
+Scenario: Editar el código
+  When cambia el código en Gestionar
+  Then se guarda y queda en el historial de cambios
+  And no puede dejarlo vacío si el canal lo exige y ya tenía uno (las reservas anteriores sin código se siguen editando)
+```
+
 ## E-04 — Avisos y calendario
 
 ### HU-17 — Aviso de cierre de canales
@@ -467,7 +490,7 @@ Scenario: Confirmación
 
 ### HU-19 — Evento de ocupación en Google Calendar
 **Antes:** US-026 · **MoSCoW:** M · **Talla:** L · **Estado:** 🟡  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41, RF-82, RF-83 · **↓ RNF:** RNF-09, RNF-13, RNF-16, RNF-34 · **↓ Sprint:** S4 → S8 ✔ · **S14** (B-14, F-13) · **S13**
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41, RF-82, RF-83, RF-84 · **↓ RNF:** RNF-09, RNF-13, RNF-16, RNF-34 · **↓ Sprint:** S4 → S8 ✔ · **S14** (B-14, F-13) · **S13**
 
 Como copropietario, quiero que cada reserva aparezca en un calendario de ocupación para ver de un vistazo qué está ocupado.
 
@@ -511,7 +534,7 @@ Scenario: Un solo canal
 
 ### HU-39 — Avisos que no pasan desapercibidos y envío de incidencias al administrador
 **Antes:** — (v2, F-21) · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-05, P-11 · **↑ JTBD:** JTBD-05, JTBD-11 · **↓ RF:** RF-81, RF-82 · **↓ RNF:** RNF-09, RNF-12, RNF-16, RNF-34 · **↓ Sprint:** **S14**
+**↑ Problema:** P-05, P-11 · **↑ JTBD:** JTBD-05, JTBD-11 · **↓ RF:** RF-81, RF-82, RF-84 · **↓ RNF:** RNF-09, RNF-12, RNF-16, RNF-20, RNF-34 · **↓ Sprint:** **S14**
 
 Como copropietario, quiero que los errores y avisos de la app me obliguen a leerlos y que pueda mandar al administrador el detalle técnico con un botón, para que ningún fallo pase desapercibido ni dependa de que yo sepa explicarlo.
 
@@ -710,11 +733,13 @@ Scenario: Cobro pendiente tras la estancia
   Then los tres reciben un recordatorio con la referencia y lo que falta
 ```
 
-### HU-38 — Editar espacio, canal y fechas de una reserva
+### HU-38 — Editar canal y fechas de una reserva
 **Antes:** *(Pendiente de ADR-0005)* · **MoSCoW:** C · **Talla:** L · **Estado:** ⏳  
 **↑ Problema:** P-01, P-04 · **↑ JTBD:** JTBD-01, JTBD-04 · **↓ RF:** RF-41, RF-80 · **↓ RNF:** RNF-15, RNF-16 · **↓ Sprint:** **S13**
 
-Como copropietario, quiero cambiar las fechas o el espacio de una reserva existente para no tener que cancelarla y crearla de nuevo.
+Como copropietario, quiero cambiar las fechas o el canal de una reserva existente para no tener que cancelarla y crearla de nuevo.
+
+> **Alcance (decisión del usuario, 2026-09-27):** el espacio no se cambia (no se da el caso); fechas y canal solo mientras no haya empezado el check-in.
 
 ```gherkin
 Scenario: Cambio de fechas sin solapamiento
@@ -723,6 +748,10 @@ Scenario: Cambio de fechas sin solapamiento
 
 Scenario: Cambio con solapamiento
   Then se rechaza con el mensaje de solapamiento
+
+Scenario: Check-in ya empezado
+  Given la checklist de check-in tiene algún punto registrado
+  Then fechas y canal se muestran de solo lectura
 ```
 
 ---
@@ -783,7 +812,7 @@ Scenario: Cierre
 
 ### HU-30 — Subir vídeos de entrada/salida a Drive
 **Antes:** US-030 · **MoSCoW:** S · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-57, RF-58, RF-70 · **↓ RNF:** RNF-07, RNF-22, RNF-35 · **↓ Sprint:** S4 → S8 ✔
+**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-57, RF-58, RF-70, RF-86 · **↓ RNF:** RNF-07, RNF-22, RNF-35 · **↓ Sprint:** S4 → S8 ✔
 
 Como copropietario, quiero subir los vídeos de entrada y salida organizados por espacio y reserva para tener pruebas sin llenar el almacenamiento indefinidamente.
 

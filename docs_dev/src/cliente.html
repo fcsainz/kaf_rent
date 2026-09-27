@@ -113,7 +113,15 @@
     const canal = canalesCatalogo.find((c) => c.nombre === evento.target.value);
     $('campo-comision').value = (canal && canal.comision !== '') ? canal.comision : '';
     costeFijoCanal = (canal && canal.costeFijo) ? canal.costeFijo : 0;
+    mostrarRefCanal(canal);
     recalcularImportes();
+  };
+
+  // RF-88: el código de la plataforma; obligatorio solo en los canales que lo exigen en el catálogo.
+  const mostrarRefCanal = (canal) => {
+    $('grupo-ref-canal').hidden = !canal;
+    $('ref-canal-nombre').textContent = canal ? canal.nombre : '';
+    $('ref-canal-obligatorio').hidden = !(canal && canal.requiereRef);
   };
 
   const rellenarServicios = (servicios) => {
@@ -199,6 +207,8 @@
   const resetearCamposDependientes = () => {
     $('campo-canal').selectedIndex = 0;
     $('campo-comision').value = '';
+    $('campo-ref-canal').value = '';
+    mostrarRefCanal(null);
     costeFijoCanal = 0;
     $('lista-servicios').innerHTML = '';
     $('ayuda-servicios').hidden = true;
@@ -253,6 +263,7 @@
     espacio: $('campo-espacio').value,
     canal: $('campo-canal').value,
     comision: $('campo-comision').value,
+    refCanal: $('campo-ref-canal').value.trim(),
     fechaUnica: $('campo-fecha-unica').value,
     horaLlegada: $('campo-hora-llegada').value,
     horaSalida: $('campo-hora-salida').value,
@@ -279,6 +290,10 @@
     const espacio = $('campo-espacio').value;
     if (!espacio) errores.push({ campo: 'campo-espacio', mensaje: 'Selecciona un espacio.' });
     if (!$('campo-canal').value) errores.push({ campo: 'campo-canal', mensaje: 'Selecciona un canal.' });
+    const canal = canalesCatalogo.find((c) => c.nombre === $('campo-canal').value);
+    if (canal && canal.requiereRef && !$('campo-ref-canal').value.trim()) {
+      errores.push({ campo: 'campo-ref-canal', mensaje: `Indica el código de reserva de ${canal.nombre}.` });
+    }
 
     const datosEspacio = espaciosCatalogo.find((esp) => esp.nombre === espacio);
     const modo = datosEspacio ? datosEspacio.modoFecha : '';

@@ -1,6 +1,6 @@
 # Próximos pasos — KAF Rent
 
-**Actualizado:** 2026-09-27 (cierre de sesión: S14, S11, S15 y S16 hechos; decisiones D-04..D-19; doble revisión)  
+**Actualizado:** 2026-09-27 (cierre de sesión: v2 publicada en producción; copias abuelo-padre-hijo, código de reserva del canal, ejecutar como quien accede (ADR-0017), clasp; doble revisión)  
 **Framework:** Scrum adaptado a un desarrollador único: **sprints por objetivo, sin duración fija** (se trabajan en ratos libres y se cierran al cumplir el objetivo), backlog priorizado y tallas convertidas a horas ([CLAUDE.md §2.4](../CLAUDE.md))  
 **Sustituye a:** `docs/discovery/09_roadmap.md`
 
@@ -12,16 +12,12 @@
 
 ### Acciones manuales pendientes (no son decisiones)
 
-- **ACC-02 — Configurar clasp** ([ADR-0015](../docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)). clasp 3.4.1 ya está instalado (2026-09-27). Faltan 3 pasos que solo puedes hacer tú:
-  1. Con `operaciontangai@gmail.com`, activar la *API de Google Apps Script* en <https://script.google.com/home/usersettings>.
-  2. En la terminal de Ubuntu (WSL): `clasp login --user operacion` y entrar con `operaciontangai@gmail.com`.
-  3. Pasar a Claude el **ID del script** (BBDD_KAF_Rent → Extensiones → Apps Script → ⚙️ Configuración del proyecto → ID de secuencia de comandos).
-  Con clasp, Claude sube el código y aplica él los cambios del Sheet (sin que se toque a mano).
-- **ACC-03 — Desplegar la v2** (sprint "Despliegue v2", tras ACC-02 y los tests del release). Pasos, en este orden:
+- **ACC-02 — Configurar clasp** ([ADR-0015](../docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)) — ✅ **Hecho (2026-09-27).** API de Apps Script activada; credencial `familia` = `operaciontangai@gmail.com`; `.clasp.json` creado (no se versiona). El `clasp pull` de comprobación muestra que el remoto es la v1 del commit `7290be9`, salvo: `gastos_interfaz.html` (en producción contiene una copia de la pantalla de Gestionar: **B-20**), una función de depuración `testCalendario` y `executeAs: USER_ACCESSING` (confirma B-14). Nada del remoto se pierde con el `push`.
+- **ACC-03 — Desplegar la v2** — ✅ **Publicada el 2026-09-27 como versión 37** (la 36, sin la revisión de cierre) (`v2.3`, misma URL): push, reparar hojas, `Config`/catálogos/roles, eventos reconciliados (todas las reservas no canceladas tienen evento). **Falta:** smoke con las tres cuentas (T-06) y probar el icono en el móvil (D-23). Pasos seguidos: (sprint "Despliegue v2", tras ACC-02 y los tests del release). Pasos, en este orden:
   1. `clasp push` al proyecto (no cambia la versión publicada) y **prueba en `/dev`** con datos reales.
   2. **KAF Rent → Inicializar / reparar hojas** (seguro desde B-16): crea `Catálogo_Checklist` (138 puntos) y `Registro_Checklist` y añade columnas nuevas al final; no toca datos.
-  3. Cambios del Sheet que hará Claude (solo añadir): `Config` += `Tamano_Max_Video_MB` (100), `Carpeta_Raiz_Id`, `Calendar_Url` (enlace del calendario operativo; **arregla ya el botón del Inicio**), `Dias_Office_Reponer` (3); `Catálogo_Servicios_Extra` += **Pistolas de agua**; `Usuarios_Autorizados.Rol`: fcsainz → **Admin**, auralozca y esperanzavegafdez → **Gestión**, operaciontangai → **Sistema**.
-  4. Gestionar implementaciones: anotar qué pone en "Ejecutar como" y qué versión está publicada; publicar la nueva versión con **Ejecutar como: Yo** (`operaciontangai`) — hoy la publicada se ejecuta como quien accede y por eso `esperanzavegafdez` no llega al calendario (B-14).
+  3. ✅ **Hecho por Claude (2026-09-27):** `Config` += `Tamano_Max_Video_MB`, `Dias_Office_Reponer`, `Icono_Url`, `Backup_Diarias/Semanales/Mensuales` (antiguas marcadas obsoletas); `Catálogo_Canales.Requiere_Ref_Canal` (Airbnb = Sí); roles (fcsainz Admin, auralozca y esperanzavegafdez Gestión, operaciontangai Sistema). `Calendar_Url` también (derivado del ID). **Faltan:** `Carpeta_Raiz_Id` (solo referencia) y Pistolas de agua (D-22). Plan original: `Config` += `Tamano_Max_Video_MB` (100), `Carpeta_Raiz_Id`, `Calendar_Url` (enlace del calendario operativo; **arregla ya el botón del Inicio**), `Dias_Office_Reponer` (3), `Icono_Url` (`https://lh3.googleusercontent.com/d/19p3crnEA6yLJwcCi08E2dnooPBiVQC2W`, el PNG de 192 px, D-23), `Backup_Diarias` (7), `Backup_Semanales` (4), `Backup_Mensuales` (12) (ADR-0016; las filas `Backup_Cada_Dias` y `Backup_Max_Copias` se dejan, con la descripción "Obsoleta — ADR-0016"); `Catálogo_Canales` += columna `Requiere_Ref_Canal` (Airbnb → **Sí**, resto vacío; RF-88); `Catálogo_Servicios_Extra` += **Pistolas de agua**; `Usuarios_Autorizados.Rol`: fcsainz → **Admin**, auralozca y esperanzavegafdez → **Gestión**, operaciontangai → **Sistema**.
+  4. Compartir (ADR-0017): calendario operativo con **"Hacer cambios en eventos"** y carpetas de vídeos y documentos con **edición** para `esperanzavegafdez` y `auralozca` (lo hace el usuario con `operaciontangai`). Después, **Gestionar implementaciones → lápiz → Nueva versión**, con "Ejecutar como" = **Usuario que accede** (nunca "Yo") y "Quién tiene acceso" = cualquier usuario con cuenta de Google. La URL no cambia.
   5. Desde el editor, `sincronizarReservasCalendario` para crear los eventos que faltan (reservas 003–009 y 011–013).
   6. Smoke (T-06) y CHANGELOG a 2.0.0.
 
@@ -43,10 +39,24 @@ Revisar juntos, gasto a gasto, la clasificación directo/indirecto, pieza (inter
 | Pros | GitHub lo muestra como portada; útil si algún día se enseña el proyecto (D-08) | Un fichero menos que mantener |
 | Contras | Hay que tenerlo al día | Se pierde la portada; hay que retirar sus enlaces |
 
+### D-23 — Icono del acceso directo en el móvil (para la próxima sesión)
+**Resultado de la prueba (2026-09-27):** con `setFaviconUrl` (`Config.Icono_Url`, 192 px) el acceso directo de Android **sigue saliendo sin el icono**: Chrome toma el icono de la página exterior de Google, no el de la app.
+**Propuesta para la próxima sesión:** página puente estática (manifest con 192/512 px y `apple-touch-icon` 180) que redirige a la app; ADR nuevo. ~2 h. Alternativa: dejarlo así.
+
 ### D-22 — Precio de las "Pistolas de agua" en el catálogo de servicios
 Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el servicio aparece con 0 €).
 
+### D-24 — Recordatorios automáticos (HU-37, bloquea parte de S13)
+**En llano:** qué reservas avisan y a quién.
+**Propuesta:** cobro sin ingresar y check-out sin hacer, a los 10 y 15 días de la salida y después cada 7 días hasta cerrarse; a los usuarios con rol Gestión; sin guardar nada (se calcula por los días desde la salida).
+**Si no se decide:** S13 avanza sin los recordatorios.
+
 ### Resueltas en esta sesión (2026-09-27)
+- **D-25 →** la app se ejecuta como el usuario que accede y los recursos se comparten con cada usuario ([ADR-0017](../docs_dev/solution/adr/0017-ejecutar-como-usuario-que-accede.md)); "Ejecutar como: Yo" deja a todos sin identificar con cuentas `@gmail.com`.
+- **Copias →** rotación abuelo-padre-hijo, 7/4/12 ([ADR-0016](../docs_dev/solution/adr/0016-rotacion-copias-abuelo-padre-hijo.md), hecho).
+- **Código de reserva del canal →** obligatorio en los canales con `Requiere_Ref_Canal` = Sí (hoy Airbnb), opcional en el resto (HU-40, RF-88, hecho).
+- **S13 / HU-38 →** el espacio de una reserva no se cambia (no va a pasar); fechas y canal se pueden editar solo mientras no haya empezado el check-in.
+- **S19 / F-16 →** indicadores del Informe Técnico como propone F-16 (se irán mejorando); email propio, distinto del de gestión, con el mismo disparador mensual.
 - **D-04 →** la referencia lleva el año en que se crea la reserva (B-15, hecho).
 - **D-05 →** PROXIMOS_PASOS se regenera con un script temporal que no se guarda en el repo.
 - **D-07 →** la app se usa con reservas reales y los tres la manejan solos (UAT de hecho: EXT-03 cerrada, hito M4 ✅).
@@ -71,14 +81,14 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 
 | Sprint | Objetivo | Contenido (resumen) | Estimación | Estado |
 |---|---|---|---|---|
-| **S9** | Preparar el despliegue y la calidad estática | Configurar clasp (T-08) · checklist de smoke (T-06) · ESLint (T-07) | 4–6 h | ⏳ Bloqueado por ACC-02 |
+| **S9** | Preparar el despliegue y la calidad estática | Scripts npm de clasp (T-08, resto) · checklist de smoke (T-06) · ESLint (T-07) | 3–5 h | ⏳ Desbloqueado (ACC-02 hecho) |
 | **S17** | Registro de gastos | F-19: formulario de tres preguntas (¿para una reserva?, ¿dónde se usa?, ¿dura años?) + clasificación por pieza y tipo; la hoja `Gastos` real está vacía, no hay que migrar | 7–9 h | ⏳ Bloqueado por D-18 |
 | **S18** | Informe de Gestión y emails | F-15 (bloque mensual + análisis de precios) · B-08 y F-05 (ocupación, métricas por zona) · F-18 (rediseño de emails) | 14–16 h | ⏳ Bloqueado por D-13 |
-| **S19** | Informe Técnico y chequeo de salud | F-16 (KPIs; solo Soporte/Admin) · chequeo de salud en real (T-04) · prueba de viabilidad del scraping (F-17) | ~10 h | ⏳ |
+| **S19** | Informe Técnico y chequeo de salud | F-16 (KPIs aprobados; email propio con el disparador mensual; solo Soporte/Admin) · chequeo de salud en real (T-04) · prueba de viabilidad del scraping (F-17) | ~10 h | ⏳ Listo para empezar |
 | **S20** | Precios de la competencia | F-17: ADR + lectores por web + aviso de rotura + reconstrucción | 8–12 h | ⏳ Tras S19 |
 | **S21** | Informe del IRPF | F-20: informe por copropietario y agregado, con casillas; valida D-15 con datos reales | 12–16 h | ⏳ Tras S17 + datos (EXT-01) |
 | **Despliegue v2** | Publicar la v2 | Tests del release (E2E de las pantallas nuevas: checklists, editor, ventanas; auditoría axe; chequeo de salud) + ACC-03 | 4–6 h | ⏳ Tras S9 |
-| **S13** | Mejoras "Could" | Editar espacio, canal y fechas (HU-38, RF-80, RF-41) · recordatorios (HU-37) · reconciliación automática de Calendar (F-04) | 16–24 h | ⏳ (requiere decisiones de diseño) |
+| **S13** | Mejoras "Could" | Editar fechas y canal hasta el check-in, sin cambio de espacio (HU-38, RF-80, RF-41) · recordatorios (HU-37, D-24) · reconciliación automática de Calendar (F-04) | 12–18 h | ⏳ Listo salvo recordatorios (D-24) |
 | **Fase 2** | Registro de viajeros | Revisión legal (EXT-02) · formulario (HU-35) · estado (HU-36) · SES bidireccional (ADR-0007) | 4–6 semanas | ⏳ Falta el ID del Sheet del formulario |
 
 **Tareas externas en paralelo:** EXT-01 reunir los valores de amortización · EXT-02 revisión RGPD.
@@ -107,11 +117,13 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 | B-13 | El cliente fija en 100 MB el máximo de vídeo en vez de leer `Tamano_Max_Video_MB` de Config (el servidor sí lo valida bien) | RNF-27 | 6 | XS | Backlog |
 | B-12 | Contrastes WCAG AA sin auditar. **Hecho:** test de contraste de todos los pares de color (el verde de éxito no llegaba: 4,07 → `#468144`, 4,68) y áreas táctiles ≥ 44 px (botones 42 px, "Ver más"/"Modificar" 30 px, enlace al calendario 20 px → corregidos). Queda la auditoría axe completa | HU-25, HU-28, RNF-12 | 4 | S | ✅ S11 (axe: backlog) |
 | B-17 | En móvil, con al menos una reserva, la tabla "Últimas reservas" (y la de búsqueda y el historial) ensanchaba la página a 548 px en un móvil de 393: el navegador la alejaba o obligaba a desplazarse de lado. Detectado por los E2E; corregido con el contenedor `tabla-scroll` ya usado en Gestionar | RNF-11 | 2 | XS | ✅ S11 |
-| B-14 | El evento de Calendar no se creaba cuando la reserva la registraba `esperanzavegafdez` (10 fallos entre 30/06 y 26/09, reservas 003–009 y 011–013); con `fcsainz` sí. Causa (confianza alta): la implementación publicada se ejecuta como quien accede, y esa cuenta no llega al calendario operativo (`getCalendarById` → `null`). Además, el fallo era silencioso para el usuario. **Corregido en código:** aviso modal + incidencia al admin (F-21). **Pendiente en el despliegue:** "Ejecutar como: Yo" + reconciliación (ACC-03) | RF-36, RF-82, ADR-0001 | 1 | S | **S14** ✔ código · despliegue |
+| B-14 | El evento de Calendar no se creaba cuando la reserva la registraba `esperanzavegafdez` (10 fallos entre 30/06 y 26/09, reservas 003–009 y 011–013); con `fcsainz` sí. Causa (confianza alta): la implementación publicada se ejecuta como quien accede, y esa cuenta no llega al calendario operativo (`getCalendarById` → `null`). Además, el fallo era silencioso para el usuario. **Corregido en código:** aviso modal + incidencia al admin (F-21). **Pendiente en el despliegue:** compartir el calendario con cada usuario (ADR-0017; "Ejecutar como: Yo" queda descartado porque no identifica a nadie) + reconciliación (ACC-03) | RF-36, RF-82, ADR-0001 | 1 | S | **S14** ✔ código · despliegue |
 | B-15 | La referencia `NN/AA` usaba el año de entrada; debe ser el año en que se crea la reserva (D-04) | RF-31, ADR-0014 | 2 | XS | ✅ S14 |
 | B-16 | "Inicializar / reparar hojas" reescribía las cabeceras de hojas existentes en el orden del esquema (renombraba columnas con datos) y, si faltaba una cabecera, la app leía y escribía en la columna de su posición en el esquema: riesgo de corromper datos reales | RF-72, R-19, D-19 | 1 | S | ✅ S14 |
 | B-18 | Si se edita una checklist ya terminada y queda un punto pendiente, sigue marcada "Hecho" | RF-85 | 5 | XS | Backlog |
 | B-19 | La detección de daños al terminar el check-out se basa en que el punto empiece por "Sin daños": si el admin cambia ese texto, deja de avisar | RF-85 | 6 | XS | Backlog |
+| B-20 | En producción (v1), `gastos_interfaz.html` contiene una copia de la pantalla de Gestionar (error de copia/pega detectado en el `clasp pull` del 2026-09-27); la pestaña Gastos publicada puede no funcionar. Se corrige con el `push` de la v2 | HU-33 | 2 | XS | ✅ Despliegue v2 (2026-09-27) |
+| B-21 | En Gestionar, el código de reserva del canal solo se valida en el servidor: si se vacía en una reserva de Airbnb que lo tenía, el aviso llega al guardar, no en línea (CLAUDE.md §4.7) | RF-88 | 6 | XS | Backlog |
 
 ### Tests (T)
 
@@ -124,7 +136,7 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 | T-05 | E2E con Playwright: servidor local que resuelve `include` y simula `google.script.run`; journeys J-1 a J-6; viewport móvil | RNF-08, RNF-11 | 3 | L | ✅ S11 (29 E2E en escritorio y móvil, en CI) |
 | T-06 | Checklist de smoke post-despliegue en DEVELOPMENT.md | RNF-19, RNF-20 | 3 | XS | S9 |
 | T-07 | ESLint con globals de Apps Script y reglas propias (`no-var`, patrones prohibidos) | RNF-28 | 3 | S | S9 |
-| T-08 | Configurar clasp: `.clasp.json` (desde `.clasp.json.example` con el ID del script), `clasp pull` a una carpeta temporal y comparar con `docs_dev/src/` **antes** del primer `push`, scripts `npm run push` / `deploy` con `--user operacion` | ADR-0015, RNF-27 | 3 | S | S9 (tras ACC-02) |
+| T-08 | Configurar clasp: `.clasp.json` (desde `.clasp.json.example` con el ID del script), `clasp pull` a una carpeta temporal y comparar con `docs_dev/src/` **antes** del primer `push`, scripts `npm run push` / `deploy` con `--user familia` | ADR-0015, RNF-27 | 3 | S | S9 — `.clasp.json` y comparación hechos (2026-09-27); faltan los scripts npm |
 
 ### Deuda técnica (REF / TD) — detalle en [arc42 §11.2](../docs_dev/solution/arc42.md#112-deuda-técnica)
 
@@ -136,12 +148,14 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 | REF-04 | Dividir funciones > 30 líneas | 5 | M | ✅ S8 |
 | TD-01 | `registrarLog_` y `registrarError_` escriben con `appendRow` en el orden del esquema: si se reordenan las columnas de `Logs` o `Errores`, los registros nuevos quedan desalineados (no afecta a otras hojas) | 5 | XS | Backlog |
 | TD-02 | `Registro_Checklist` se reescribe entera en cada guardado (atómico, pero crece con cada reserva: ~40 filas por lista); valorar escribir solo las filas de la reserva si se nota lentitud | 6 | S | Backlog |
+| TD-03 | `Config.Calendar_Url` repite lo que ya dice `Calendar_Id`: derivar el enlace del ID en el código y retirar la clave (hoy relleno a mano, 2026-09-27) | 6 | XS | Backlog |
+| TD-04 | Las funciones puras de las copias (`tocaCopia_`, `claveSemana_`, `copiasAConservar_`) viven en `infra_mantenimiento.gs`; por §3.3 irían en un `dominio_mantenimiento.gs` (fichero nuevo: requiere OK) | 5 | XS | Backlog |
 
 ### Funcionalidades (F / HU)
 
 | ID | Descripción | Ref. | Prio | Talla | Sprint |
 |---|---|---|---|---|---|
-| F-01 | Editar espacio, canal y fechas con revalidación de solapamiento | HU-38, RF-80, ADR-0005 | 6 | L | S13 |
+| F-01 | Editar canal y fechas hasta el check-in (sin cambio de espacio) con revalidación de solapamiento | HU-38, RF-80, ADR-0005 | 6 | L | S13 |
 | F-02 | Recordatorios automáticos si una reserva no se cierra: email a los copropietarios a los 10 y 15 días, y luego cada 7 días hasta que se cierre — requiere diseño y ADR | HU-37, RF-79 | 6 | L | S13 |
 | F-03 | Flujo de incidencias y mantenimiento no ligado a una reserva — requiere discovery | antiguo SDD §5.7 | 6 | ? | Backlog |
 | F-04 | Reconciliación automática periódica de Calendar | ADR-0010 | 6 | S | S13 |
@@ -162,6 +176,7 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 | F-19 | Registro de gastos: directos (de una reserva) e indirectos (por pieza: interior, exterior, finca), inversiones amortizables; formulario de tres preguntas en llano | ADR-0012, D-18 | 4 | M | S17 |
 | F-20 | Informe del IRPF por copropietario y agregado, con importes por casilla y explicación del cálculo; comprobar si aplica modelo 184 / atribución de rentas | ADR-0012, D-15 | 4 | L | S21 |
 | F-21 | Avisos y errores en ventana modal que el usuario debe cerrar (éxitos: mensaje centrado que se cierra solo) + botón "Enviar al administrador" que manda a las cuentas `Rol = Admin` el detalle técnico del error. **Nota:** usa ya la columna `Rol`; al diseñar F-11, "Admin" debe encajar con los roles soporte/gestión/admin | HU-39, RF-81, RF-82 | 1 | M | ✅ S14 (E2E en S11) |
+| F-22 | Código de reserva de la plataforma en la reserva: obligatorio en Airbnb (columna `Requiere_Ref_Canal` del catálogo), opcional en el resto; editable con auditoría | HU-40, RF-88 | 4 | S | ✅ 2026-09-27 |
 | — | Registro de viajeros — ver [referencia-tecnica-ses-hospedajes.md](docs_ses/referencia-tecnica-ses-hospedajes.md) (campos, webservice, catálogos). Ampliado: el formulario de huéspedes es un **Google Form con su propio Sheet**, distinto del de KAF Rent; hace falta sincronizar datos en ambos sentidos, un paso de **verificación presencial del DNI/NIE/Pasaporte** por un copropietario que dispara la comunicación a SES, y un email a los copropietarios con el resultado — ver ADR-0007 ampliado. **Falta el ID/URL de ese Sheet de Formulario** para diseñar la sincronización | HU-35, HU-36, ADR-0007 | 7 | XL | Fase 2 |
 
 ### Tareas externas (EXT)
@@ -191,6 +206,7 @@ Se añaden como servicio (F-14). Si no se indica precio, se dejan vacías (el se
 | S11 | Tests de interfaz: servidor E2E + Playwright (29 E2E, escritorio y móvil), contrastes y áreas táctiles (B-12), B-17 (tablas en móvil); T-04 pasa al release | 2.0.0 (sin desplegar) | — |
 | S15 | Roles (F-11, RF-84) y plantilla de design doc (D-09) | 2.0.0 (sin desplegar) | — |
 | S16 | Checklists digitales (F-14, DD-01, RF-85..87): 4 listas, "No aplica", confirmación, vídeo y fotos, editor del admin, cierre = cobro + check-out | 2.0.0 (sin desplegar) | — |
+| Despliegue v2 (parcial) | clasp (ACC-02), copias abuelo-padre-hijo (ADR-0016), código de reserva del canal (F-22, RF-88), ejecutar como quien accede (ADR-0017), Sheet preparado y eventos reconciliados; v2 publicada. Falta smoke T-06 e icono del móvil (D-23) | 2.0.0 (publicada 2026-09-27, implementación v37) | M4 ✅ |
 | v1.1 | Coste fijo del canal, columna Personas, `USER_DEPLOYING`, reconciliación de Calendar | 1.1.0 (2026-07-27) | — |
 
 ---

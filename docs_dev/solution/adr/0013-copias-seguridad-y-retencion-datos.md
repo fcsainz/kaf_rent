@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; cadencia y rotación de las copias sustituidas por ADR-0016
 date: 2026-06-29
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: —
@@ -7,6 +7,8 @@ informed: Resto de copropietarios (PER-02, PER-03)
 ---
 
 # ADR-0013: Copias de seguridad del Sheet y purga de Logs y Errores en un único trigger nocturno
+
+> **Sustituido en parte (2026-09-27):** la cadencia y la rotación de las copias (`Backup_Cada_Dias`, `Backup_Max_Copias`) las decide ahora [ADR-0016](0016-rotacion-copias-abuelo-padre-hijo.md) (abuelo-padre-hijo). El resto de este ADR sigue vigente.
 
 ## Contexto y planteamiento del problema
 

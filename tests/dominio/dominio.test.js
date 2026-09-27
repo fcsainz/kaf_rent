@@ -13,7 +13,7 @@ const reservaBase = (cambios = {}) => ({
   nombre: 'Marta', telefono: '', email: '', adultos: 2, menores: 0, importeAlquiler: 300, serviciosPrecio: 20, serviciosCoste: 8,
   bruto: 320, comisionPct: 3, comision: 9.6, margenServicios: 12, neto: 302.4, costeFijoCanal: 0, serviciosExtra: 'Desayuno x2',
   cobro: 'No ingresado', contratoEstado: 'Gestionado por canal', incidencias: 'Sin incidentes', incidenteComunicado: '',
-  compensacion: '', incidenciaResuelta: '', estado: 'Abierta', checkin: 'Pendiente', checkout: 'Pendiente', notas: '',
+  compensacion: '', incidenciaResuelta: '', estado: 'Abierta', checkin: 'Pendiente', checkout: 'Pendiente', notas: '', refCanal: '',
   ...cambios,
 });
 const cambiosDe = (r, extra = {}) => ({
@@ -255,11 +255,18 @@ test.describe('Infraestructura pura', () => {
   test('B-16 · columnas que faltan, en el orden del esquema', () => {
     assert.deepEqual([...fn('columnasQueFaltan_')(['B', 'Z'], ['A', 'B', 'C'])], ['A', 'C']);
   });
-  test('toca copia según la cadencia', () => {
+  test('toca copia si no hay ninguna de hoy', () => {
     const t = fn('tocaCopia_');
-    assert.equal(t(null, 2, HOY), true);
-    assert.equal(t(d(2030, 6, 9), 2, HOY), false);
-    assert.equal(t(d(2030, 6, 8), 2, HOY), true);
+    assert.equal(t(null, '2030-06-10'), true);
+    assert.equal(t('2030-06-10', '2030-06-10'), false);
+    assert.equal(t('2030-06-09', '2030-06-10'), true);
+  });
+  test('la semana empieza en lunes', () => {
+    const s = fn('claveSemana_');
+    assert.equal(s('2030-06-10'), '2030-06-10'); // lunes
+    assert.equal(s('2030-06-16'), '2030-06-10'); // domingo
+    assert.equal(s('2030-06-17'), '2030-06-17');
+    assert.equal(s('2031-01-01'), '2030-12-30'); // cruza de año
   });
   test('validar archivo', () => {
     const v = fn('validarArchivo_');
@@ -267,5 +274,54 @@ test.describe('Infraestructura pura', () => {
     assert.equal(v(a, ['pdf'], 5).valido, true);
     assert.equal(v({ ...a, nombre: 'c.exe' }, ['pdf'], 5).valido, false);
     assert.equal(v(null, ['pdf'], 5).valido, false);
+  });
+});
+
+test.describe('RF-88 · código de reserva del canal', () => {
+  const v = (...args) => fn('validarRefCanal_')(...args);
+  test('debe exigirlo cuando el canal lo requiere', () => {
+    assert.deepEqual(plano(v('  ', 'Airbnb', true)), { valido: false, error: 'El código de reserva de Airbnb es obligatorio.' });
+    assert.equal(v('HMABC12345', 'Airbnb', true).valido, true);
+  });
+  test('debe ser opcional en el resto de canales', () => {
+    assert.equal(v('', 'Sin plataforma', false).valido, true);
+  });
+  test('al editar solo es obligatorio si el canal lo exige y ya tenía código', () => {
+    const o = fn('refCanalObligatoriaAlEditar_');
+    assert.deepEqual([o(true, 'HM1'), o(true, ''), o(false, 'HM1'), o(undefined, 'HM1')], [true, false, false, false]);
+  });
+  test('debe rechazar códigos de más de 40 caracteres', () => {
+    assert.equal(v('X'.repeat(41), 'Swimmy', false).valido, false);
+  });
+  test('debe auditar el cambio del código y conservarlo si el cliente no lo envía', () => {
+    const r = reservaBase({ refCanal: 'HM1' });
+    const conCambio = fn('aplicarCambios_')(r, cambiosDe(r, { refCanal: 'HM2' }), 'x@y.com', HOY);
+    assert.deepEqual(plano(conCambio.diffs.map((d) => d.campo)), ['Código de reserva del canal']);
+    assert.equal(fn('aplicarCambios_')(r, cambiosDe(r), 'x@y.com', HOY).reserva.refCanal, 'HM1');
+  });
+});
+
+test.describe('RF-68 · rotación abuelo-padre-hijo de las copias (ADR-0016)', () => {
+  const conservar = (dias, politica = { diarias: 7, semanales: 4, mensuales: 12 }) => plano(fn('copiasAConservar_')(dias, politica));
+  const diasHacia = (desde, n) => Array.from({ length: n }, (_, i) =>
+    new Date(Date.UTC(2030, 11, desde) - i * 24 * 3600 * 1000).toISOString().slice(0, 10));
+
+  test('debe conservar un año de copias diarias en 7 diarias + semanales + mensuales', () => {
+    const dias = diasHacia(31, 400);
+    const quedan = conservar(dias).map((i) => dias[i]);
+    assert.deepEqual(quedan.slice(0, 7), dias.slice(0, 7), 'los 7 últimos días');
+    ['2030-12-22', '2030-12-15'].forEach((dom) => assert.ok(quedan.includes(dom), `domingo ${dom}`));
+    ['2030-11-30', '2030-06-30', '2030-01-31'].forEach((fin) => assert.ok(quedan.includes(fin), `fin de mes ${fin}`));
+    assert.ok(!quedan.includes('2029-12-31'), 'el mes 13 ya no se conserva');
+    assert.ok(quedan.length <= 7 + 4 + 12);
+  });
+  test('debe conservar todas cuando hay menos copias que la política', () => {
+    assert.deepEqual(conservar(['2030-06-10', '2030-06-08', '2030-05-02']), [0, 1, 2]);
+  });
+  test('debe quedarse solo con la más reciente de un día repetido', () => {
+    assert.deepEqual(conservar(['2030-06-10', '2030-06-10'], { diarias: 1, semanales: 1, mensuales: 1 }), [0]);
+  });
+  test('debe conservar lo vacío sin fallar', () => {
+    assert.deepEqual(conservar([]), []);
   });
 });

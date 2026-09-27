@@ -215,6 +215,7 @@
 
       cont.appendChild(bloqueFicha('Resto de datos', [
         datoFicha('Espacio', d.espacio),
+        datoFicha('Código de reserva del canal', d.refCanal || '—'),
         datoFicha('Nombre', d.nombre),
         datoFicha('Adultos', d.adultos),
         datoFicha('Menores', d.menores),
@@ -288,6 +289,7 @@
       $('ed-checkin').value = d.checkin;
       $('ed-checkout').value = d.checkout;
       $('ed-notas').value = d.notas;
+      $('ed-ref-canal').value = d.refCanal || '';
       toggleIncidencia();
       pintarEnlaceContrato(d.contratoArchivo);
       // Si el contrato lo gestiona el canal no hay nada que subir (RF-55).
@@ -327,6 +329,7 @@
       checkin: $('ed-checkin').value,
       checkout: $('ed-checkout').value,
       notas: $('ed-notas').value,
+      refCanal: $('ed-ref-canal').value.trim(),
     });
 
     const guardarCambios = (evento) => {

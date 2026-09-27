@@ -15,7 +15,7 @@ const datosHabitacion = (cambios = {}) => ({
   espacio: 'Habitación Interior', canal: 'Airbnb', comision: '3',
   fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33),
   adultos: '2', menores: '0', importeAlquiler: '300',
-  nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com', servicios: [],
+  nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com', refCanal: 'HMTEST1234', servicios: [],
   ...cambios,
 });
 
@@ -25,6 +25,7 @@ const rellenarReservaHabitacion = async (page, { entrada = isoDentroDe(30), sali
   await page.locator('#campo-espacio').selectOption('Habitación Interior');
   await expect(page.locator('#campo-canal option', { hasText: 'Airbnb' })).toHaveCount(1);
   await page.locator('#campo-canal').selectOption('Airbnb');
+  await page.locator('#campo-ref-canal').fill('HMTEST1234');
   await page.locator('#campo-fecha-entrada').fill(entrada);
   await page.locator('#campo-fecha-salida').fill(salida);
   await page.locator('#campo-adultos').fill('2');

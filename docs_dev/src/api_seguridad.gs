@@ -1,12 +1,12 @@
 // Capa: API — seguridad común a todos los puntos de entrada: identidad, autorización y ejecución protegida
-// de endpoints y tareas del sistema. Ver ADR-0001, RNF-20.
+// de endpoints y tareas del sistema. Ver ADR-0001, ADR-0017, RNF-20.
 // En Apps Script toda función global sin sufijo "_" es invocable desde el navegador con google.script.run,
-// y se ejecuta con los permisos de la cuenta operativa. Por eso todo lo interno termina en "_".
+// con los permisos de quien navega (USER_ACCESSING). Por eso todo lo interno termina en "_".
 
 const MENSAJE_NO_AUTORIZADO = 'Sesión no autorizada.';
 const ESPERA_BLOQUEO_MS = 20000;
 
-// Email real de quien accede: se conserva aunque la Web App se ejecute como la cuenta operativa (USER_DEPLOYING).
+// Email real de quien accede. Con cuentas @gmail.com solo llega si la app se ejecuta como ese usuario (ADR-0017).
 const obtenerEmailSesion_ = () => {
   try {
     return texto_(Session.getActiveUser().getEmail());
@@ -87,12 +87,20 @@ const ejecutarEndpoint_ = (nombre, contexto, accion, { bloqueo = false, errorUsu
   }
 };
 
-// Ejecución "directa": editor, menú del Sheet o trigger, no delegada a través de la Web App.
-// En la Web App (USER_DEPLOYING) el usuario efectivo es la cuenta operativa y el activo es quien navega.
+// Ejecución "directa": la cuenta operativa desde el editor o el menú del Sheet. Con USER_ACCESSING (ADR-0017) el
+// usuario efectivo es siempre quien navega, así que se compara con el propietario del Sheet, no con el efectivo.
 const esEjecucionDirecta_ = () => {
   const activo = obtenerEmailSesion_().toLowerCase();
-  const efectivo = texto_(Session.getEffectiveUser().getEmail()).toLowerCase();
-  return activo !== '' && activo === efectivo;
+  return activo !== '' && activo === emailPropietarioLibro_();
+};
+
+const emailPropietarioLibro_ = () => {
+  try {
+    return texto_(DriveApp.getFileById(obtenerSpreadsheet_().getId()).getOwner().getEmail()).toLowerCase();
+  } catch (error) {
+    registrarError_('emailPropietarioLibro_', error, {});
+    return '';
+  }
 };
 
 // Un trigger del proyecto entrega un evento con su triggerUid, que nadie de fuera puede conocer.

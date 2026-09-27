@@ -134,6 +134,7 @@ class FicheroFalso {
   setTrashed(v) { this.papelera = v; return this; }
   isTrashed() { return this.papelera; }
   makeCopy(nombre, carpeta) { const f = new FicheroFalso(nombre); carpeta.ficheros.push(f); return f; }
+  getOwner() { return { getEmail: () => this.propietario || '' }; }
 }
 
 class CarpetaFalsa {
@@ -150,7 +151,7 @@ class CarpetaFalsa {
 }
 
 class DriveFalso {
-  constructor() { this.carpetas = new Map(); this.ficheros = new Map(); }
+  constructor(propietarioLibro) { this.carpetas = new Map(); this.ficheros = new Map(); this.propietarioLibro = propietarioLibro; }
   registrarCarpeta(c) { this.carpetas.set(c.id, c); return c; }
   getFolderById(id) {
     const buscar = (lista) => {
@@ -161,7 +162,10 @@ class DriveFalso {
     if (!c) throw new Error(`Carpeta ${id} no encontrada`);
     return c;
   }
-  getFileById(id) { if (!this.ficheros.has(id)) this.ficheros.set(id, new FicheroFalso('BBDD_KAF_Rent')); return this.ficheros.get(id); }
+  getFileById(id) {
+    if (!this.ficheros.has(id)) this.ficheros.set(id, Object.assign(new FicheroFalso('BBDD_KAF_Rent'), { propietario: this.propietarioLibro }));
+    return this.ficheros.get(id);
+  }
 }
 
 // ---------- Calendar ----------
@@ -190,7 +194,7 @@ class CalendarioFalso {
 // ---------- Entorno completo ----------
 const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'operacion@test.com' } = {}) => {
   const libro = new LibroFalso();
-  const drive = new DriveFalso();
+  const drive = new DriveFalso(usuarioEfectivo); // El libro es de la cuenta operativa.
   const calendario = new CalendarioFalso();
   const correos = [];
   const disparadores = [];
@@ -239,7 +243,11 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
       },
     },
     HtmlService: {
-      createTemplateFromFile: (nombre) => ({ nombre, evaluate() { const s = { vista: nombre, datos: this.datos }; return { setTitle: () => ({ addMetaTag: () => s }) }; } }),
+      createTemplateFromFile: (nombre) => ({ nombre, evaluate() {
+        // HtmlService rechaza una URL de favicon no válida: el doble lo simula con 'url-invalida'.
+        const s = { vista: nombre, datos: this.datos, setFaviconUrl(url) { if (url === 'url-invalida') throw new Error('Invalid argument: faviconUrl'); this.icono = url; return this; } };
+        return { setTitle: () => ({ addMetaTag: () => s }) };
+      } }),
       createHtmlOutputFromFile: (nombre) => ({ getContent: () => `<!-- ${nombre} -->` }),
     },
     console,

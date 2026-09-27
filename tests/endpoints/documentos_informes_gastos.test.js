@@ -142,6 +142,22 @@ test.describe('RF-67..RF-70 · mantenimiento nocturno', () => {
     assert.equal(reservaVieja.isTrashed(), true, 'la carpeta de reserva vacía se elimina');
     assert.equal(piscina.isTrashed(), false, 'la carpeta del espacio no se toca');
   });
+  test('RF-68 · una copia al día y poda abuelo-padre-hijo de las antiguas (ADR-0016)', () => {
+    const e = crearEntornoConDatos();
+    const backups = e.carpetas.backups;
+    const hace = (dias) => new Date(Date.now() - dias * 24 * 3600 * 1000);
+    const antiguas = Array.from({ length: 60 }, (_, i) => {
+      const f = backups.createFile({ nombre: `copia ${i + 1}` });
+      f.creado = hace(i + 1);
+      return f;
+    });
+    e.comoPropietario(() => e.llamar('tareasNocturnas'));
+    e.comoPropietario(() => e.llamar('tareasNocturnas'));
+    const vivas = backups.ficheros.filter((f) => !f.isTrashed());
+    assert.equal(vivas.filter((f) => !antiguas.includes(f)).length, 1, 'una sola copia de hoy aunque se ejecute dos veces');
+    assert.ok(vivas.length > 7 && vivas.length <= 7 + 4 + 12, `quedan ${vivas.length}`);
+    assert.ok(antiguas.some((f) => f.isTrashed()), 'las que no son de ningún periodo van a la papelera');
+  });
 });
 
 test.describe('RF-40 · reconciliación de Calendar', () => {

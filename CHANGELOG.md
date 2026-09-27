@@ -8,6 +8,25 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased] — en curso hacia 2.0.0
 
+### Publicación en producción (2026-09-27)
+La v2 está publicada en la URL de siempre (implementación **v37**, con clasp). El número pasa a **2.0.0** cuando se haga el smoke con las tres cuentas (T-06).
+
+### Código y documentación — copias, código de reserva del canal, icono y clasp (2026-09-27)
+
+#### Added
+- **Código de reserva del canal (HU-40, RF-88, F-22):** campo `Ref_Canal` en la reserva (Crear, ficha y edición con auditoría); obligatorio en los canales con `Requiere_Ref_Canal` = Sí en `Catálogo_Canales` (Airbnb), opcional en el resto; al editar no se puede vaciar si el canal lo exige y ya tenía valor.
+- **Icono de la app (D-23):** `Config.Icono_Url` con el PNG público de 192 px (`setFaviconUrl`); si la URL falla, la app abre igualmente y se registra el error.
+
+#### Fixed
+- **Tareas del sistema:** con "ejecutar como quien accede" cualquier usuario autorizado pasaba la comprobación de "ejecución directa"; ahora solo la propietaria del Sheet o un trigger del proyecto (ADR-0017, test de regresión).
+- **Trazabilidad:** cinco relaciones HU↔RF↔RNF que solo figuraban en un extremo (HU-19, HU-29, HU-30, HU-39 con RF-50, RF-84, RF-86; RNF-20 con RF-84).
+- **D-23 (icono):** `setFaviconUrl` no cambia el icono del acceso directo de Android; queda la página puente para la próxima sesión.
+
+#### Changed
+- **La Web App se ejecuta como el usuario que accede** ([ADR-0017](docs_dev/solution/adr/0017-ejecutar-como-usuario-que-accede.md), sustituye la ejecución de ADR-0001): `appsscript.json` vuelve a `USER_ACCESSING`, porque con cuentas `@gmail.com` "Ejecutar como: Yo" no identifica a nadie. B-14 se resuelve compartiendo el calendario con cada usuario.
+- **Copias del Sheet con rotación abuelo-padre-hijo** ([ADR-0016](docs_dev/solution/adr/0016-rotacion-copias-abuelo-padre-hijo.md), sustituye la rotación de ADR-0013): una copia al día y se conserva la más reciente de cada uno de los últimos 7 días, 4 semanas y 12 meses (`Config`: `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`; mínimo 1 por nivel). La ventana de recuperación pasa de ~30 días a ~12 meses (R-14 mitigado). `Backup_Cada_Dias` y `Backup_Max_Copias` dejan de usarse. RF-68.
+- **clasp:** la credencial local de `operaciontangai@gmail.com` se llama `familia` (`clasp --user familia …`); DEVELOPMENT, arc42 y ADR-0015 (revisión) actualizados.
+
 ### Código y documentación — S14, S11, S15 y S16 (2026-09-27)
 
 #### Added
