@@ -28,6 +28,7 @@ Al retomar el trabajo, **antes de nada**, Claude:
 ```
 .
 ├── CLAUDE.md               # Este documento: reglas de trabajo y estándares
+├── README.md               # Portada del repositorio (D-21: se mantiene)
 ├── CHANGELOG.md            # Keep a Changelog + SemVer
 ├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
 ├── package.json            # Solo herramientas de desarrollo (npm test); nada se despliega
@@ -40,6 +41,7 @@ Al retomar el trabajo, **antes de nada**, Claude:
 │   └── solution/           # CÓMO: arc42.md (+ C4), adr/ (MADR), design-docs/ (uno por funcionalidad grande), design-system.md
 └── docs_work/              # Carpeta de trabajo, fuera del núcleo (docs_dev): material que entra y sale según su utilidad, más lo permanente
     ├── PROXIMOS_PASOS.md   # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
+    ├── docs_mejoras/       # Registro de mejoras de cada sesión (mejoras_AAAA-MM-DD.md, §5.1)
     ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
     ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles
     └── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out (Piscina/Jardín)
@@ -85,6 +87,8 @@ Claude **no toma decisiones por su cuenta**. Cuando algo admite más de una opci
 **Recomendación:** opción y motivo.
 **Si no se decide:** qué queda bloqueado.
 ```
+
+**Recordatorio al pedir una decisión antigua:** si Claude pide respuesta a una decisión que no se presentó en la intervención inmediatamente anterior, vuelve a mostrar un resumen breve (qué se decide, opciones con pros y contras, recomendación), sin limitarse a citar su ID (decisión del usuario, 2026-10-02).
 
 Las decisiones que no se resuelven en la sesión se anotan en **PROXIMOS_PASOS §0**. Las aprobadas que sean de arquitectura se registran como ADR (§5.5).
 
@@ -254,7 +258,7 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 
 ### 4.8 Seguridad
 - **Todo endpoint pasa por `ejecutarEndpoint_`** (autorización + errores + bloqueo opcional). Todo lo no pensado para el cliente lleva sufijo `_`. Las entradas que Google necesita públicas (triggers, menú, editor) pasan por `ejecutarTareaDelSistema_`. Un test impide que aparezcan funciones públicas nuevas sin estar en la lista permitida.
-- Nada de emails, IDs de hoja, carpeta o calendario ni credenciales en el código: van en `Config`.
+- Nada de emails, IDs de hoja, carpeta o calendario ni credenciales en el código: van en `Config`. **Excepción:** las contraseñas de servicios externos (p. ej. el servicio web de SES.Hospedajes) van en las *Propiedades del script* (`PropertiesService.getScriptProperties()`), nunca en el Sheet, porque `Config` lo ve cualquiera con acceso al Sheet (D-32, 2026-10-02; ADR-0018).
 - Nunca confiar en datos del cliente: revalidar tipos, rangos, valores de dominio y existencia en catálogos.
 - Escapar todo dato de usuario antes de insertarlo como HTML (`textContent` o una función de escape); nunca `innerHTML` con datos sin escapar.
 
@@ -281,6 +285,7 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 | [design-system.md](docs_dev/solution/design-system.md) | Tokens de diseño |
 | [CHANGELOG.md](CHANGELOG.md) | Keep a Changelog + SemVer |
 | [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
+| [docs_mejoras/mejoras_AAAA-MM-DD.md](docs_work/docs_mejoras/) | Registro de sesión: un fichero por sesión (fecha ISO 8601), una tabla resumen y un apartado por punto con origen, diagnóstico, propuesta, decisión, lo hecho y adónde se traslada. Estados: Propuesto → Pendiente de decisión → Aprobado → Hecho → Trasladado (a PROXIMOS_PASOS, CHANGELOG, discovery, código y tests). Se conserva tras el cierre como histórico (decisión del usuario, 2026-10-02) |
 
 Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
 
@@ -379,7 +384,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 **Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
 
-> **Estado actual (v2):** unitarios del dominio, tests de los 21 endpoints y de las entradas del sistema, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). Pendientes: integración contra Google (T-04) y ESLint (PROXIMOS_PASOS, S9/S11).
+> **Estado actual (v2):** unitarios del dominio, tests de los 21 endpoints y de las entradas del sistema, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). Pendientes: integración contra Google (T-04) y ESLint (PROXIMOS_PASOS, S19/S9).
 
 ### 7.1 Pirámide y dónde se ejecuta cada nivel
 

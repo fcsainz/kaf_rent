@@ -51,7 +51,7 @@ Archivado y mantenido en [docs_work/doc_check/checklists-check-in-out.md](../../
 
 ## 5. Preguntas abiertas
 - **Interior — Check-out:** no lo revisaste punto a punto; lo he completado haciendo de espejo de tus cambios del check-in (cajones, TV, persiana, llaves, office, terraza).
-- **Pistolas de agua:** ¿precio al añadirlas al catálogo de servicios?
+- **Pistolas de agua:** resuelto (D-22, 2026-10-02): sin precio mientras nadie las pida.
 - **"Pieza de alimento"** (Interior, office): se deja con ese texto; editable después desde el editor.
 
 ## 6. Alternativas descartadas

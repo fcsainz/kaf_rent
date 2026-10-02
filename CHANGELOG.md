@@ -8,6 +8,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased] — en curso hacia 2.0.0
 
+### Documentación — diagnóstico, mejoras y diseño de SES (2026-10-02, sin cambios de código)
+Registro completo de la sesión: [docs_work/docs_mejoras/mejoras_2026-10-02.md](docs_work/docs_mejoras/mejoras_2026-10-02.md).
+- **Added:** [ADR-0018](docs_dev/solution/adr/0018-comunicacion-ses-hospedajes.md) (*proposed*), que propone la comunicación automática a SES.Hospedajes desde el Google Form de viajeros, con validación presencial; sustituye parte de ADR-0007.
+- **Added:** [DD-02](docs_dev/solution/design-docs/DD-02-comunicacion-ses-hospedajes.md) (borrador), el diseño de esa comunicación: flujo, hojas, reintentos con aviso y emails.
+- **Added:** registro de mejoras por sesión en `docs_work/docs_mejoras/` (CLAUDE.md §1 y §5.1).
+- **Added:** regla de CLAUDE.md §2.1: al pedir una decisión antigua se repite su resumen.
+- **Added:** riesgos R-20 (cuota de Drive de los vídeos), R-21 (reserva sin comunicar si no hay Form previo) y R-22 (estructura del Form) en arc42 §11.1; TD-01 a TD-04 en arc42 §11.2.
+- **Changed:** CLAUDE.md §4.8. Excepción para las contraseñas de servicios externos: van en las Propiedades del script, no en `Config` (D-32).
+- **Changed:** PROXIMOS_PASOS regenerado. Nuevos sprints S22 a S29, B-22 a B-24, F-23 a F-28, D-34 a D-36 y EXT-04; resueltas D-21, D-22 y D-26 a D-33.
+- **Fixed:** referencia técnica de SES. Hay que comunicar la reserva (`RH`) **y** el parte (`PV`) (RD 933/2021, Art. 6.3), no una de las dos. Se añaden los campos obligatorios de `PV` y el certificado TLS (probado: Apps Script conecta).
+- **Fixed:** B-14 reabierto. El calendario está bien compartido, pero `getCalendarById` devuelve `null` si el usuario no lo tiene en su lista. RF-36 y HU-19 pasan a 🟡.
+- **Fixed:** B-22 detectado. Las horas de la Habitación se guardan a 00:00. RF-20 y HU-11 pasan a 🟡.
+- **Fixed:** arc42 R-17, R-18 y TD-05 desactualizados (E2E ya hechos; "Ejecutar como" según ADR-0017).
+- **Fixed:** incoherencias de PROXIMOS_PASOS: "Despliegue v2" pasa al histórico, sprints S12 y "v2-N" inexistentes, ACC-03 duplicado, nota obsoleta de F-11.
+
 ### Publicación en producción (2026-09-27)
 La v2 está publicada en la URL de siempre (implementación **v37**, con clasp). El número pasa a **2.0.0** cuando se haga el smoke con las tres cuentas (T-06).
 

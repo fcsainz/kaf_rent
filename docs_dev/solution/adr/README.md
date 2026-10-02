@@ -21,6 +21,7 @@ Formato **[MADR 4.0](https://adr.github.io/madr/)** (Markdown Architectural Deci
 | [0015](0015-despliegue-con-clasp-multicuenta.md) | Despliegue con clasp y credenciales locales multicuenta | accepted | 2026-09-27 |
 | [0016](0016-rotacion-copias-abuelo-padre-hijo.md) | Rotación abuelo-padre-hijo de las copias del Sheet | accepted | 2026-09-27 |
 | [0017](0017-ejecutar-como-usuario-que-accede.md) | Ejecutar como el usuario que accede y compartir los recursos | accepted | 2026-09-27 |
+| [0018](0018-comunicacion-ses-hospedajes.md) | Comunicación automática a SES.Hospedajes desde el Google Form, con validación presencial | proposed | 2026-10-02 |
 
 ## Reglas
 

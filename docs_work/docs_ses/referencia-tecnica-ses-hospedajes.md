@@ -47,6 +47,8 @@ Es decir: **no hace falta llevar un libro-registro propio**, pero **sí hay que 
 
 **Protocolo:** SOAP sobre HTTPS (TLS obligatorio, hay que importar el certificado del servicio en el almacén de confianza del cliente). Autenticación **HTTP Basic** (`Authorization: Basic base64(usuario:contraseña)`).
 
+**Certificado TLS (comprobado el 2026-10-02 con `openssl s_client`):** pruebas y producción usan certificados de la FNMT (`AC Componentes Informáticos`, raíz `AC RAIZ FNMT-RCM`) y **el servidor no envía el certificado intermedio** (`Verify return code: 21`). Por eso el PDF pide importar el certificado en el almacén de confianza del cliente. Apps Script (`UrlFetchApp`) no permite importar certificados: si Google no completa la cadena por su cuenta, la llamada falla, y la única salida dentro de Apps Script es `validateHttpsCertificates: false` (no verifica el servidor). **Probado el 2026-10-02 (SES-0):** `UrlFetchApp` contra pre-ses conecta **validando el certificado** (HTTP 401 sin credenciales, lo esperado). No hace falta desactivar la validación.
+
 **Cómo se obtienen las credenciales:** registrándose primero como sujeto obligado en el formulario de la Sede Electrónica del Ministerio del Interior (fuera del webservice; es un trámite administrativo previo, no una llamada API). **Pendiente de investigar:** si ese alta exige algún tipo de certificación como "proveedor de software" o basta con el registro estándar de particular/no profesional — no está claro en el PDF (cuestión abierta de ADR-0007).
 
 **Formato de los datos:** el contenido de cada solicitud va en un fichero **XML comprimido en ZIP y codificado en Base64**, dentro de la etiqueta `solicitud` del sobre SOAP. Apps Script puede generarlo con `XmlService` + `Utilities.zip()` + `Utilities.base64Encode()` (servicios nativos, sin dependencias — compatible con coste cero).
@@ -70,7 +72,7 @@ Es decir: **no hace falta llevar un libro-registro propio**, pero **sí hay que 
 
 ## 3. Campos para el alta de una reserva de hospedaje (tipo `RH`)
 
-Es el tipo de comunicación relevante para KAF Rent (reserva ya formalizada; alternativa `PV` = parte de viajeros, para cuando el viajero llega físicamente — no imprescindible si ya se comunica como `RH`).
+**Corrección (2026-10-02, tras releer el Art. 6.3 del RD y el PDF):** no es "RH o PV". El Art. 6.3 fija **dos momentos**, cada uno con plazo de 24 h: (a) al hacer la reserva o su anulación → **`RH`** (reserva de hospedaje); (b) al inicio del servicio (llegada) → **`PV`** (parte de viajeros). KAF Rent necesita las dos. El Art. 6.4 permite a quien ejerce de forma no profesional comunicar por medios no telemáticos (p. ej. el formulario web de la Sede), así que la automatización es una comodidad, no una obligación.
 
 ### Cabecera de la petición (común a toda operación)
 | Campo | Tipo | Obligatorio | Nota |
@@ -115,6 +117,11 @@ Es el tipo de comunicación relevante para KAF Rent (reserva ya formalizada; alt
 | `sexo` | String(1) | No | Catálogo `SEXO` |
 | `direccion` | bloque dirección | No | |
 | `telefono` / `telefono2` / `correo` | String | **al menos uno de los tres** | |
+
+### Diferencias del parte de viajeros (`PV`) frente a `RH` (§3.1.1.1 del PDF)
+- Cabecera de la solicitud con `codigoEstablecimiento` (obligatorio, asignado en el registro) en lugar del bloque `establecimiento`.
+- `persona.rol` siempre `VI`.
+- **Más campos obligatorios por persona:** `fechaNacimiento` y `direccion` (domicilio) siempre; `tipoDocumento` y `numeroDocumento` si es mayor de edad; `soporteDocumento` si es NIF o NIE; `apellido2` si es NIF; `parentesco` si es menor (al menos un adulto debe indicar su relación con cada menor). Uno de `telefono`, `telefono2` o `correo`.
 
 ### 3.3 Bloque `direccion` (común, §4.1 del PDF)
 | Campo | Tipo | Obligatorio | Nota |

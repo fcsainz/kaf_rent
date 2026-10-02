@@ -39,7 +39,7 @@
 | HU-08 | US-006 | Elegir espacio con filtrado en cascada | E-03 | P-11 | M | M | S2 | ✅ |
 | HU-09 | US-007 | Elegir canal con comisión autocompletada | E-03 | P-11 | M | S | S2 | ✅ |
 | HU-10 | US-008 | Fechas en modo Día + Hora | E-03 | P-11 | M | M | S3 | ✅ |
-| HU-11 | US-009 | Fechas en modo Rango de días | E-03 | P-11 | M | M | S3 | ✅ |
+| HU-11 | US-009 | Fechas en modo Rango de días | E-03 | P-11 | M | M | S3 · **S22** (B-22) | 🟡 |
 | HU-12 | US-010 | Personas y servicios extra | E-03 | P-11, P-08 | M | S | S2 | ✅ |
 | HU-13 | US-011 | Datos de contacto del huésped | E-03 | P-11 | M | S | S2 | ✅ |
 | HU-14 | *(nueva)* | Importe del alquiler y resumen económico | E-03 | P-08, P-11 | M | M | S2 | ✅ |
@@ -47,7 +47,7 @@
 | HU-16 | US-013 | Guardar con estado inicial e ID de reserva | E-03 | P-04 | M | S | S3 · **S14** (B-15) | ✅ |
 | HU-17 | US-014 | Aviso de cierre de canales | E-04 | P-02 | M | M | S3 | ✅ |
 | HU-18 | US-025 | Email de confirmación de reserva | E-04 | P-05 | S | S | S3 | ✅ |
-| HU-19 | US-026 | Evento de ocupación en Google Calendar | E-04 | P-05 | M | L | S4 → S8 ✔ · **S14** (B-14, F-13) · **S13** | 🟡 |
+| HU-19 | US-026 | Evento de ocupación en Google Calendar | E-04 | P-05 | M | L | S4 → S8 ✔ · **S14** (B-14, F-13) · **S22** (B-14 reabierto) · **S13** | 🟡 |
 | HU-20 | US-020 | Aviso de reapertura de canales | E-04 | P-06 | M | S | S4 | ✅ |
 | HU-21 | US-023 | Lista de reservas activas con filtros | E-05 | P-04, P-05 | M | M | S4 | ✅ |
 | HU-22 | *(nueva)* | Ficha "Ver más" de solo lectura | E-05 | P-04, P-07 | S | S | S4 | ✅ |
@@ -292,8 +292,8 @@ Scenario: Salida anterior a la llegada
 ```
 
 ### HU-11 — Fechas en modo Rango de días
-**Antes:** US-009 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-16, RF-20, RF-21, RF-28 · **↓ RNF:** RNF-08, RNF-24, RNF-27 · **↓ Sprint:** S3
+**Antes:** US-009 · **MoSCoW:** M · **Talla:** M · **Estado:** 🟡 (B-22: en producción las horas se guardan a 00:00)  
+**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-16, RF-20, RF-21, RF-28 · **↓ RNF:** RNF-08, RNF-24, RNF-27 · **↓ Sprint:** S3 · **S22**
 
 Como copropietario, quiero indicar las fechas de entrada y salida en la Habitación para reflejar las estancias de varias noches.
 
@@ -490,7 +490,7 @@ Scenario: Confirmación
 
 ### HU-19 — Evento de ocupación en Google Calendar
 **Antes:** US-026 · **MoSCoW:** M · **Talla:** L · **Estado:** 🟡  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41, RF-82, RF-83, RF-84 · **↓ RNF:** RNF-09, RNF-13, RNF-16, RNF-34 · **↓ Sprint:** S4 → S8 ✔ · **S14** (B-14, F-13) · **S13**
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-36, RF-37, RF-38, RF-40, RF-41, RF-82, RF-83, RF-84 · **↓ RNF:** RNF-09, RNF-13, RNF-16, RNF-34 · **↓ Sprint:** S4 → S8 ✔ · **S14** (B-14, F-13) · **S22** (B-14 reabierto) · **S13**
 
 Como copropietario, quiero que cada reserva aparezca en un calendario de ocupación para ver de un vistazo qué está ocupado.
 

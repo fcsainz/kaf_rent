@@ -364,16 +364,19 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-07 | Google depreca funciones de Apps Script | B | A | **Media** | Código modular; datos exportables (RNF-32) | Abierto |
 | R-08 | Pérdida o corrupción de datos del Sheet | B | A | **Media** | Copias automáticas con rotación abuelo-padre-hijo (ADR-0013, ADR-0016) + historial de versiones | Mitigado |
 | R-09 | Compromiso de una cuenta autorizada | B | A | **Media** | 2FA; revocación inmediata en `Usuarios_Autorizados`; revisión de `Logs` | Abierto |
-| R-10 | Baja adopción por usuarios no técnicos | M | M | **Media** | UAT con journeys; simplicidad; recoger feedback | Abierto (UAT sin registrar, D-07) |
-| R-11 | Formulario público de viajeros con documentos de identidad | M | A | **Alta** | Casar con reserva real, política de borrado, acceso restringido, aviso de privacidad, revisión legal previa | Abierto (Fase 2) |
+| R-10 | Baja adopción por usuarios no técnicos | M | M | **Media** | UAT con journeys; simplicidad; recoger feedback | Mitigado (D-07: los tres usan la app solos con reservas reales) |
+| R-11 | Formulario de viajeros con documentos de identidad | M | A | **Alta** | Sin fotos del documento y una sola copia de los datos (el Sheet del Form, acceso restringido a los copropietarios; ADR-0018); casar con reserva real; política de borrado; aviso de privacidad; revisión legal previa (EXT-02) | Abierto (Fase 2) |
 | R-12 | El trigger nocturno no se ejecuta | B | B | Baja | Fecha de actualización visible; fallos en `Errores`; recálculo manual | Abierto |
 | R-13 | Cuenta operativa única comprometida o perdida | B | A | **Media** | 2FA, custodia de credenciales y códigos de recuperación, copias | Abierto |
 | R-14 | Ventana de copia limitada (~30 días) | B | M | Baja | Rotación abuelo-padre-hijo: ~12 meses (ADR-0016); queda la copia fuera de Google (F-09) | Mitigado |
 | R-15 | Borrado de vídeos elimina la prueba ante daños | B | M | Baja | `Retencion_Videos_Dias` configurable; conservar a mano los vídeos con incidencia | Abierto |
 | R-16 | Funciones internas o de sistema invocables desde el cliente | B | A | Media | Sufijo `_` en todo lo interno + `ejecutarTareaDelSistema_` en las entradas públicas; test automático (RNF-20) | **Mitigado en v2** (B-01) |
-| R-17 | Regresiones al tocar código sin tests automáticos | M | M | Media | Tests unitarios y de endpoints + CI (v2); faltan E2E e integración (S11) | **En mitigación** |
-| R-18 | La implementación publicada no coincide con el repositorio (versión o "Ejecutar como"): fallos que dependen de quién usa la app (B-14: sin evento de Calendar para una cuenta durante 3 meses) | M | A | **Alta** | Checklist de despliegue (ACC-03, T-06) que verifica "Ejecutar como: Yo" y la versión; avisos modales e incidencias al admin (F-21); Informe Técnico (F-16) | **En mitigación** |
-| R-19 | Cambios de estructura en hojas con datos reales (la app ya se usa, D-07) | M | A | **Alta** | D-19 (opción A): "Inicializar / reparar hojas" solo añade columnas al final y nunca toca las existentes; lectura por cabecera sin recurrir a la posición (error claro si falta); rellenos de datos antiguos con funciones puntuales y probadas; copia de seguridad antes. Queda: `registrarLog_`/`registrarError_` escriben por posición (TD-01) | **En mitigación** |
+| R-17 | Regresiones al tocar código sin tests automáticos | M | M | Media | Tests unitarios, de endpoints y E2E + CI (v2, S11); falta la integración contra Google (T-04) | **En mitigación** |
+| R-18 | La implementación publicada no coincide con el repositorio (versión o "Ejecutar como"): fallos que dependen de quién usa la app (B-14: sin evento de Calendar para una cuenta durante 3 meses) | M | A | **Alta** | Checklist de despliegue (ACC-03, T-06) que verifica "Ejecutar como: usuario que accede" (ADR-0017) y la versión; suscripción automática al calendario operativo (D-26, B-14 reabierto el 2026-10-02); avisos modales e incidencias al admin (F-21); Informe Técnico (F-16) | **En mitigación** |
+| R-19 | Cambios de estructura en hojas con datos reales (la app ya se usa, D-07) | M | A | **Alta** | D-19 (opción A): "Inicializar / reparar hojas" solo añade columnas al final y nunca toca las existentes; lectura por cabecera sin recurrir a la posición (error claro si falta); rellenos de datos antiguos con funciones puntuales y probadas; copia de seguridad antes. Queda: `registrarLog_`/`registrarError_` escriben por posición (TD-01, aceptada) | **En mitigación** |
+| R-20 | Los vídeos de check-in/out (≥ 300 MB) gastan los 15 GB gratuitos de la cuenta de quien los sube (su Gmail y Fotos incluidos), y el borrado nocturno puede no poder borrar archivos de otra cuenta (no verificado) | M | M | Media | Ninguna por ahora (D-29 = dejarlo así); opciones valoradas: grabar en 720p, Google One; vigilar con el Informe Técnico (F-16) | Aceptado (2026-10-02) |
+| R-21 | Sin Form del huésped antes del día de entrada, la reserva (`RH`) no se comunica a SES en 24 h (RD 933/2021, Art. 6.3 a) | M | M | Media | El parte (`PV`) se comunica siempre al validar; mensaje de WhatsApp con el Form al crear la reserva (F-27) | Aceptado por el usuario (D-31) |
+| R-22 | Cambio de estructura del Google Form de viajeros (preguntas repetidas leídas por orden) rompe la lectura de KAF Rent | B | A | Media | No tocar el Form sin revisar DD-02; test de cabeceras; error claro en pantalla (ADR-0018) | Abierto (Fase 2) |
 
 *P/I:* A = alta · M = media · B = baja.
 
@@ -385,8 +388,12 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | REF-02 | Índices de columna por posición repartidos entre ficheros | ✔ Resuelta en v2: acceso por campo con `infra_esquema.gs` + `leerTabla_` |
 | REF-03 | Plantilla repetida en cada endpoint | ✔ Resuelta en v2: `ejecutarEndpoint_` y `ejecutarTareaDelSistema_` |
 | REF-04 | Funciones largas que mezclaban niveles | ✔ Resuelta en v2: capas `api_`/`dominio_`/`infra_` |
-| TD-05 | Sin tests automáticos | 🟡 Unitarios + endpoints + CI en v2; faltan E2E e integración (S11) |
-| TD-06 | Sin linter | Pendiente (T-07, S9) |
+| TD-01 | `registrarLog_`/`registrarError_` escriben con `appendRow` en el orden del esquema | Aceptada (2026-10-02): nadie reordena `Logs` ni `Errores` |
+| TD-02 | `Registro_Checklist` se reescribe entera en cada guardado | Pendiente: una fila por checklist en hoja nueva (aprobado 2026-10-02) |
+| TD-03 | `Config.Calendar_Url` repite `Calendar_Id` | Pendiente (backlog) |
+| TD-04 | Funciones puras de las copias en `infra_mantenimiento.gs` | Pendiente: mover a `dominio_mantenimiento.gs` (aprobado 2026-10-02) |
+| TD-05 | Sin tests automáticos | 🟡 Unitarios + endpoints + E2E + CI en v2; falta la integración (T-04) |
+| TD-06 | Sin linter | Pendiente: ESLint aprobado (T-07, 2026-10-02) |
 
 Los defectos funcionales (B-xx) están en [PROXIMOS_PASOS.md](../../docs_work/PROXIMOS_PASOS.md).
 
