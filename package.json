@@ -1,16 +1,21 @@
 {
   "name": "kaf-rent",
   "private": true,
-  "description": "Herramientas de desarrollo de KAF Rent (tests). Nada de esto se despliega en Apps Script.",
+  "description": "Herramientas de desarrollo de KAF Rent (tests, lint y clasp). Nada de esto se despliega en Apps Script.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "test": "TZ=Europe/Madrid node --test \"tests/**/*.test.js\"",
     "test:cobertura": "TZ=Europe/Madrid node --test --experimental-test-coverage \"tests/**/*.test.js\"",
-    "test:e2e": "TZ=Europe/Madrid playwright test"
+    "test:e2e": "TZ=Europe/Madrid playwright test",
+    "lint": "eslint \"docs_dev/src/**/*.gs\" \"docs_dev/src_form_checkin/**/*.gs\"",
+    "push": "npm test && npm run lint && clasp --user familia push",
+    "deploy": "clasp --user familia deploy -i \"$KAF_RENT_ID_IMPLEMENTACION\" -d",
+    "push:form": "npm test && npm run lint && cd docs_dev/src_form_checkin && clasp --user familia push --force"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "eslint": "^9.39.5"
   }
 }

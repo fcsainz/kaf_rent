@@ -3,9 +3,12 @@
 
 const MOMENTO_CHECKLIST = { CHECKIN: 'Check-in', CHECKOUT: 'Check-out' };
 const ESTADO_PUNTO = { HECHO: 'Hecho', NO_APLICA: 'No aplica', PENDIENTE: 'Pendiente' };
-const TIPO_PUNTO = { CASILLA: 'Casilla', FECHA: 'Fecha', VIDEO: 'Video', FOTO: 'Foto' };
+const TIPO_PUNTO = { CASILLA: 'Casilla', FECHA: 'Fecha', VIDEO: 'Video', FOTO: 'Foto', DANOS: 'Daños' };
+// B-19: un punto de daños se responde siempre con una de estas dos opciones; no admite "No aplica".
+const RESPUESTA_DANOS = { SIN: 'Sin daños', CON: 'Con daños' };
 const CONDICION_PUNTO = { PRONTO: 'Siguiente_Pronto', LEJOS: 'Siguiente_Lejos' };
 const SEPARADOR_SERVICIOS = '|';
+const RE_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 // Mismo orden que CAMPOS_PUNTO_CHECKLIST (literal: sin dependencias entre ficheros al cargar).
 const CAMPOS_FILA_PUNTO = ['id', 'espacio', 'momento', 'bloque', 'punto', 'tipo', 'servicios', 'condicion', 'pareja', 'orden', 'activo'];
 
@@ -56,9 +59,12 @@ const puntosAplicables_ = ({ catalogo, espacio, momento, servicios, estadosCheck
     .sort((a, b) => numero_(a.orden) - numero_(b.orden));
 };
 
+const esRespuestaDanos_ = (valor) => Object.values(RESPUESTA_DANOS).includes(texto_(valor));
+
 const puntoResuelto_ = (punto, registro) => {
   if (punto.tipo === TIPO_PUNTO.FOTO) return true; // opcional: "si los hay"
   if (!registro) return false;
+  if (punto.tipo === TIPO_PUNTO.DANOS) return registro.estado === ESTADO_PUNTO.HECHO && esRespuestaDanos_(registro.valor);
   if (registro.estado === ESTADO_PUNTO.NO_APLICA) return true;
   if (registro.estado !== ESTADO_PUNTO.HECHO) return false;
   return punto.tipo !== TIPO_PUNTO.FECHA || Boolean(texto_(registro.valor));
@@ -66,6 +72,14 @@ const puntoResuelto_ = (punto, registro) => {
 
 // estados: { idPunto: { estado, valor } }.
 const checklistResuelta_ = (puntos, estados) => puntos.every((p) => puntoResuelto_(p, estados[p.id]));
+
+// Estado guardado de un punto de la checklist: fecha ISO o respuesta de daños, según su tipo (B-19).
+const estadoPuntoValido_ = (punto, estado, valor) => {
+  if (!Object.values(ESTADO_PUNTO).includes(estado)) return false;
+  if (punto.tipo === TIPO_PUNTO.FECHA) return valor === '' || RE_FECHA_ISO.test(valor);
+  if (punto.tipo === TIPO_PUNTO.DANOS) return estado !== ESTADO_PUNTO.NO_APLICA && (valor === '' || esRespuestaDanos_(valor));
+  return true;
+};
 
 // Días naturales entre la salida y la siguiente entrada no cancelada del mismo espacio; null si no hay.
 const diasHastaSiguienteReserva_ = (reserva, reservas) => {

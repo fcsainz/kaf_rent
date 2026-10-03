@@ -43,6 +43,20 @@ test.describe('RF-72 · reparar hojas sin tocar los datos existentes (B-16)', ()
     assert.ok(fila, 'la clave está en su columna');
     assert.match(fila.Descripcion, /copropietarios/);
   });
+
+  test('S27 · en un Config con datos añade las claves nuevas al final sin tocar las que ya tienen valor', () => {
+    const e = crearEntorno();
+    const config = e.libro.insertSheet('Config');
+    [['Clave', 'Valor', 'Descripcion'], ['Emails_Notificacion', 'a@b.es', 'puesto a mano'], ['SES_Aplicacion', 'Mi app', 'cambiado']].forEach((f) => config.appendRow(f));
+    const r = inicializar(e);
+    const registros = e.hoja('Config').registros();
+    assert.equal(registros.find((x) => x.Clave === 'Emails_Notificacion').Valor, 'a@b.es');
+    assert.equal(registros.find((x) => x.Clave === 'SES_Aplicacion').Valor, 'Mi app', 'no pisa un valor existente');
+    assert.equal(registros.find((x) => x.Clave === 'SES_Max_Intentos').Valor, '3');
+    assert.ok(r.clavesConfigAnadidas.includes('SES_Url'));
+    assert.ok(!r.clavesConfigAnadidas.includes('SES_Aplicacion'));
+    assert.equal(inicializar(e).clavesConfigAnadidas, undefined, 'idempotente');
+  });
 });
 
 test.describe('REF-02 · acceso por cabecera (B-16)', () => {

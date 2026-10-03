@@ -165,13 +165,18 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 - **Fantasma (ghost):** sin borde, texto `--c-primary-700`, hover fondo `--c-primary-50`.
 - **Destructivo:** fondo `--c-error`, texto blanco (cancelar/borrar).
 - Etiqueta con **verbo del dominio** ("Crear Reserva", "Guardar", no "Aceptar"). Una sola acción primaria por pantalla.
-- Deshabilitar el botón mientras una llamada `google.script.run` esté en vuelo.
+- Deshabilitar el botón mientras una llamada `google.script.run` esté en vuelo. **Desactivado:** fondo `--c-surface-alt`, borde `--c-border`, texto `--c-text-disabled`, cursor `not-allowed` (todos los botones).
 
 ### Inputs y formularios
 - Etiqueta **visible encima** del campo (no solo placeholder). Campos obligatorios marcados.
 - Borde `--c-border-strong`, `--radius-md`, padding `10px 12px`, foco con anillo de acento.
 - Estado error: borde `--c-error` + mensaje accionable debajo en `--c-error`.
 - Validación en dos capas (cliente + servidor, CLAUDE.md §4.7).
+
+### Cabecera y navegación (F-24, F-25)
+- **Cabecera:** icono de la app (`Config.Icono_Url`, 36 px, `--radius-md`; si no hay, no se muestra) + "KAF Rent" a la izquierda; usuario a la derecha en `--c-text-muted`.
+- **Barra inferior fija** (al alcance del pulgar, patrón de KAF Finance): fondo `--c-surface`, borde superior `--c-border`, respeta `safe-area-inset-bottom`. Botones con icono SVG (22 px, trazo 2) encima del texto (0.8125rem, peso 600), alto ≥ 48 px. Activo: `aria-current="page"`, texto `--c-primary-700` sobre `--c-primary-50`.
+- **Segundo piso:** "Reservas" abre encima de la barra una fila con "Gestionar Reservas" y "Crear Reservas" (fondo `--c-surface-alt`). Se cierra al ir a otra sección. Las dos barras ocupan unos 120 px; el cuerpo reserva ese espacio para no tapar contenido.
 
 ### Tablas (últimas reservas, gestionar)
 - Cabecera fondo `--c-surface-alt`, texto `--c-text-muted` en mayúscula sutil, peso 600.
@@ -193,7 +198,13 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 - **Aviso:** título "Atención", borde superior `--c-warning`; puede añadir una acción (p. ej. "Enviar al administrador", F-21).
 
 ### Estados vacíos
-- Icono o ilustración ligera + mensaje claro + acción ("No hay reservas registradas" + botón "Crear Reserva"). Nunca pantalla en blanco.
+- Icono o ilustración ligera + mensaje claro + acción ("Todavía no hay reservas." + botón "Crear Reserva"); el texto dice qué falta en ese contexto (p. ej. en una búsqueda, "Ninguna reserva coincide…"). Nunca pantalla en blanco.
+
+### Etiquetas de estado (chips, F-28)
+- Pastilla de 13 px y peso 600: verde (`#1E5E22` sobre `#E8F3E8`) = hecho · ámbar (`#8A5200` sobre `#FFF4E0`) = en curso o atención · rojo (`#A1221B` sobre `#FCE8E6`) = fallo · azul (`#1F5F8B` sobre `#E6F0F7`) = informativo. Todas ≥ 5,8:1. Siempre con texto, nunca solo color.
+
+### Ventana de "trabajando" (F-29)
+- Mientras una acción espera al servidor más de 0,3 s: capa semitransparente, caja blanca con rueda (sin animación si el usuario pide menos movimiento) y el texto de lo que pasa ("Guardando la reserva…"). Se usa con `servidor('texto')` en lugar de `google.script.run`; las llamadas en segundo plano no la muestran.
 
 ### Feedback
 - **Carga:** spinner/indicador en operaciones que tarden (GAS puede tardar segundos).
@@ -203,10 +214,18 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 
 ---
 
+### Emails (D-35, S28)
+- Plantilla común en `infra_plantilla_email.gs`; maquetas aprobadas en `docs_work/emails_propuesta/`.
+- Mismos colores de marca que la app (`#B5562E` en la cabecera y los botones principales, `#8E4322` en el texto de los botones secundarios), escritos **en línea** porque los clientes de correo no leen variables CSS.
+- Estructura fija: cabecera con el logo (`Config.Icono_Url`), etiqueta de estado, título, resumen, datos clave, "Qué hacer", botones, datos técnicos (si hay) y pie.
+- Cuatro tonos con icono y texto, nunca solo color: éxito ✓, aviso !, error ✕, información i.
+- Todo email lleva también versión en texto.
+
 ## 7. Iconografía
 
 - Set ligero y consistente (p. ej. Material Symbols o SVG inline), trazo medio, esquinas redondeadas afines a las formas.
 - Siempre acompañado de texto en acciones importantes; nunca un icono solo para algo crítico.
+- En uso: SVG inline de trazo en la barra inferior (Inicio, Reservas, Checklists, Gastos, Estadísticas), con `aria-hidden` porque el texto ya los nombra.
 
 ---
 

@@ -3,6 +3,9 @@
     // formatearEuros y fechaLocalISO de cliente.html (mismo ámbito global de la página).
 
     let reservaActualId = null;
+    let refCanalObligatoria = false;
+    let avisoCancelacionSES = '';
+    let mensajeHuespedListo = null; // { texto, whatsapp } preparado al abrir la ficha (F-27)
 
     // ----- Lista de reservas activas (HU-21) -----
     const filtroGestion = () => ({
@@ -20,7 +23,7 @@
     };
 
     const cargarListaGestion = () => {
-      google.script.run
+      servidor('Cargando las reservas…')
         .withSuccessHandler((res) => {
           try {
             if (!res.success) { mensajeEnTabla(res.error); return; }
@@ -112,7 +115,7 @@
       panel.textContent = 'Cargando…';
       cont.appendChild(panel);
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      google.script.run
+      servidor('Cargando la reserva…')
         .withSuccessHandler((res) => {
           panel.innerHTML = '';
           if (!res.success) { panel.textContent = res.error; return; }
@@ -136,7 +139,7 @@
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       reservaActualId = id;
       inicializarServiciosEdicion(id);
-      google.script.run
+      servidor('Cargando la reserva…')
         .withSuccessHandler((res) => {
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
           rellenarEdicion(res.data);
@@ -240,7 +243,7 @@
 
     const refrescarEdicion = () => {
       if (!reservaActualId) return;
-      google.script.run
+      servidor('Cargando la reserva…')
         .withSuccessHandler((res) => { if (res.success) rellenarEdicion(res.data); })
         .withFailureHandler(() => {})
         .obtenerReserva(reservaActualId);
@@ -290,6 +293,11 @@
       $('ed-checkout').value = d.checkout;
       $('ed-notas').value = d.notas;
       $('ed-ref-canal').value = d.refCanal || '';
+      refCanalObligatoria = Boolean(d.refCanalObligatoria);
+      avisoCancelacionSES = d.avisoCancelacionSES || '';
+      prepararMensajeHuesped(d);
+      cargarRegistroViajeros(d);
+      limpiarErroresEdicion();
       toggleIncidencia();
       pintarEnlaceContrato(d.contratoArchivo);
       // Si el contrato lo gestiona el canal no hay nada que subir (RF-55).
@@ -332,12 +340,56 @@
       refCanal: $('ed-ref-canal').value.trim(),
     });
 
+    // F-27: se prepara al abrir la ficha para que el botón abra WhatsApp o copie al instante (el móvil bloquea
+    // abrir ventanas o copiar si se hace después de esperar al servidor).
+    const prepararMensajeHuesped = (d) => {
+      mensajeHuespedListo = null;
+      $('bloque-mensaje-huesped').hidden = !d.registroViajeros;
+      if (!d.registroViajeros) return;
+      const id = reservaActualId;
+      google.script.run
+        .withSuccessHandler((res) => { if (id === reservaActualId) mensajeHuespedListo = res; })
+        .withFailureHandler(() => { mensajeHuespedListo = { success: false, error: 'No se pudo preparar el mensaje para el huésped.' }; })
+        .mensajeHuesped(id);
+    };
+
+    const copiarMensajeHuesped = (texto) => {
+      const mostrarParaCopiar = () => mostrarMensaje(`Copia este mensaje y pégalo en WhatsApp:\n\n${texto}`, 'aviso');
+      if (!navigator.clipboard) { mostrarParaCopiar(); return; }
+      navigator.clipboard.writeText(texto).then(() => mostrarExito('Mensaje copiado: pégalo en WhatsApp.'), mostrarParaCopiar);
+    };
+
+    const enviarMensajeHuespedUI = () => {
+      if (!mensajeHuespedListo) { mostrarMensaje('El mensaje aún se está preparando. Inténtalo en un momento.', 'aviso'); return; }
+      if (!mensajeHuespedListo.success) { mostrarMensaje(mensajeHuespedListo.error, 'error'); return; }
+      const { texto, whatsapp } = mensajeHuespedListo.data;
+      if (whatsapp) { window.open(whatsapp, '_blank'); return; }
+      copiarMensajeHuesped(texto);
+    };
+
+    const limpiarErroresEdicion = () => {
+      document.querySelectorAll('#form-edicion .invalido').forEach((el) => el.classList.remove('invalido'));
+      document.querySelectorAll('#form-edicion .error-campo').forEach((el) => el.remove());
+    };
+
+    // B-21: la misma regla que el servidor (RF-88), para avisar sin esperar a guardar.
+    const validarEdicion = () => (refCanalObligatoria && !$('ed-ref-canal').value.trim()
+      ? [{ campo: 'ed-ref-canal', mensaje: 'Indica el código de reserva del canal.' }]
+      : []);
+
     const guardarCambios = (evento) => {
       evento.preventDefault();
       if (!reservaActualId) return;
+      limpiarErroresEdicion();
+      const errores = validarEdicion();
+      if (errores.length > 0) {
+        errores.forEach((err) => marcarError(err.campo, err.mensaje));
+        $(errores[0].campo).focus();
+        return;
+      }
       const boton = $('btn-guardar-cambios');
       boton.disabled = true;
-      google.script.run
+      servidor('Guardando los cambios…')
         .withSuccessHandler((res) => {
           boton.disabled = false;
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -356,8 +408,10 @@
     // ----- Cancelación con confirmación (HU-26) -----
     const cancelarReservaUI = () => {
       if (!reservaActualId) return;
-      confirmarAccion('¿Confirmas la cancelación de esta reserva? Esta acción no se puede deshacer y avisará de reabrir canales.', () => {
-        google.script.run
+      const texto = ['¿Confirmas la cancelación de esta reserva? Esta acción no se puede deshacer y avisará de reabrir canales.', avisoCancelacionSES]
+        .filter(Boolean).join(' ');
+      confirmarAccion(texto, () => {
+        servidor('Cancelando la reserva…')
           .withSuccessHandler((res) => {
             if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
             mostrarMensaje('Reserva cancelada.', 'exito');
@@ -390,7 +444,7 @@
       leerArchivo($('ed-archivo-contrato'), (archivo) => {
         const boton = $('btn-subir-contrato');
         boton.disabled = true;
-        google.script.run
+        servidor('Subiendo el contrato…')
           .withSuccessHandler((res) => {
             boton.disabled = false;
             if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -407,7 +461,7 @@
     const inicializarServiciosEdicion = (id) => {
       const lista = $('ed-lista-servicios');
       lista.innerHTML = '<p class="ayuda-campo">Cargando servicios…</p>';
-      google.script.run
+      servidor('Cargando los servicios…')
         .withSuccessHandler((res) => {
           lista.innerHTML = '';
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -470,7 +524,7 @@
         if (!check.checked) return;
         servicios.push({ nombre: check.value, cantidad: item.querySelector('.servicio-cantidad').value });
       });
-      google.script.run
+      servidor('Guardando los servicios…')
         .withSuccessHandler((res) => {
           boton.disabled = false;
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -483,7 +537,7 @@
 
     // ----- Historial (HU-27) -----
     const cargarHistorial = (id) => {
-      google.script.run
+      servidor('Cargando el historial…')
         .withSuccessHandler((res) => renderHistorial(res.success ? res.data : []))
         .withFailureHandler(() => renderHistorial([]))
         .obtenerHistorial(id);
@@ -502,7 +556,7 @@
 
     // ----- Estadísticas (HU-31) -----
     const inicializarEstadisticas = () => {
-      google.script.run
+      servidor('Cargando las estadísticas…')
         .withSuccessHandler((res) => { if (res.success) renderEstadisticas(res.data); })
         .withFailureHandler(() => {})
         .cargarEstadisticas();
@@ -516,7 +570,7 @@
       const boton = $('btn-recalcular-stats');
       boton.disabled = true;
       boton.textContent = 'Calculando…';
-      google.script.run
+      servidor('Recalculando las estadísticas…')
         .withSuccessHandler((resRecalculo) => {
           if (resRecalculo && !resRecalculo.success) {
             boton.disabled = false;
@@ -524,7 +578,7 @@
             mostrarMensaje(resRecalculo.error, 'error');
             return;
           }
-          google.script.run
+          servidor('Cargando las estadísticas…')
             .withSuccessHandler((res) => {
               boton.disabled = false;
               boton.textContent = 'Recalcular ahora';
@@ -590,6 +644,7 @@
       $('btn-volver-lista').addEventListener('click', volverALista);
       $('form-edicion').addEventListener('submit', guardarCambios);
       $('btn-cancelar-reserva').addEventListener('click', cancelarReservaUI);
+      $('btn-mensaje-huesped').addEventListener('click', enviarMensajeHuespedUI);
       $('ed-incidencias').addEventListener('change', toggleIncidencia);
       $('btn-subir-contrato').addEventListener('click', subirContratoUI);
       $('btn-guardar-servicios').addEventListener('click', guardarServiciosEdicion);

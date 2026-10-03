@@ -177,11 +177,13 @@ class EventoFalso {
   getTitle() { return this.titulo; }
   setTitle(t) { this.titulo = t; return this; }
   setColor(c) { this.color = c; return this; }
+  setTime(inicio, fin) { Object.assign(this, { inicio, fin }); return this; }
   deleteEvent() { this.cal.eventos = this.cal.eventos.filter((e) => e !== this); }
 }
 
 class CalendarioFalso {
-  constructor() { this.eventos = []; this.fallar = false; }
+  // `suscrito`: si el calendario compartido está en la lista del usuario (getCalendarById devuelve null si no, B-14).
+  constructor() { this.eventos = []; this.fallar = false; this.suscrito = true; this.opcionesSuscripcion = null; }
   createEvent(titulo, inicio, fin, opciones) {
     if (this.fallar) throw new Error('Calendar no disponible (simulado)');
     const e = new EventoFalso(this, titulo, inicio, fin, opciones);
@@ -197,17 +199,41 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
   const drive = new DriveFalso(usuarioEfectivo); // El libro es de la cuenta operativa.
   const calendario = new CalendarioFalso();
   const correos = [];
+  const alertas = [];
   const disparadores = [];
   const sesion = { activo: usuarioActivo, efectivo: usuarioEfectivo };
   const bloqueos = { adquiridos: 0, liberados: 0 };
+  // SES.Hospedajes (S27): respuestas simuladas en orden ({ cuerpo, http } o { errorRed }) y peticiones recibidas.
+  const ses = { respuestas: [], peticiones: [] };
+  const propiedades = {};
+  const librosExternos = {};
 
   const servicios = {
-    SpreadsheetApp: { getActive: () => libro, getActiveSpreadsheet: () => libro, getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }) },
+    SpreadsheetApp: {
+      getActive: () => libro, getActiveSpreadsheet: () => libro,
+      getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }), alert: (mensaje) => { alertas.push(mensaje); } }),
+      openById: (id) => { if (!librosExternos[id]) throw new Error(`No se encuentra el documento ${id} (simulado)`); return librosExternos[id]; },
+    },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (propiedades[k] === undefined ? null : propiedades[k]) }) },
+    UrlFetchApp: {
+      fetch: (url, opciones) => {
+        ses.peticiones.push({ url, opciones });
+        const r = ses.respuestas.shift();
+        if (!r) throw new Error('UrlFetchApp: sin respuesta simulada');
+        if (r.errorRed) throw new Error(r.errorRed);
+        return { getResponseCode: () => r.http || 200, getContentText: () => r.cuerpo || '' };
+      },
+    },
     DriveApp: drive,
     CalendarApp: {
       EventColor: { PALE_BLUE: '1', PALE_GREEN: '2', MAUVE: '3', PALE_RED: '4', YELLOW: '5', ORANGE: '6', CYAN: '7', GRAY: '8', BLUE: '9', GREEN: '10', RED: '11' },
       getDefaultCalendar: () => calendario,
-      getCalendarById: (id) => (id === 'CAL-GRUPO' ? calendario : null),
+      getCalendarById: (id) => (id === 'CAL-GRUPO' && calendario.suscrito ? calendario : null),
+      subscribeToCalendar: (id, opciones) => {
+        if (id !== 'CAL-GRUPO') throw new Error(`Sin acceso al calendario ${id} (simulado)`);
+        Object.assign(calendario, { suscrito: true, opcionesSuscripcion: { ...opciones } });
+        return calendario;
+      },
     },
     MailApp: {
       sendEmail: (...args) => {
@@ -232,13 +258,21 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
       },
       base64Decode: (s) => [...Buffer.from(s, 'base64')],
       newBlob: (bytes, tipoMime, nombre) => ({ bytes, tipoMime, nombre }),
+      zip: (blobs) => ({ getBytes: () => [...Buffer.from(JSON.stringify(blobs.map((b) => [b.nombre, String(b.bytes)])))] }),
+      base64Encode: (datos) => Buffer.from(Array.isArray(datos) ? datos : String(datos)).toString('base64'),
     },
     ScriptApp: {
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/APP/exec' }),
       getProjectTriggers: () => disparadores.slice(),
       deleteTrigger: (t) => { const i = disparadores.indexOf(t); if (i >= 0) disparadores.splice(i, 1); },
       newTrigger: (funcion) => {
         const t = { funcion, uid: nuevoId('TR'), getUniqueId() { return this.uid; }, getHandlerFunction() { return this.funcion; } };
-        const constructor = { timeBased: () => constructor, atHour: () => constructor, everyDays: () => constructor, onMonthDay: () => constructor, create: () => { disparadores.push(t); return t; } };
+        const constructor = {
+          timeBased: () => constructor, atHour: () => constructor, everyDays: () => constructor, onMonthDay: () => constructor,
+          everyMinutes: (m) => { t.minutos = m; return constructor; },
+          forSpreadsheet: (id) => { t.origen = id; return constructor; }, onFormSubmit: () => { t.alEnviarForm = true; return constructor; },
+          create: () => { disparadores.push(t); return t; },
+        };
         return constructor;
       },
     },
@@ -253,7 +287,7 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
     console,
   };
 
-  return { servicios, libro, drive, calendario, correos, disparadores, sesion, bloqueos, CarpetaFalsa, FicheroFalso };
+  return { servicios, libro, drive, calendario, correos, alertas, disparadores, sesion, bloqueos, ses, propiedades, librosExternos, CarpetaFalsa, FicheroFalso, LibroFalso, HojaFalsa };
 };
 
 module.exports = { crearServicios, HojaFalsa, CarpetaFalsa, FicheroFalso };

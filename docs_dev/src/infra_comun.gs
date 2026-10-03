@@ -135,9 +135,16 @@ const zonaHoraria_ = () => obtenerSpreadsheet_().getSpreadsheetTimeZone();
 
 const formatearFechaHora_ = (fecha) => Utilities.formatDate(aFecha_(fecha), zonaHoraria_(), 'dd/MM/yyyy HH:mm');
 
+// F-26: formato corto para tablas en móvil (solo visualización).
+const formatearFechaHoraCorta_ = (fecha) => Utilities.formatDate(aFecha_(fecha), zonaHoraria_(), 'dd/MM/yy HH:mm');
+
 const fechaCorta_ = (fecha) => Utilities.formatDate(aFecha_(fecha), zonaHoraria_(), 'ddMMyy');
 
-const formatearImporte_ = (importe) => `${numero_(importe).toFixed(2)} €`;
+// Formato español: "2.840,50 €" (sin depender de Intl, que en Apps Script no agrupa los miles con 4 cifras).
+const formatearImporte_ = (importe) => {
+  const [entera, decimales] = Math.abs(numero_(importe)).toFixed(2).split('.');
+  return `${numero_(importe) < 0 ? '−' : ''}${entera.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${decimales} €`;
+};
 
 // Todo dato que acabe dentro de HTML pasa por aquí (RNF-26).
 const escaparHtml_ = (valor) => String(valor === null || valor === undefined ? '' : valor)

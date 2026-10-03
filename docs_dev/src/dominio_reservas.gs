@@ -13,6 +13,7 @@ const GESTION_CONTRATO_AUTOMATICA = 'Automática';
 const MODO_FECHA = { DIA_HORA: 'Dia_y_Hora', RANGO_DIAS: 'Rango_Dias' };
 const RE_TELEFONO = /^\d{9}$/;
 const RE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // Valores permitidos en la edición (RF-46, B-04).
 const DOMINIOS_EDICION = {
@@ -37,6 +38,8 @@ const ETIQUETAS_EDICION = {
 const ETIQUETA_ESTADO = 'Estado de la reserva';
 const ETIQUETA_SERVICIOS = 'Servicios extra';
 const ETIQUETA_NETO = 'Importe neto';
+const ETIQUETA_INICIO = 'Fecha y hora de entrada';
+const ETIQUETA_FIN = 'Fecha y hora de salida';
 
 const valido_ = () => ({ valido: true });
 const invalido_ = (error) => ({ valido: false, error });
@@ -50,19 +53,41 @@ const validarRangoFechas_ = (inicio, fin, hoy) => {
   return { valido: true, inicio, fin };
 };
 
-// Fecha_Hora_Inicio/Fin según el modo del espacio (ADR-0003). `horas` = horas por defecto de Config para Rango_Dias.
-const construirFechas_ = (modo, datos, horas, hoy) => {
+// F-23 (ADR-0019): hora de llegada y de salida obligatorias en todos los espacios.
+const validarHoras_ = (datos) => {
+  if (!RE_HORA.test(texto_(datos.horaLlegada))) return invalido_('Indica la hora de llegada.');
+  if (!RE_HORA.test(texto_(datos.horaSalida))) return invalido_('Indica la hora de salida.');
+  return valido_();
+};
+
+// Fecha_Hora_Inicio/Fin según el modo del espacio (ADR-0003, ADR-0019).
+const construirFechas_ = (modo, datos, hoy) => {
+  const horas = validarHoras_(datos);
+  if (!horas.valido) return horas;
   if (modo === MODO_FECHA.DIA_HORA) {
     return validarRangoFechas_(
-      combinarFechaHora_(datos.fechaUnica, datos.horaLlegada || '00:00'),
-      combinarFechaHora_(datos.fechaUnica, datos.horaSalida || '23:59'), hoy);
+      combinarFechaHora_(datos.fechaUnica, datos.horaLlegada),
+      combinarFechaHora_(datos.fechaUnica, datos.horaSalida), hoy);
   }
   if (modo === MODO_FECHA.RANGO_DIAS) {
     return validarRangoFechas_(
-      combinarFechaHora_(datos.fechaEntrada, horas.checkIn),
-      combinarFechaHora_(datos.fechaSalida, horas.checkOut), hoy);
+      combinarFechaHora_(datos.fechaEntrada, datos.horaLlegada),
+      combinarFechaHora_(datos.fechaSalida, datos.horaSalida), hoy);
   }
   return invalido_('El espacio no tiene un modo de fecha válido.');
+};
+
+// D-28 (B-22): las reservas por días se guardaron a 00:00 porque no se leía la hora de Config.
+// Devuelve las fechas con la hora por defecto, o null si no hay nada que corregir.
+const corregirHorasMedianoche_ = (reserva, horas) => {
+  const esMedianoche = (f) => f.getHours() === 0 && f.getMinutes() === 0;
+  const conHora = (f, hhmm) => {
+    const [hora, minuto] = hhmm.split(':').map(Number);
+    return new Date(f.getFullYear(), f.getMonth(), f.getDate(), hora, minuto, 0);
+  };
+  const inicio = esMedianoche(reserva.inicio) ? conHora(reserva.inicio, horas.llegada) : reserva.inicio;
+  const fin = esMedianoche(reserva.fin) ? conHora(reserva.fin, horas.salida) : reserva.fin;
+  return inicio === reserva.inicio && fin === reserva.fin ? null : { inicio, fin };
 };
 
 const validarHuesped_ = (d) => {

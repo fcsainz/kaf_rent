@@ -1,4 +1,4 @@
-# Integración continua gratuita (RNF-29, RNF-33): lanza los tests en cada push y pull request.
+# Integración continua gratuita (RNF-29, RNF-33): lanza el lint y los tests en cada push y pull request.
 # No usa credenciales de Google: los tests simulan Sheets, Drive, Calendar y Mail (ADR-0015).
 name: tests
 
@@ -16,6 +16,8 @@ jobs:
           node-version: 22
       - name: Dependencias de desarrollo
         run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
       - name: Tests unitarios y de endpoints
         run: npm test
       - name: Cobertura

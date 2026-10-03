@@ -3,7 +3,7 @@
 // Espacios en el orden del catálogo. `soloActivos` = false incluye también los desactivados (histórico fiscal).
 const obtenerEspacios_ = ({ soloActivos = true } = {}) => registrosDe_(HOJA_CAT_ESPACIOS)
   .filter((e) => texto_(e.nombre) !== '' && (!soloActivos || esVerdadero_(e.activo)))
-  .map((e) => ({ nombre: texto_(e.nombre), modoFecha: texto_(e.modoFecha) }));
+  .map((e) => ({ nombre: texto_(e.nombre), modoFecha: texto_(e.modoFecha), nombreCorto: texto_(e.nombreCorto) || texto_(e.nombre) }));
 
 const nombresEspacios_ = (opciones) => obtenerEspacios_(opciones).map((e) => e.nombre);
 

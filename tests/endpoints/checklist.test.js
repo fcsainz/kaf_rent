@@ -14,10 +14,11 @@ test.describe('F-14 · catálogo de checklists', () => {
     assert.deepEqual(semilla, md);
   });
 
-  test('reparar hojas crea Catálogo_Checklist con los 138 puntos y Registro_Checklist vacía', () => {
+  test('reparar hojas crea Catálogo_Checklist con los 138 puntos y Checklists_Reserva vacía', () => {
     const e = crearEntornoConDatos();
     assert.equal(e.hoja('Catálogo_Checklist').registros().length, 138);
-    assert.deepEqual(e.hoja('Registro_Checklist').cabeceras(), ['ID_Reserva', 'Momento', 'ID_Punto', 'Estado', 'Valor', 'Usuario', 'Fecha_Hora']);
+    assert.deepEqual(e.hoja('Checklists_Reserva').cabeceras(), ['ID_Reserva', 'Momento', 'Puntos', 'Observaciones', 'Usuario', 'Fecha_Hora']);
+    assert.equal(e.hoja('Checklists_Reserva').registros().length, 0);
   });
 });
 
@@ -31,8 +32,9 @@ const conReservaPiscina = () => {
   return { e, id: e.hoja('Reservas').registros()[0].ID_Reserva };
 };
 const puntosDe = (data) => data.bloques.flatMap((b) => b.puntos);
+const VALOR_RESUELTO = { Fecha: '2026-09-27', 'Daños': 'Sin daños' };
 const todosResueltos = (data, cambios = {}) => puntosDe(data).map((p) => ({
-  idPunto: p.id, estado: 'Hecho', valor: p.tipo === 'Fecha' ? '2026-09-27' : '', ...(cambios[p.id] || {}),
+  idPunto: p.id, estado: 'Hecho', valor: VALOR_RESUELTO[p.tipo] || '', ...(cambios[p.id] || {}),
 }));
 
 test.describe('F-14 · cargar, guardar y confirmar la checklist', () => {
@@ -56,17 +58,47 @@ test.describe('F-14 · cargar, guardar y confirmar la checklist', () => {
     assert.deepEqual([p1.estado, p2.estado], ['Hecho', 'No aplica']);
     assert.equal(data.resueltos, 2);
     assert.equal(data.observaciones, 'Todo bien');
-    const registro = e.hoja('Registro_Checklist').registros().find((f) => f.ID_Punto === 'EXT-IN-01');
-    assert.equal(registro.Usuario, 'ana@test.com');
+    const [fila] = e.hoja('Checklists_Reserva').registros();
+    assert.equal(JSON.parse(fila.Puntos).find((p) => p.idPunto === 'EXT-IN-01').usuario, 'ana@test.com');
   });
 
-  test('volver a guardar actualiza, no duplica', () => {
+  test('TD-02 · volver a guardar actualiza la fila de esa checklist, no duplica', () => {
     const { e, id } = conReservaPiscina();
     e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'Hecho' }], '');
     e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'No aplica' }], '');
-    const filas = e.hoja('Registro_Checklist').registros().filter((f) => f.ID_Punto === 'EXT-IN-01');
+    const filas = e.hoja('Checklists_Reserva').registros();
     assert.equal(filas.length, 1);
-    assert.equal(filas[0].Estado, 'No aplica');
+    const puntos = JSON.parse(filas[0].Puntos).filter((p) => p.idPunto === 'EXT-IN-01');
+    assert.deepEqual(puntos.map((p) => p.estado), ['No aplica']);
+  });
+
+  test('TD-02 · cada checklist (reserva + momento) tiene su fila y guardar una no toca las demás', () => {
+    const { e, id } = conReservaPiscina();
+    e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'Hecho' }], 'entrada');
+    const antes = e.hoja('Checklists_Reserva').filas()[0].slice();
+    e.llamar('guardarChecklist', id, 'Check-out', [{ idPunto: 'EXT-OUT-01', estado: 'Hecho' }], 'salida');
+    const filas = e.hoja('Checklists_Reserva').filas();
+    assert.equal(filas.length, 2);
+    assert.deepEqual(filas[0], antes);
+    assert.equal(e.llamar('cargarChecklist', id, 'Check-out').data.observaciones, 'salida');
+  });
+
+  test('TD-02 · un punto sin cambios conserva quién lo marcó', () => {
+    const { e, id } = conReservaPiscina();
+    e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'Hecho' }], '');
+    e.sesion.activo = 'luis@test.com';
+    e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'Hecho' }, { idPunto: 'EXT-IN-02', estado: 'Hecho' }], '');
+    const puntos = JSON.parse(e.hoja('Checklists_Reserva').registros()[0].Puntos);
+    assert.deepEqual(puntos.map((p) => p.usuario), ['ana@test.com', 'luis@test.com']);
+  });
+
+  test('TD-02 · si la celda de puntos es ilegible, no se guarda encima y se avisa', () => {
+    const { e, id } = conReservaPiscina();
+    e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-01', estado: 'Hecho' }], '');
+    const hoja = e.hoja('Checklists_Reserva');
+    hoja.datos[1][hoja.datos[0].indexOf('Puntos')] = '{roto';
+    assert.equal(e.llamar('guardarChecklist', id, 'Check-in', [{ idPunto: 'EXT-IN-02', estado: 'Hecho' }], '').success, false);
+    assert.equal(hoja.datos[1][hoja.datos[0].indexOf('Puntos')], '{roto');
   });
 
   test('rechaza puntos que no pertenecen a la lista, estados inválidos y momentos inválidos', () => {
@@ -89,6 +121,42 @@ test.describe('F-14 · cargar, guardar y confirmar la checklist', () => {
     assert.equal(reserva.Checkout_Revisado, 'Hecho');
     assert.equal(reserva.Estado_Reserva, 'Completada');
     assert.ok(e.hoja('Historial_Cambios').registros().some((h) => h.Campo === 'Check-out revisado' && h.Valor_Nuevo === 'Hecho'));
+  });
+
+  test('B-18 · si una checklist terminada vuelve a tener un punto pendiente, deja de estar terminada', () => {
+    const { e, id } = conReservaPiscina();
+    const data = e.llamar('cargarChecklist', id, 'Check-in').data;
+    e.llamar('guardarChecklist', id, 'Check-in', todosResueltos(data), '');
+    e.llamar('confirmarChecklist', id, 'Check-in');
+    const r = e.llamar('guardarChecklist', id, 'Check-in', todosResueltos(data, { 'EXT-IN-01': { estado: 'Pendiente' } }), '');
+    assert.equal(r.reabierta, true);
+    assert.equal(e.hoja('Reservas').registros()[0].Checkin_Revisado, 'Pendiente');
+    assert.equal(e.llamar('cargarChecklist', id, 'Check-in').data.confirmada, false);
+    assert.ok(e.hoja('Historial_Cambios').registros().some((h) => h.Campo === 'Check-in revisado' && h.Valor_Nuevo === 'Pendiente'));
+  });
+
+  test('B-18 · guardar una checklist terminada que sigue resuelta no la reabre', () => {
+    const { e, id } = conReservaPiscina();
+    const data = e.llamar('cargarChecklist', id, 'Check-in').data;
+    e.llamar('guardarChecklist', id, 'Check-in', todosResueltos(data), '');
+    e.llamar('confirmarChecklist', id, 'Check-in');
+    assert.equal(e.llamar('guardarChecklist', id, 'Check-in', todosResueltos(data), 'Nota').reabierta, false);
+    assert.equal(e.hoja('Reservas').registros()[0].Checkin_Revisado, 'Hecho');
+  });
+
+  test('B-19 · los puntos de daños son de tipo Daños, se resuelven con Sin daños o Con daños y no admiten "No aplica"', () => {
+    const { e, id } = conReservaPiscina();
+    const data = e.llamar('cargarChecklist', id, 'Check-out').data;
+    const danos = puntosDe(data).filter((p) => p.tipo === 'Daños').map((p) => p.id);
+    assert.deepEqual(danos.sort(), ['EXT-OUT-03', 'EXT-OUT-04', 'EXT-OUT-21']);
+    const conDanos = todosResueltos(data, { 'EXT-OUT-21': { valor: 'Con daños' } });
+    assert.equal(e.llamar('guardarChecklist', id, 'Check-out', conDanos, '').success, true);
+    assert.equal(e.llamar('cargarChecklist', id, 'Check-out').data.resuelta, true);
+    const noAplica = todosResueltos(data, { 'EXT-OUT-03': { estado: 'No aplica', valor: '' } });
+    assert.equal(e.llamar('guardarChecklist', id, 'Check-out', noAplica, '').success, false);
+    const sinRespuesta = todosResueltos(data, { 'EXT-OUT-03': { valor: '' } });
+    e.llamar('guardarChecklist', id, 'Check-out', sinRespuesta, '');
+    assert.equal(e.llamar('cargarChecklist', id, 'Check-out').data.resuelta, false);
   });
 
   test('un punto de fecha sin fecha no deja confirmar', () => {

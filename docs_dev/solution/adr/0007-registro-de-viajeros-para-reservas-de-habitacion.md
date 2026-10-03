@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; formulario, casado, fotos y envío sustituidos por ADR-0018
 date: 2026-06-24
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: Resto de copropietarios (PER-02, PER-03)
@@ -9,7 +9,7 @@ informed: Resto de copropietarios (PER-02, PER-03)
 # ADR-0007: Registro de viajeros de la Habitación con formulario público y hoja en el mismo Sheet (Fase 2)
 
 > **Decisión aceptada; implementación diferida a la Fase 2.**
-> **Revisión en curso (2026-10-02):** [ADR-0018](0018-comunicacion-ses-hospedajes.md) (*proposed*) sustituye el formulario, el casado, las fotos y el envío manual de este ADR. Cuando se acepte, el estado pasa a "accepted; formulario, casado, fotos y envío sustituidos por ADR-0018".
+> **Sustituido en parte (2026-10-02, D-34):** [ADR-0018](0018-comunicacion-ses-hospedajes.md) sustituye el formulario, el casado, las fotos y el envío manual de este ADR; el resto sigue vigente.
 
 ## Contexto y planteamiento del problema
 

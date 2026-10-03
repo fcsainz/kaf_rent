@@ -63,3 +63,34 @@ const totalesInforme_ = (agregados) => agregados.reduce((t, a) => ({
   comisiones: t.comisiones + a.comisiones,
   netos: t.netos + a.netos,
 }), { numReservas: 0, brutos: 0, comisiones: 0, netos: 0 });
+
+// ---------- Comparativa del informe (D-41: periodo anterior y mismo periodo del año anterior) ----------
+
+const GENERADOR_PERIODO = { Mensual: periodoMensual_, Trimestral: periodoTrimestral_ };
+
+// Cada generador da el periodo anterior a una fecha: desde el inicio, el inmediatamente anterior; desde el fin
+// de hace un año, el mismo periodo del año anterior.
+const periodosDeComparacion_ = (periodo) => {
+  const generar = GENERADOR_PERIODO[periodo.tipo];
+  return { anterior: generar(periodo.inicio), anyoAnterior: generar(new Date(periodo.fin.getFullYear() - 1, periodo.fin.getMonth(), 1)) };
+};
+
+// Variación relativa del neto; null si no hay base con la que comparar.
+const variacion_ = (actual, previo) => (previo > 0 ? (actual - previo) / previo : null);
+
+const claveEspacioCanal_ = (a) => `${a.espacio}||${a.canal}`;
+
+// Filas por espacio y canal con su variación. Incluye los que tuvieron reservas en los periodos comparados y ahora no:
+// una caída a cero también informa.
+const comparativaInforme_ = ({ actual, anterior, anyoAnterior }) => {
+  const netos = (agregados) => new Map(agregados.map((a) => [claveEspacioCanal_(a), a.netos]));
+  const [netosAnterior, netosAnyoAnterior] = [netos(anterior), netos(anyoAnterior)];
+  const sinReservas = (a) => ({ espacio: a.espacio, canal: a.canal, numReservas: 0, brutos: 0, comisiones: 0, netos: 0 });
+  const filas = [...actual, ...[...anterior, ...anyoAnterior].map(sinReservas)]
+    .filter((a, i, todas) => todas.findIndex((b) => claveEspacioCanal_(b) === claveEspacioCanal_(a)) === i);
+  const conVariacion = (a, previoAnterior, previoAnyo) => ({ ...a, vsAnterior: variacion_(a.netos, previoAnterior), vsAnyoAnterior: variacion_(a.netos, previoAnyo) });
+  return {
+    filas: filas.map((a) => conVariacion(a, netosAnterior.get(claveEspacioCanal_(a)) || 0, netosAnyoAnterior.get(claveEspacioCanal_(a)) || 0)),
+    total: conVariacion(totalesInforme_(actual), totalesInforme_(anterior).netos, totalesInforme_(anyoAnterior).netos),
+  };
+};

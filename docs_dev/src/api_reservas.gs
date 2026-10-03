@@ -23,8 +23,7 @@ const prepararReserva_ = (datos, ahora) => {
   const ref = validarRefCanal_(datos.refCanal, canal.nombre, canal.requiereRef);
   if (!ref.valido) return ref;
 
-  const horas = { checkIn: obtenerConfig_('Hora_CheckIn_Default', '16:00'), checkOut: obtenerConfig_('Hora_CheckOut_Default', '12:00') };
-  const fechas = construirFechas_(espacio.modoFecha, datos, horas, inicioDelDia_(ahora));
+  const fechas = construirFechas_(espacio.modoFecha, datos, inicioDelDia_(ahora));
   if (!fechas.valido) return fechas;
   const validacion = validarDatosReserva_(datos);
   if (!validacion.valido) return validacion;
@@ -96,13 +95,26 @@ const proyeccionListado_ = (r) => ({
   neto: r.neto,
 });
 
+// F-26: "Últimas reservas" con el nombre corto del espacio, el código del canal y fechas cortas.
+const proyeccionUltimas_ = (nombresCortos) => (r) => ({
+  espacio: nombresCortos.get(r.espacio) || r.espacio,
+  refCanal: r.refCanal,
+  nombre: r.nombre,
+  inicioTexto: formatearFechaHoraCorta_(r.inicio),
+  inicioOrden: r.inicio.getTime(),
+  finTexto: formatearFechaHoraCorta_(r.fin),
+  finOrden: r.fin.getTime(),
+  neto: r.neto,
+});
+
 const cargarUltimasReservas = () => ejecutarEndpoint_('cargarUltimasReservas', {}, () => {
   const ordenRegistro = (r, i) => (esFechaValida_(r.fechaRegistro) ? r.fechaRegistro.getTime() : i);
+  const nombresCortos = new Map(obtenerEspacios_({ soloActivos: false }).map((e) => [e.nombre, e.nombreCorto]));
   const ultimas = leerReservas_().entradas
     .map((e, i) => ({ reserva: e.reserva, orden: ordenRegistro(e.reserva, i) }))
     .sort((a, b) => b.orden - a.orden)
     .slice(0, NUM_ULTIMAS_RESERVAS)
-    .map((x) => proyeccionListado_(x.reserva));
+    .map((x) => proyeccionUltimas_(nombresCortos)(x.reserva));
   return { success: true, data: ultimas };
 }, { errorUsuario: 'No se pudieron cargar las últimas reservas.' });
 

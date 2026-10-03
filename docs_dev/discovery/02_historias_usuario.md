@@ -32,14 +32,14 @@
 | HU-01 | US-001 | Acceder con la cuenta de Google | E-01 | P-12 | M | S | S1 | ✅ |
 | HU-02 | US-002 | Acceso solo para cuentas autorizadas | E-01 | P-12 | M | S | S1 | ✅ |
 | HU-03 | US-003 | Identificación automática del autor de cada cambio | E-01 | P-03 | M | XS | S1 | ✅ |
-| HU-04 | US-004 | Inicio con accesos y últimas 5 reservas | E-02 | P-05 | M | M | S2 | ✅ |
-| HU-05 | US-005 | Navegar entre secciones | E-02 | P-11 | M | XS | S1–S2 | ✅ |
+| HU-04 | US-004 | Inicio con accesos y últimas 5 reservas | E-02 | P-05 | M | M | S2 · **S23** (F-26) | ✅ |
+| HU-05 | US-005 | Navegar entre secciones | E-02 | P-11 | M | XS | S1–S2 · **S23** (F-24, F-25) | ✅ |
 | HU-06 | US-022 | Buscar reservas por nombre y/o fecha | E-02 | P-01, P-05 | M | M | S2 → S8 ✔ | ✅ |
 | HU-07 | US-026 (parte) | Abrir el calendario de ocupación desde el Inicio | E-02 | P-05 | M | XS | S4 | ✅ |
 | HU-08 | US-006 | Elegir espacio con filtrado en cascada | E-03 | P-11 | M | M | S2 | ✅ |
 | HU-09 | US-007 | Elegir canal con comisión autocompletada | E-03 | P-11 | M | S | S2 | ✅ |
-| HU-10 | US-008 | Fechas en modo Día + Hora | E-03 | P-11 | M | M | S3 | ✅ |
-| HU-11 | US-009 | Fechas en modo Rango de días | E-03 | P-11 | M | M | S3 · **S22** (B-22) | 🟡 |
+| HU-10 | US-008 | Fechas en modo Día + Hora | E-03 | P-11 | M | M | S3 · **S22** (F-23) | ✅ |
+| HU-11 | US-009 | Fechas en modo Rango de días | E-03 | P-11 | M | M | S3 · **S22** (B-22, F-23, D-28) | 🟡 |
 | HU-12 | US-010 | Personas y servicios extra | E-03 | P-11, P-08 | M | S | S2 | ✅ |
 | HU-13 | US-011 | Datos de contacto del huésped | E-03 | P-11 | M | S | S2 | ✅ |
 | HU-14 | *(nueva)* | Importe del alquiler y resumen económico | E-03 | P-08, P-11 | M | M | S2 | ✅ |
@@ -54,17 +54,17 @@
 | HU-23 | US-015 | Editar una reserva con auditoría | E-05 | P-03, P-04 | M | M | S4 → S8 ✔ | ✅ |
 | HU-24 | US-010 (parte) | Añadir o quitar servicios a una reserva existente | E-05 | P-08 | S | M | S4 → S8 ✔ | ✅ |
 | HU-25 | US-016 | Ciclo de vida automático del estado | E-05 | P-04 | M | M | S4 → S8 ✔ | ✅ |
-| HU-26 | US-018 | Cancelar una reserva | E-05 | P-06 | M | M | S4 | ✅ |
+| HU-26 | US-018 | Cancelar una reserva | E-05 | P-06 | M | M | S4 · **S27** (ADR-0022) | ✅ |
 | HU-27 | US-019 | Ver el historial de cambios | E-05 | P-03 | S | S | S4 | ✅ |
 | HU-28 | US-017 | Subir el contrato a Drive | E-06 | P-07 | M | L | S4 → S8 ✔ | ✅ |
-| HU-29 | US-029 | Checklists digitales de check-in/check-out (F-14) | E-06 | P-07 | S | L | S4 → **S16** | ✅ |
+| HU-29 | US-029 | Checklists digitales de check-in/check-out (F-14) | E-06 | P-07 | S | L | S4 → **S16** · **S22** (B-18, B-19, TD-02) | ✅ |
 | HU-30 | US-030 | Subir vídeos de entrada/salida a Drive | E-06 | P-07 | S | M | S4 → S8 ✔ | ✅ |
 | HU-31 | US-024 | Estadísticas por espacio | E-07 | P-08 | S | L | S5 | ✅ |
 | HU-32 | US-021 | Informes mensual y trimestral por email | E-07 | P-08 | S | L | S5 → **S12** | 🟡 |
 | HU-33 | US-027 | Registrar gastos con justificante | E-08 | P-09 | S | L | S6 | ✅ |
 | HU-34 | US-028 | Resumen fiscal por ejercicio a tercios | E-08 | P-09 | S | L | S6 | ✅ |
-| HU-35 | *(ADR-0007)* | Formulario público de registro de viajeros | E-09 | P-10 | W (Fase 2) | XL | **Fase 2** | ⏳ |
-| HU-36 | *(ADR-0007)* | Estado del registro de viajeros en la reserva | E-09 | P-10 | W (Fase 2) | M | **Fase 2** | ⏳ |
+| HU-35 | *(ADR-0007, ADR-0018)* | Comunicar los viajeros de la Habitación a SES.Hospedajes | E-09 | P-10 | W (Fase 2) | XL | **S26**–S29 | 🟡 |
+| HU-36 | *(ADR-0007)* | Estado del registro de viajeros en la reserva | E-09 | P-10 | W (Fase 2) | M | **S27**–**S28** | 🟡 |
 | HU-37 | *(backlog)* | Recordatorios automáticos de tareas pendientes | E-05 | P-04 | C | L | **S13** | ⏳ |
 | HU-38 | *(ADR-0005)* | Editar canal y fechas de una reserva (sin cambiar de espacio) | E-05 | P-01, P-04 | C | L | **S13** | ⏳ |
 | HU-39 | *(v2, F-21)* | Avisos que no pasan desapercibidos y envío de incidencias al administrador | E-04 | P-05, P-11 | M | M | **S14** | ✅ |
@@ -142,7 +142,7 @@ Scenario: Modificación de reserva
 
 ### HU-04 — Inicio con accesos y últimas 5 reservas
 **Antes:** US-004 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-07, RF-08, RF-09, RF-10 · **↓ RNF:** RNF-01, RNF-05, RNF-08, RNF-09, RNF-11 · **↓ Sprint:** S2
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-07, RF-08, RF-09, RF-10 · **↓ RNF:** RNF-01, RNF-05, RNF-08, RNF-09, RNF-11 · **↓ Sprint:** S2 · **S23** (F-26)
 
 Como copropietario, quiero que al entrar la app me muestre los accesos principales y las últimas reservas para orientarme de un vistazo.
 
@@ -150,9 +150,10 @@ Como copropietario, quiero que al entrar la app me muestre los accesos principal
 Scenario: Carga del Inicio
   Given un usuario autorizado
   When se carga el Inicio
-  Then ve los accesos "Crear Reserva", "Gestionar Reserva", "Estadísticas" y "Gastos"
+  Then ve la barra inferior con "Inicio", "Reservas", "Gastos" y "Estadísticas" (y "Checklists" si tiene permiso)
   And bajo "5 Últimas Reservas" una tabla con las 5 más recientes por Fecha_Registro
-  And las columnas Espacio, Fecha Inicio, Fecha Fin, Nombre e Importe Neto
+  And las columnas Espacio (nombre corto: Interior / Exterior), Código de reserva del canal ("—" si no hay), Nombre, Inicio y Fin (dd/mm/aa hh:mm) e Importe Neto
+  And un botón "Ver calendario"
 
 Scenario: Ordenar la tabla
   When pulsa la cabecera de una columna
@@ -160,26 +161,33 @@ Scenario: Ordenar la tabla
 
 Scenario: Sin reservas
   Given que no existe ninguna reserva
-  Then la tabla muestra "No hay reservas registradas"
+  Then la tabla muestra "Todavía no hay reservas."
 ```
 
 ### HU-05 — Navegar entre secciones
 **Antes:** US-005 · **MoSCoW:** M · **Talla:** XS · **Estado:** ✅  
-**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-07, RF-13 · **↓ RNF:** RNF-08, RNF-11 · **↓ Sprint:** S1–S2
+**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-07, RF-13 · **↓ RNF:** RNF-08, RNF-11 · **↓ Sprint:** S1–S2 · **S23** (F-24, F-25)
 
 Como copropietario, quiero botones claros para ir a cada sección y volver al Inicio para no perderme.
 
 ```gherkin
-Scenario Outline: Ir a una sección
-  Given que el usuario está en el Inicio
-  When pulsa "<boton>"
-  Then se muestra la sección <seccion>
+Scenario Outline: Ir a una sección desde la barra inferior (F-25)
+  Given que el usuario está en cualquier sección
+  When pulsa "<boton>" en la barra inferior
+  Then se muestra la sección <seccion> y su botón queda marcado
   Examples:
-    | boton             | seccion                                  |
-    | Crear Reserva     | formulario de creación                   |
-    | Gestionar Reserva | lista de reservas activas con filtros    |
-    | Estadísticas      | estadísticas por zona                    |
-    | Gastos            | registro de gastos y resumen fiscal      |
+    | boton        | seccion                                  |
+    | Inicio       | Inicio                                   |
+    | Gastos       | registro de gastos y resumen fiscal      |
+    | Estadísticas | estadísticas por zona                    |
+
+Scenario: Segundo piso de Reservas (F-25)
+  When pulsa "Reservas"
+  Then aparece encima de la barra un segundo piso con "Gestionar Reservas" y "Crear Reservas"
+  And al ir a otra sección de la barra, el segundo piso se cierra
+
+Scenario: Cabecera (F-24)
+  Then arriba ve el icono de la app y "KAF Rent" a la izquierda, y su usuario a la derecha
 
 Scenario: Volver al Inicio
   Given que el usuario está en cualquier sección
@@ -208,7 +216,7 @@ Scenario: Un solo campo
   Then la búsqueda se hace con ese campo (ninguno es obligatorio)
 
 Scenario: Sin resultados
-  Then se muestra "No hay reservas registradas"
+  Then se muestra "Ninguna reserva coincide con ese nombre o fecha."
 ```
 
 ### HU-07 — Abrir el calendario de ocupación desde el Inicio
@@ -275,14 +283,14 @@ Scenario Outline: Estado inicial del contrato según el canal
 
 ### HU-10 — Fechas en modo Día + Hora
 **Antes:** US-008 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-16, RF-19, RF-21, RF-28 · **↓ RNF:** RNF-08, RNF-24, RNF-27 · **↓ Sprint:** S3
+**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-16, RF-19, RF-21, RF-28 · **↓ RNF:** RNF-08, RNF-24, RNF-27 · **↓ Sprint:** S3 · **S22** (F-23)
 
 Como copropietario, quiero indicar el día y las horas de llegada y salida en Piscina/Jardín para reflejar el alquiler por franjas.
 
 ```gherkin
 Scenario: Campos del modo Dia_y_Hora
   Given un espacio con Modo_Fecha = "Dia_y_Hora"
-  Then se muestran "Fecha", "Hora de llegada" y "Hora de salida"
+  Then se muestran "Fecha", "Hora de llegada" y "Hora de salida", todas obligatorias
   And no se pueden elegir fechas pasadas
 
 Scenario: Salida anterior a la llegada
@@ -292,7 +300,7 @@ Scenario: Salida anterior a la llegada
 ```
 
 ### HU-11 — Fechas en modo Rango de días
-**Antes:** US-009 · **MoSCoW:** M · **Talla:** M · **Estado:** 🟡 (B-22: en producción las horas se guardan a 00:00)  
+**Antes:** US-009 · **MoSCoW:** M · **Talla:** M · **Estado:** 🟡 (B-22 corregido en código; falta corregir las reservas guardadas en real, D-28, y el smoke)  
 **↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-16, RF-20, RF-21, RF-28 · **↓ RNF:** RNF-08, RNF-24, RNF-27 · **↓ Sprint:** S3 · **S22**
 
 Como copropietario, quiero indicar las fechas de entrada y salida en la Habitación para reflejar las estancias de varias noches.
@@ -301,15 +309,21 @@ Como copropietario, quiero indicar las fechas de entrada y salida en la Habitaci
 Scenario: Campos del modo Rango_Dias
   Given un espacio con Modo_Fecha = "Rango_Dias"
   Then se muestran "Fecha de entrada" y "Fecha de salida", sin fechas pasadas
+  And "Hora de llegada" y "Hora de salida", obligatorias
 
 Scenario: Salida no posterior a la entrada
   When la salida es igual o anterior a la entrada
   Then se muestra un error y no se puede guardar
 
-Scenario: Horas por defecto
+Scenario: Horas prerrellenas y editables (F-23, ADR-0019)
+  When se elige el espacio
+  Then "Hora de llegada" = Config.Hora_CheckIn_Default y "Hora de salida" = Config.Hora_CheckOut_Default
+  And se pueden cambiar
+
+Scenario: Horas guardadas
   When la reserva se guarda
-  Then Fecha_Hora_Inicio = entrada + Config.Hora_CheckIn_Default
-  And Fecha_Hora_Fin = salida + Config.Hora_CheckOut_Default
+  Then Fecha_Hora_Inicio = entrada + hora de llegada
+  And Fecha_Hora_Fin = salida + hora de salida
 ```
 
 ### HU-12 — Personas y servicios extra
@@ -685,7 +699,7 @@ Scenario: Qué falta
 
 ### HU-26 — Cancelar una reserva
 **Antes:** US-018 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-06 · **↑ JTBD:** JTBD-06 · **↓ RF:** RF-38, RF-39, RF-52 · **↓ RNF:** RNF-05, RNF-10, RNF-16, RNF-22 · **↓ Sprint:** S4
+**↑ Problema:** P-06 · **↑ JTBD:** JTBD-06 · **↓ RF:** RF-38, RF-39, RF-52, RF-92 · **↓ RNF:** RNF-05, RNF-10, RNF-16, RNF-22, RNF-38 · **↓ Sprint:** S4 · **S27** (ADR-0022)
 
 Como copropietario, quiero cancelar una reserva con una confirmación explícita para evitar cancelaciones accidentales.
 
@@ -783,7 +797,7 @@ Scenario: Contrato gestionado por el canal
 
 ### HU-29 — Marcar los checklists de check-in/check-out
 **Antes:** US-029 · **MoSCoW:** S · **Talla:** S · **Estado:** ✅  
-**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-50, RF-56, RF-85, RF-86, RF-87 · **↓ RNF:** RNF-11, RNF-14, RNF-22 · **↓ Sprint:** S4 → **S16** (F-14, [DD-01](../solution/design-docs/DD-01-checklists-digitales.md))
+**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-50, RF-56, RF-85, RF-86, RF-87 · **↓ RNF:** RNF-11, RNF-14, RNF-22 · **↓ Sprint:** S4 → **S16** (F-14, [DD-01](../solution/design-docs/DD-01-checklists-digitales.md)) · **S22** (B-18, B-19, TD-02)
 
 Como copropietario, quiero hacer el check-in y el check-out punto por punto desde el móvil, dejando constancia de quién y cuándo, para no depender del papel y no cerrar una reserva sin revisar el espacio.
 
@@ -801,6 +815,16 @@ Scenario: Terminar con confirmación
   Given todos los puntos están resueltos (y el WC del check-out de la Habitación tiene fecha)
   When pulsa "Dar el check-out por terminado" y confirma
   Then Checkout_Revisado pasa a "Hecho" y se audita
+
+Scenario: Editar una checklist terminada (B-18)
+  Given la checklist está terminada
+  When deja un punto pendiente y guarda
+  Then la checklist vuelve a "sin terminar", la reserva se recalcula y se audita
+
+Scenario: Daños (B-19)
+  When llega a un punto de daños
+  Then elige "Sin daños" o "Con daños" (no hay "No aplica")
+  And si eligió "Con daños", al terminar la app le lleva a registrar la incidencia
 
 Scenario: Vídeo y fotos
   When sube el vídeo desde su punto o añade una foto de desperfectos
@@ -922,25 +946,41 @@ Scenario: Amortización
 
 ## E-09 — Registro de viajeros (Fase 2)
 
-### HU-35 — Formulario público de registro de viajeros
-**Antes:** *(ADR-0007)* · **MoSCoW:** W (Fase 2) · **Talla:** XL (dividir al planificar) · **Estado:** ⏳  
-**↑ Problema:** P-10 · **↑ JTBD:** JTBD-10 · **↓ RF:** RF-75, RF-76, RF-77 · **↓ RNF:** RNF-34, RNF-38 · **↓ Sprint:** **Fase 2**
+### HU-35 — Comunicar los viajeros de la Habitación a SES.Hospedajes
+**Antes:** *(ADR-0007; reescrita con ADR-0018 y [DD-02](../solution/design-docs/DD-02-comunicacion-ses-hospedajes.md), D-34)* · **MoSCoW:** W (Fase 2) · **Talla:** XL (dividida en S26–S29) · **Estado:** 🟡 (S26–S28 hechos; SES activo en producción desde el 2026-10-02; falta verificarlo con la primera reserva real, S29)  
+**↑ Problema:** P-10 · **↑ JTBD:** JTBD-10 · **↓ RF:** RF-76, RF-77, RF-89, RF-90, RF-91, RF-92, RF-93, RF-94, RF-96 (RF-75 retirado) · **↓ RNF:** RNF-09, RNF-16, RNF-34, RNF-38 · **↓ Sprint:** **S26** (dominio) → S27 → S28 → S29
 
-Como huésped de la Habitación, quiero registrar mis datos y los de mis acompañantes en un formulario sencillo para cumplir el registro obligatorio sin complicaciones.
+Como copropietario, quiero que los datos que los huéspedes dejan en el Google Form se comuniquen solos a SES.Hospedajes tras comprobar su identidad en persona, para cumplir el RD 933/2021 sin entrar en la web del Ministerio.
 
 ```gherkin
-Scenario: Envío válido
-  Given una reserva activa de Habitación
-  When el huésped introduce su nombre y las fechas exactas de entrada y salida, y los datos de cada viajero
-  Then el servidor casa la reserva por ambas fechas (el nombre confirma) y guarda un registro por viajero en Registro_Viajeros
+Scenario: Casado con la reserva
+  Given una respuesta del Form con el código de reserva "HMTEST1234" (o "15/26")
+  Then se asocia a la reserva de Habitación con ese Ref_Canal (o esa referencia), sin distinguir mayúsculas ni espacios
 
-Scenario: Sin reserva coincidente
-  Then el envío no se asocia a ninguna reserva (tratamiento pendiente de decidir, ADR-0007)
+Scenario: Reserva comunicada con el primer Form (D-31)
+  When llega la primera respuesta de una reserva antes del día de entrada
+  Then se comunica la reserva (RH) con esa persona como titular
+
+Scenario: Datos incompletos
+  Given un huésped adulto con DNI sin número de soporte
+  Then no se puede comunicar el parte y se indica qué falta y de quién
+
+Scenario: Parte de viajeros
+  Given todos los huéspedes casados están validados en persona
+  When pulsa "Comunicar a SES" y confirma
+  Then se envía el parte (PV) y, cuando SES responde, se anota el código en los dos Sheets y se avisa por email
+
+Scenario: Fallo de conexión
+  When SES no responde
+  Then se reintenta hasta 3 veces cada 30 minutos, avisando de cada intento, y tras el último queda "Manual"
+
+Scenario: Datos rechazados por SES
+  Then no se reintenta y se avisa para corregir y comunicar a mano
 ```
 
 ### HU-36 — Estado del registro de viajeros en la reserva
-**Antes:** *(ADR-0007)* · **MoSCoW:** W (Fase 2) · **Talla:** M · **Estado:** ⏳  
-**↑ Problema:** P-10 · **↑ JTBD:** JTBD-10 · **↓ RF:** RF-78 · **↓ RNF:** RNF-38 · **↓ Sprint:** **Fase 2**
+**Antes:** *(ADR-0007)* · **MoSCoW:** W (Fase 2) · **Talla:** M · **Estado:** 🟡 (hecho e implementado; falta verificarlo con la primera reserva real, S29)  
+**↑ Problema:** P-10 · **↑ JTBD:** JTBD-10 · **↓ RF:** RF-78, RF-94 · **↓ RNF:** RNF-08, RNF-09, RNF-38 · **↓ Sprint:** **S27** (estado al recibir el Form) · **S28** (bloque de la reserva, F-28)
 
 Como copropietario, quiero ver si una reserva de Habitación tiene completo el registro de viajeros para saber si debo reclamarlo.
 

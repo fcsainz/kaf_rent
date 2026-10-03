@@ -101,7 +101,7 @@ Webapp única para gestionar el alquiler de **Piscina/Jardín** (por franjas hor
 
 | Bloque | Responsabilidad | Tecnología |
 |---|---|---|
-| **Cliente** | Pantallas, navegación, validación inmediata, resumen económico en vivo | `index.html`, `cliente.html`, `gestion_interfaz.html`, `gastos_interfaz.html`, `estilos.html`, `acceso-denegado.html` |
+| **Cliente** | Pantallas, navegación, validación inmediata, resumen económico en vivo | `index.html`, `cliente.html`, `gestion_interfaz.html`, `gastos_interfaz.html`, `checklist_interfaz.html`, `ses_interfaz.html` (registro de viajeros y conexión con SES), `estilos.html`, `acceso-denegado.html` |
 | **Servidor** | Autorización, reglas de negocio, validación autoritativa, persistencia, integraciones | `.gs` (V8) |
 | **Almacenamiento** | Datos (Sheet), archivos (Drive), ocupación (Calendar) | Google Workspace personal |
 
@@ -128,7 +128,8 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | API | `api_checklist.gs` | Checklists por reserva, fotos de desperfectos y editor del catálogo (Admin) | `cargarChecklist`, `guardarChecklist`, `confirmarChecklist`, `subirFotoDesperfecto`, `cargarCatalogoChecklist`, `guardarPuntoChecklist` | — |
 | API | `api_estadisticas.gs` | Estadísticas y enlace al calendario | `cargarEstadisticas`, `recalcularEstadisticas`, `obtenerEnlaceCalendario` | 0009, 0010 |
 | API | `api_gastos.gs` | Gastos y resumen fiscal | `cargarCategoriasGasto`, `registrarGasto`, `calcularResumenFiscal` | 0012 |
-| API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `instalarTriggers`, `sincronizarReservasCalendario`, `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
+| API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `instalarTriggers`, `sincronizarReservasCalendario`, `corregirHorasReservas` (D-28), `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
+| API | `api_ses.gs` | SES.Hospedajes: al llegar un Form programa la reserva (RH) y actualiza el registro; cada 10 min envía, consulta lotes y reintenta; refresca catálogos (S27) | `alEnviarFormularioViajeros`, `procesarComunicacionesSES`, `actualizarCatalogosSES`, `comprobarConexionSES` (menú); endpoints `mensajeHuesped`, `cargarViajeros`, `validarViajero`, `deshacerValidacionViajero`, `comunicarParte`, `comprobarSES`, `probarConexionSES` (S28) | 0018 |
 | Dominio | `dominio_reservas.gs` | Validaciones, fechas, importes (fórmula única), solapamiento, IDs, ciclo de vida, edición, filtros | — | 0003–0005, 0014 |
 | Dominio | `dominio_informes.gs` | Agregados de estadísticas e informes, periodos | — | 0009 |
 | Dominio | `dominio_fiscal.gs` | Validación e ID de gastos, amortización, resumen a tercios | — | 0012 |
@@ -137,12 +138,19 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | Infra | `infra_comun.gs` | Tablas por campo (lectura/escritura en bloque, reescritura atómica), fechas, formato, escape HTML, logs/errores | — | 0013 |
 | Infra | `infra_config.gs` | `Config` cacheada | — | — |
 | Infra | `infra_repositorio_reservas.gs` | Reservas, líneas de servicio, historial | — | 0005 |
-| Infra | `infra_repositorio_checklist.gs` | Catálogo y registro de checklists (escritura en bloque) | — | — |
-| Dominio | `dominio_checklist.gs` | Puntos aplicables, lista resuelta, días hasta la siguiente reserva, validación del editor (F-14) | — | — |
+| Infra | `infra_repositorio_checklist.gs` | Catálogo y registro de checklists: una fila por checklist en `Checklists_Reserva` | — | 0020 |
+| Infra | `infra_ses.gs` | Cliente SOAP de SES (ZIP + Base64, HTTP Basic; credenciales en las Propiedades del script) | — | 0018 |
+| Infra | `infra_formulario_viajeros.gs` | Sheet de respuestas del Form de viajeros: lectura por título y anotación del resultado | — | 0018 |
+| Infra | `infra_repositorio_ses.gs` | `Catálogo_SES`, `Municipios_INE`, `Comunicaciones_SES` | — | 0018 |
+| Dominio | `dominio_checklist.gs` | Puntos aplicables, lista resuelta (tipo Daños, B-19), días hasta la siguiente reserva, validación del editor (F-14) | — | 0020 |
+| Dominio | `dominio_mantenimiento.gs` | Reglas de las copias: ¿toca copia?, clave de semana, rotación abuelo-padre-hijo (TD-04) | — | 0013, 0016 |
+| Dominio | `dominio_ses.gs` | SES.Hospedajes: lectura del Form de viajeros, casado por código, viajero con códigos de SES, validación de `PV`/`RH`, XML, errores y reintentos (S26) | — | 0018 |
 | Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` | Gastos y resumen fiscal · cache de estadísticas e histórico de informes | — | 0009, 0012 |
 | Infra | `infra_catalogo.gs` | Catálogos (espacios, canales, servicios, categorías) | — | 0003 |
-| Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal) | — | 0006, 0010, 0014 |
+| Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` · `infra_plantilla_email.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal); plantilla HTML común de los emails (D-35) | — | 0006, 0010, 0014 |
 | Infra | `infra_mantenimiento.gs` | Copias (rotación abuelo-padre-hijo), purgas y poda de vídeos | — | 0013, 0014, 0016 |
+
+**Script del Form de viajeros** (proyecto aparte, `docs_dev/src_form_checkin/`, [ADR-0021](adr/0021-script-propio-del-form-de-viajeros.md)): `dominio_form.gs` (opciones de cada lista y validaciones; títulos = contrato con `dominio_ses.gs`), `infra_form.gs` (`FormApp` y lectura de `Catálogo_SES`), `api_form.gs` (`onOpen`, `configurarFormulario`, `configurarFormularioDesdeMenu`).
 
 **Reglas de la capa API (RNF-20):** toda función interna termina en `_` (Apps Script no la expone a `google.script.run`); solo quedan públicos los 20 endpoints de la interfaz y las entradas del sistema, que se protegen con `ejecutarTareaDelSistema_` (solo trigger real del proyecto o ejecución directa desde editor/menú). Lo verifica `tests/endpoints/seguridad.test.js`.
 
@@ -194,9 +202,10 @@ Cliente ──crearReserva(datos)──► ejecutarEndpoint_ (autorización, try
 | Cuenta | `operaciontangai@gmail.com`: propietaria del Sheet, el proyecto de script (vinculado al Sheet), Drive y Calendar |
 | Web App | "Ejecutar como: **usuario que accede**" (`USER_ACCESSING`, ADR-0017; Sheet, carpetas y calendario compartidos con cada usuario) · acceso "**Cualquiera con cuenta de Google**" |
 | Versiones | `/dev` para probar; nueva implementación solo para publicar |
-| Triggers | `tareasNocturnas` (diario 03:00) e `informesProgramados` (día 1, 07:00), instalados con `instalarTriggers()` |
+| Triggers | `tareasNocturnas` (diario 03:00), `informesProgramados` (día 1, 07:00), `procesarComunicacionesSES` (cada 10 min) y `alEnviarFormularioViajeros` (al enviar el Form de viajeros, si hay `Sheet_Viajeros_Id`), instalados con `instalarTriggers()` |
 | Entornos | Hoy solo producción. Para los tests de integración se usará un **Sheet de pruebas** separado (CLAUDE.md §7) |
-| Código fuente | Git + GitHub; se sube con `clasp --user familia push` desde el equipo (ADR-0015); copia/pega como emergencia |
+| Código fuente | Git + GitHub; se sube con `npm run push` (`clasp --user familia push`) desde el equipo (ADR-0015); copia/pega como emergencia |
+| Script del Form de viajeros | Proyecto aparte ligado al Google Form (ADR-0021), código en `docs_dev/src_form_checkin/`, con su propio `scriptId`. Configura desplegables y validaciones leyendo los catálogos de `BBDD_KAF_Rent`; sin credenciales de SES. Cuenta propietaria: pendiente (la del Form) |
 
 ---
 
@@ -256,7 +265,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | Hoja | Columnas | Propósito | ADR |
 |---|---|---|---|
 | `Reserva_Servicios` | ID_Reserva, Nombre_Servicio, Cantidad, Coste_Unitario_Snapshot, Precio_Unitario_Snapshot | Líneas de servicios extra | 0003 |
-| `Catálogo_Espacios` | Nombre_Espacio, Activo, Modo_Fecha | Espacios y modo de fecha | 0003 |
+| `Catálogo_Espacios` | Nombre_Espacio, Activo, Modo_Fecha, Nombre_Corto | Espacios, modo de fecha y nombre corto para tablas (F-26: Interior / Exterior) | 0003 |
 | `Catálogo_Canales` | Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato, Coste_Fijo_Por_Reserva, Requiere_Ref_Canal | Canales por espacio; `Requiere_Ref_Canal` = Sí exige el código de la plataforma (RF-88) | 0003, 0004 |
 | `Catálogo_Servicios_Extra` | Espacio, Nombre_Servicio, Activo, Coste_Unitario, Precio_Unitario | Servicios por espacio | 0003 |
 | `Catálogo_Categorias_Gasto` | Nombre_Categoria, Descripcion, Activo, Deducible_Default, Es_Amortizacion | Categorías fiscales (sembradas) | 0012 |
@@ -269,9 +278,13 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | `Estadisticas_Cache` | Zona, Total_Reservas_Anyo, Ingresos_Netos, Fecha_Actualizacion | Snapshot diario | 0009 |
 | `Gastos` | ID_Gasto, Fecha, Ejercicio, Concepto, Categoria, Espacio, Importe, Deducible, Pagado_Por, Justificante, Notas | Gastos | 0012 |
 | `Resumen_Fiscal` | Ejercicio, Espacio, Ingresos_Integros, Gastos_Deducibles, Rendimiento_Neto, Tercio_Comunero | Resumen persistido | 0012 |
-| `Registro_Viajeros` | ID_Reserva, Nombre_Completo, Tipo_Documento, Num_Documento, Num_Soporte, Nacionalidad, Fecha_Nacimiento, Direccion, Telefono, Email, Parentesco, Foto_Anverso, Foto_Reverso | Fase 2 (creada, sin uso) | 0007 |
+| ~~`Registro_Viajeros`~~ | — | Retirada del esquema (D-39, 2026-10-02): del diseño de ADR-0007, copiaba datos de huéspedes; con ADR-0018 no se copian. Borrada del Sheet real por el usuario | — |
 | `Catálogo_Checklist` | ID_Punto, Espacio, Momento, Bloque, Punto, Tipo (Casilla/Fecha/Video/Foto), Servicios_Requeridos, Condicion, Punto_Pareja, Orden, Activo | Puntos de las checklists; semilla = [checklists-check-in-out.md](../../docs_work/doc_check/checklists-check-in-out.md) | DD-01 |
-| `Registro_Checklist` | ID_Reserva, Momento, ID_Punto, Estado, Valor, Usuario, Fecha_Hora | Lo marcado en cada reserva (fila `OBSERVACIONES` para el texto libre) | DD-01 |
+| `Checklists_Reserva` | ID_Reserva, Momento, Puntos, Observaciones, Usuario, Fecha_Hora | Una fila por checklist; `Puntos` = JSON con estado, valor (fecha o respuesta de daños), usuario y fecha de cada punto | DD-01, ADR-0020 |
+| `Catálogo_SES` | Catalogo, Codigo, Descripcion | Códigos de SES (`SEXO`, `TIPO_DOCUMENTO`, `TIPO_PARENTESCO`, `TIPO_PAGO`) más `PAIS` y `PROVINCIA`; de aquí salen las opciones del Form (ADR-0021) | DD-02, ADR-0018 |
+| `Municipios_INE` | Provincia, Municipio, Codigo_INE | Código INE de 5 dígitos para domicilios en España | DD-02 |
+| `Comunicaciones_SES` | ID_Comunicacion, ID_Reserva, Tipo (RH/PV/AN), Estado, Intento, Filas_Form, Lote, Codigo_Comunicacion, Error, Usuario, Fecha_Envio, Proximo_Intento, Anula_A | Cada comunicación a SES, sus reintentos y anulaciones (ADR-0022), sin datos personales | DD-02 |
+| `Validacion_Viajeros` | ID_Reserva, Fila_Form, Marca_Temporal_Form, Validado_Por, Fecha_Hora | Quién validó en persona a cada huésped (S28) | DD-02 |
 
 ### 8.2 Modelo de importes
 
@@ -305,7 +318,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 - Un fallo secundario que el usuario debe conocer vuelve en la respuesta como `aviso` (y, si procede, `incidencia`); el cliente lo muestra en ventana modal con opción de enviarlo a las cuentas `Admin` (F-21, RF-82).
 
 ### 8.7 Configuración (`Config`)
-Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default`, `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23). Se leen una vez por ejecución (`leerConfig`).
+Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default` (prerrellenan las horas de la Habitación, ADR-0019; se leen como `HH:mm` aunque Sheets las guarde como hora), `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23), `Sheet_Viajeros_Id`, `Sheet_Viajeros_Hoja`, `Form_Viajeros_Enlace` (enlace prerrellenado con `{codigo}`, F-27), `SES_Url`, `SES_Codigo_Arrendador`, `SES_Codigo_Establecimiento`, `SES_Aplicacion`, `SES_Tipo_Pago`, `SES_Reintento_Minutos`, `SES_Max_Intentos` (S27), `SES_Web_Url` (S28, botón "Abrir SES.Hospedajes" de los emails). *Reparar hojas* añade al final las claves que falten sin tocar las existentes. Se leen una vez por ejecución (`leerConfig`).
 
 ### 8.8 Concurrencia
 `LockService.getScriptLock()` (espera de 20 s) en crear, editar, cancelar, servicios y gastos.
@@ -377,6 +390,7 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-20 | Los vídeos de check-in/out (≥ 300 MB) gastan los 15 GB gratuitos de la cuenta de quien los sube (su Gmail y Fotos incluidos), y el borrado nocturno puede no poder borrar archivos de otra cuenta (no verificado) | M | M | Media | Ninguna por ahora (D-29 = dejarlo así); opciones valoradas: grabar en 720p, Google One; vigilar con el Informe Técnico (F-16) | Aceptado (2026-10-02) |
 | R-21 | Sin Form del huésped antes del día de entrada, la reserva (`RH`) no se comunica a SES en 24 h (RD 933/2021, Art. 6.3 a) | M | M | Media | El parte (`PV`) se comunica siempre al validar; mensaje de WhatsApp con el Form al crear la reserva (F-27) | Aceptado por el usuario (D-31) |
 | R-22 | Cambio de estructura del Google Form de viajeros (preguntas repetidas leídas por orden) rompe la lectura de KAF Rent | B | A | Media | No tocar el Form sin revisar DD-02; test de cabeceras; error claro en pantalla (ADR-0018) | Abierto (Fase 2) |
+| R-23 | SES se activó en producción sin probar antes el alta de la reserva (`RH`), el parte (`PV`), la consulta del lote y la anulación contra SES real, porque pre-ses respondía HTTP 502 (2026-10-02). Un formato no aceptado haría fallar esas comunicaciones | M | B | Baja | Conexión y catálogo comprobados en producción; tests con la especificación v3.1.3; cada fallo da un email ✕ y se comunica a mano; verificación con la primera reserva real (S29, ACC-06) | Abierto |
 
 *P/I:* A = alta · M = media · B = baja.
 
@@ -389,11 +403,11 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | REF-03 | Plantilla repetida en cada endpoint | ✔ Resuelta en v2: `ejecutarEndpoint_` y `ejecutarTareaDelSistema_` |
 | REF-04 | Funciones largas que mezclaban niveles | ✔ Resuelta en v2: capas `api_`/`dominio_`/`infra_` |
 | TD-01 | `registrarLog_`/`registrarError_` escriben con `appendRow` en el orden del esquema | Aceptada (2026-10-02): nadie reordena `Logs` ni `Errores` |
-| TD-02 | `Registro_Checklist` se reescribe entera en cada guardado | Pendiente: una fila por checklist en hoja nueva (aprobado 2026-10-02) |
+| TD-02 | `Registro_Checklist` se reescribe entera en cada guardado | ✔ Resuelta en S22: hoja `Checklists_Reserva`, una fila por checklist (ADR-0020) |
 | TD-03 | `Config.Calendar_Url` repite `Calendar_Id` | Pendiente (backlog) |
-| TD-04 | Funciones puras de las copias en `infra_mantenimiento.gs` | Pendiente: mover a `dominio_mantenimiento.gs` (aprobado 2026-10-02) |
+| TD-04 | Funciones puras de las copias en `infra_mantenimiento.gs` | ✔ Resuelta en S9: `dominio_mantenimiento.gs` |
 | TD-05 | Sin tests automáticos | 🟡 Unitarios + endpoints + E2E + CI en v2; falta la integración (T-04) |
-| TD-06 | Sin linter | Pendiente: ESLint aprobado (T-07, 2026-10-02) |
+| TD-06 | Sin linter | ✔ Resuelta en S9: ESLint en `npm run lint` y en la CI (T-07); no cubre el JS de los `.html` |
 
 Los defectos funcionales (B-xx) están en [PROXIMOS_PASOS.md](../../docs_work/PROXIMOS_PASOS.md).
 

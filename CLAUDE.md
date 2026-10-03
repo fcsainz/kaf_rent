@@ -31,17 +31,21 @@ Al retomar el trabajo, **antes de nada**, Claude:
 ├── README.md               # Portada del repositorio (D-21: se mantiene)
 ├── CHANGELOG.md            # Keep a Changelog + SemVer
 ├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
-├── package.json            # Solo herramientas de desarrollo (npm test); nada se despliega
+├── package.json            # Solo herramientas de desarrollo (tests, lint, clasp); nada se despliega
+├── eslint.config.js        # ESLint para los .gs (T-07)
 ├── .github/workflows/      # CI gratuita: tests en cada push
 ├── tests/                  # Tests: soporte/ (cargador vm + dobles de Google), dominio/, endpoints/
 ├── docs_dev/               # Desarrollo del producto: código y su documentación
 │   ├── src/                # Código Apps Script (.gs + HTML Service); rootDir de clasp
+│   ├── src_form_checkin/   # Script propio del Google Form de viajeros (ADR-0021), proyecto aparte
 │   ├── DEVELOPMENT.md      # Puesta en marcha, clasp, despliegue y día a día
 │   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
 │   └── solution/           # CÓMO: arc42.md (+ C4), adr/ (MADR), design-docs/ (uno por funcionalidad grande), design-system.md
 └── docs_work/              # Carpeta de trabajo, fuera del núcleo (docs_dev): material que entra y sale según su utilidad, más lo permanente
     ├── PROXIMOS_PASOS.md   # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
+    ├── valor_dev.md        # Valoración del proyecto a precio de mercado (comparables)
     ├── docs_mejoras/       # Registro de mejoras de cada sesión (mejoras_AAAA-MM-DD.md, §5.1)
+    ├── emails_propuesta/   # Maquetas aprobadas del rediseño de emails (D-35, S28): referencia para implementarlo
     ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
     ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles
     └── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out (Piscina/Jardín)
@@ -95,6 +99,7 @@ Las decisiones que no se resuelven en la sesión se anotan en **PROXIMOS_PASOS �
 ### 2.2 Commits: solo al final de la sesión y los hace el usuario
 
 - **Claude nunca hace `git commit` ni `git push`.** Puede usar `git mv` / `git rm` para reorganizar si el usuario lo aprueba, pero el commit es siempre del usuario.
+- **clasp:** Claude puede subir el código con clasp (`npm run push` para KAF Rent; `npm run push:form` para el script del Form de viajeros, proyecto `script_form_checkin_habitacion`, ADR-0021), **pero solo tras pedir y recibir el OK del usuario en cada subida**; sin ese OK no se sube (decisión del usuario, 2026-10-02). **Subir** (`clasp push`) cambia el código del proyecto, que usan el editor, el menú del Sheet, los triggers y la URL `/dev`; **implementar** (`npm run deploy`, `clasp deploy`) crea la versión que ven los usuarios en `/exec`. Implementar lo hace siempre el usuario (regla global). Nunca crea ni borra proyectos, Forms u otros recursos de Google sin OK.
 - **Cierre de sesión**, siempre en este orden:
   1. El usuario pide la **revisión de cierre**.
   2. Claude ejecuta la **Revisión 1** y la **Revisión 2** (§2.3) sobre **todo el repositorio**, no solo sobre lo tocado.
@@ -285,6 +290,7 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 | [design-system.md](docs_dev/solution/design-system.md) | Tokens de diseño |
 | [CHANGELOG.md](CHANGELOG.md) | Keep a Changelog + SemVer |
 | [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
+| [valor_dev.md](docs_work/valor_dev.md) | Valoración por **comparables de mercado**: cada función frente a la herramienta comercial más parecida y su cuota anual, con fuentes y fecha de consulta (decisión del usuario, 2026-10-02). Se actualiza cuando cambie mucho el alcance |
 | [docs_mejoras/mejoras_AAAA-MM-DD.md](docs_work/docs_mejoras/) | Registro de sesión: un fichero por sesión (fecha ISO 8601), una tabla resumen y un apartado por punto con origen, diagnóstico, propuesta, decisión, lo hecho y adónde se traslada. Estados: Propuesto → Pendiente de decisión → Aprobado → Hecho → Trasladado (a PROXIMOS_PASOS, CHANGELOG, discovery, código y tests). Se conserva tras el cierre como histórico (decisión del usuario, 2026-10-02) |
 
 Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
@@ -384,7 +390,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 **Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
 
-> **Estado actual (v2):** unitarios del dominio, tests de los 21 endpoints y de las entradas del sistema, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). Pendientes: integración contra Google (T-04) y ESLint (PROXIMOS_PASOS, S19/S9).
+> **Estado actual (v2):** unitarios del dominio, tests de los 35 endpoints y de las entradas del sistema, del script del Form de viajeros, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm run lint`, `npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). ESLint sobre los `.gs` desde S9 (T-07). Pendiente: integración contra Google (T-04, PROXIMOS_PASOS S19).
 
 ### 7.1 Pirámide y dónde se ejecuta cada nivel
 
@@ -394,7 +400,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 | **Integración** | Adaptadores reales: lectura y escritura en Sheets, Drive, Calendar y Mail | Suite propia en Apps Script (`pruebas_integracion.gs`) sobre un **Sheet de pruebas** separado con su propio proyecto de script | Editor de Apps Script del proyecto de pruebas | Usuario (Claude la prepara y lee el resultado que se le pegue) |
 | **E2E (interfaz)** | Flujos completos del cliente: navegación, formularios, validaciones, cascadas, modales, XSS, viewport móvil | **Playwright** + servidor local que resuelve los `include` y simula `google.script.run` con datos de prueba | Local (**Claude puede lanzarlos**) y GitHub Actions | Claude / CI |
 | **Smoke en producción** | Lo que solo existe en Google real: login, autorización, Calendar, emails, Drive, triggers | Checklist manual en DEVELOPMENT.md | URL `/dev` y producción tras desplegar | Usuario |
-| **Estático** | Estilo, variables no usadas, globals, patrones prohibidos (`var`, `innerHTML` sin escapar, IDs en el código) | ESLint (+ reglas propias) | Local y CI | Claude / CI |
+| **Estático** ✅ | Estilo, variables no usadas, globals, patrones prohibidos (`var`, `getValue`/`setValue` en bucles, IDs en el código). El JS de los `.html` (p. ej. `innerHTML` sin escapar) aún no se analiza | ESLint (+ reglas propias, `eslint.config.js`) | Local y CI | Claude / CI |
 
 **Por qué no hay E2E automático contra la app real:** Google bloquea los inicios de sesión automatizados (2FA y detección de bots), y las credenciales de clasp solo viven en el equipo del desarrollador, nunca en GitHub ([ADR-0015](docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)). La integración podrá lanzarse desde el equipo con `clasp run-function` (se decide al llegar a T-04). Por eso lo exclusivamente "Google real" se cubre con integración manual y smoke.
 
@@ -408,11 +414,11 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 - **Timely:** los tests **unitarios y de endpoints** se escriben con el cambio (antes si es un defecto: primero el test que lo reproduce). Los **E2E de pantallas nuevas, la integración contra Google y la auditoría de accesibilidad** se hacen juntos antes de pasar a producción (§8.3), para no frenar el desarrollo sprint a sprint (decisión del usuario, 2026-09-27). Los E2E ya existentes siguen ejecutándose solos en CI.
 
 ### 7.3 Convenciones
-- Estructura: `tests/dominio/*.test.js` (funciones puras), `tests/endpoints/*.test.js` (API con dobles), `tests/interfaz/*.test.js` (comprobaciones de la interfaz sin navegador, p. ej. contrastes), `tests/e2e/<flujo>.spec.js` (Playwright; `servidor.js` sirve la interfaz real y ejecuta el servidor real sobre los dobles), `tests/soporte/` (cargador `gas.js` y dobles `dobles.js`).
+- Estructura: `tests/dominio/*.test.js` (funciones puras), `tests/endpoints/*.test.js` (API con dobles), `tests/interfaz/*.test.js` (comprobaciones de la interfaz sin navegador, p. ej. contrastes), `tests/e2e/<flujo>.spec.js` (Playwright; `servidor.js` sirve la interfaz real y ejecuta el servidor real sobre los dobles), `tests/form_checkin/` (script del Form, ADR-0021), `tests/soporte/` (cargador `gas.js` y dobles `dobles.js`).
 - Nombre: `describe('RF-NN · qué')` + `it('debe … cuando …')`. Un escenario Gherkin ≈ un test.
 - Patrón AAA (Arrange, Act, Assert) y un único comportamiento por test.
 - Cobertura objetivo: ≥ 80 % de líneas en dominio; 100 % de las reglas de dinero, estado y solapamiento.
-- Comandos: `npm test`, `npm run test:cobertura` y `npm run test:e2e` (disponibles); `npm run lint` (previsto). Las respuestas de los endpoints se serializan en los tests como hace `google.script.run`.
+- Comandos: `npm test`, `npm run test:cobertura`, `npm run test:e2e` y `npm run lint`; `npm run push` y `npm run deploy` (clasp, los lanza el usuario). Las respuestas de los endpoints se serializan en los tests como hace `google.script.run`.
 - Un defecto corregido lleva siempre su test de regresión.
 
 ---

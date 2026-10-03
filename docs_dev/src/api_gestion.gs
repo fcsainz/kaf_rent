@@ -52,14 +52,21 @@ const listarReservasActivas = (filtro) => ejecutarEndpoint_('listarReservasActiv
 
 const obtenerReserva = (id) => ejecutarEndpoint_('obtenerReserva', { id }, () => {
   const entrada = buscarReserva_(leerReservas_(), id);
-  return entrada ? { success: true, data: proyeccionFicha_(entrada.reserva) } : { success: false, error: MENSAJE_NO_ENCONTRADA };
+  if (!entrada) return { success: false, error: MENSAJE_NO_ENCONTRADA };
+  // B-21: el cliente valida el código en el momento; el servidor lo revalida al guardar. ADR-0022: aviso de SES al cancelar.
+  const r = entrada.reserva;
+  return { success: true, data: { ...proyeccionFicha_(r), refCanalObligatoria: refCanalObligatoria_(r), avisoCancelacionSES: avisoCancelacionSESDe_(r.id) } };
 }, { errorUsuario: 'No se pudo cargar la reserva.' });
 
 // RF-88: el catálogo dice si el canal exige el código; la regla vive en el dominio.
+const refCanalObligatoria_ = (reserva) => {
+  const canal = obtenerCanalesActivos_(reserva.espacio).find((c) => c.nombre === reserva.canal);
+  return refCanalObligatoriaAlEditar_(canal && canal.requiereRef, reserva.refCanal);
+};
+
 const validarRefCanalEditada_ = (reserva, refCanal) => {
   if (refCanal === undefined) return { valido: true };
-  const canal = obtenerCanalesActivos_(reserva.espacio).find((c) => c.nombre === reserva.canal);
-  return validarRefCanal_(refCanal, reserva.canal, refCanalObligatoriaAlEditar_(canal && canal.requiereRef, reserva.refCanal));
+  return validarRefCanal_(refCanal, reserva.canal, refCanalObligatoria_(reserva));
 };
 
 // Guarda la edición, recalcula importes y estado y audita campo a campo (RF-45..RF-50).
@@ -119,8 +126,18 @@ const cancelarReserva = (id) => ejecutarEndpoint_('cancelarReserva', { id }, () 
   registrarHistorial_(id, diffs, email, ahora);
   eliminarEventoReserva_(reserva.calendarEventId);
   notificarReaperturaCanales_(reserva);
+  anularEnSESAlCancelar_(reserva.id, email, ahora);
   return { success: true };
 }, { bloqueo: true, errorUsuario: 'No se pudo cancelar la reserva.' });
+
+// ADR-0022: un fallo al programar la anulación no deshace la cancelación; queda en Errores y se avisa.
+const anularEnSESAlCancelar_ = (idReserva, email, ahora) => {
+  try {
+    programarAnulacionesSES_(idReserva, email, ahora);
+  } catch (error) {
+    registrarError_('anularEnSESAlCancelar_', error, { id: idReserva });
+  }
+};
 
 // Historial de más reciente a más antiguo (RF-53).
 const obtenerHistorial = (id) => ejecutarEndpoint_('obtenerHistorial', { id }, () => {

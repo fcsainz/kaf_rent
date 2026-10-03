@@ -1,0 +1,179 @@
+  <script>
+    // Registro de viajeros en SES dentro de Gestionar → una reserva de la Habitación (F-28, DD-02 §3.1).
+    // Validar en persona a cada huésped y comunicar el parte. Los datos se pintan siempre con textContent (RNF-26).
+
+    const ESTADO_SES_VISIBLE = {
+      Pendiente: ['esperando a SES', 'av'], Enviada: ['esperando a SES', 'av'], Comunicada: ['comunicado', 'ok'],
+      Rechazada: ['rechazado: revisar', 'err'], Manual: ['comunicar a mano', 'err'], 'No comunicada': ['no comunicada', 'av'],
+      Anulada: ['anulada', 'info'], Descartada: ['descartada', 'info'],
+    };
+
+    const nuevo = (etiqueta, clase, texto) => {
+      const el = document.createElement(etiqueta);
+      if (clase) el.className = clase;
+      if (texto !== undefined) el.textContent = texto;
+      return el;
+    };
+
+    const chip = (texto, tono) => nuevo('span', `chip${tono ? ` ${tono}` : ''}`, texto);
+
+    const chipSES = (tramite, estado) => {
+      if (!estado) return null;
+      const [texto, tono] = ESTADO_SES_VISIBLE[estado.estado] || [estado.estado, ''];
+      return chip(`${tramite} ${texto}${estado.codigo ? ` · ${estado.codigo}` : ''}`, tono);
+    };
+
+    const filaDato = (etiqueta, valor, clase) => {
+      const fila = nuevo('div', 'fila-dato');
+      fila.append(nuevo('span', '', etiqueta), nuevo('span', clase || '', valor || '—'));
+      return fila;
+    };
+
+    const llamarRegistro = (texto, metodo, ...args) => servidor(texto)
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        pintarRegistroViajeros(res.data);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudo completar la operación con el registro de viajeros. Inténtalo de nuevo.', 'error'))[metodo](...args);
+
+    // Al abrir la ficha, un fallo (sin permiso, Form sin configurar…) se explica dentro del bloque, sin ventana.
+    const avisoEnBloque = (texto) => {
+      $('viajeros-aviso').hidden = false;
+      $('viajeros-aviso').className = 'aviso-viajeros err';
+      $('viajeros-aviso').textContent = texto;
+      $('viajeros-lista').innerHTML = '';
+      $('btn-comunicar-parte').disabled = true;
+    };
+
+    const cargarRegistroViajeros = (d) => {
+      $('bloque-viajeros').hidden = !d.registroViajeros;
+      if (!d.registroViajeros) return;
+      servidor('Cargando los huéspedes…')
+        .withSuccessHandler((res) => (res.success ? pintarRegistroViajeros(res.data) : avisoEnBloque(res.error)))
+        .withFailureHandler(() => avisoEnBloque('No se pudieron cargar los huéspedes. Pulsa «Actualizar formularios».'))
+        .cargarViajeros(reservaActualId);
+    };
+
+    const tarjetaHuesped = (h, parteEnCurso) => {
+      const tarjeta = nuevo('div', `huesped${h.validado ? ' validado' : ''}`);
+      const edad = h.edad === null ? '' : ` · ${h.edad} años`;
+      tarjeta.append(
+        filaDato('Huésped', h.nombre),
+        filaDato('Edad', `${h.esAdulto ? 'Adulto' : 'Menor'}${edad}${h.parentesco ? ` · ${h.parentesco}` : ''}`),
+        filaDato('Documento', h.documento, 'doc'),
+      );
+      if (h.soporte) tarjeta.append(filaDato('Nº de soporte', h.soporte, 'doc'));
+      tarjeta.append(filaDato('Nacionalidad', h.nacionalidad), filaDato('Domicilio', h.domicilio));
+      if (h.validado) {
+        tarjeta.append(nuevo('p', 'validado-por', `✓ Validado por ${h.validado.por} · ${h.validado.fecha}`));
+        if (!parteEnCurso) tarjeta.append(botonPequeno('Deshacer', () => llamarRegistro('Deshaciendo la validación…', 'deshacerValidacionViajero', reservaActualId, h.fila)));
+        return tarjeta;
+      }
+      return completarTarjetaSinValidar(tarjeta, h);
+    };
+
+    const botonPequeno = (texto, alPulsar) => {
+      const boton = nuevo('button', 'btn btn-secundario btn-pequeno', texto);
+      boton.type = 'button';
+      boton.addEventListener('click', alPulsar);
+      return boton;
+    };
+
+    // Sin validar: lo que falta corregir y el botón de validar (con el municipio elegido si hacía falta).
+    const completarTarjetaSinValidar = (tarjeta, h) => {
+      if (h.otrosFaltan.length > 0) {
+        tarjeta.append(nuevo('p', 'problema', `⚠ Falta: ${h.otrosFaltan.join(', ')}. Corrígelo en el Sheet del Form y pulsa «Actualizar formularios».`));
+        return tarjeta;
+      }
+      let selector = null;
+      if (h.faltaMunicipio) {
+        const id = `municipio-${h.fila}`;
+        const etiqueta = nuevo('label', 'problema', `⚠ El municipio no está en el INE (provincia: ${h.provincia || 'sin indicar'}). Elígelo:`);
+        etiqueta.htmlFor = id;
+        selector = nuevo('select');
+        selector.id = id;
+        selector.append(nuevo('option', '', 'Elige el municipio…'));
+        h.municipiosProvincia.forEach((m) => { const o = nuevo('option', '', `${m.nombre} (${m.codigo})`); o.value = m.codigo; selector.append(o); });
+        selector.firstChild.value = '';
+        tarjeta.append(etiqueta, selector);
+      }
+      const validar = nuevo('button', 'btn btn-primario', 'Validar en persona');
+      validar.type = 'button';
+      validar.addEventListener('click', () => {
+        if (selector && !selector.value) { mostrarMensaje('Elige el municipio del huésped antes de validarlo.', 'aviso'); return; }
+        llamarRegistro('Validando al huésped…', 'validarViajero', reservaActualId, h.fila, selector ? selector.value : '');
+      });
+      tarjeta.append(validar);
+      return tarjeta;
+    };
+
+    // Aviso según cómo esté el registro: faltan formularios, listo, esperando a SES, comunicado o con fallo.
+    const avisoRegistro = (d) => {
+      const parte = d.estadoSES.parte;
+      if (parte && ['Pendiente', 'Enviada'].includes(parte.estado)) return ['av', 'Parte enviado a SES. SES lo procesa en unos minutos; KAF Rent lo comprueba cada 10 min y avisa por email. Puedes comprobarlo ya.'];
+      if (parte && parte.estado === 'Comunicada') return ['ok', `✓ Parte comunicado a SES (código ${parte.codigo}). No hay que hacer nada más.`];
+      if (parte && ['Manual', 'Rechazada'].includes(parte.estado)) return ['err', `El parte no se ha comunicado: ${parte.error || 'revisa el email de aviso'}. Revisa los datos o comunícalo a mano en SES.`];
+      if (d.faltanFormularios > 0) return ['err', `Falta el formulario de ${d.faltanFormularios} huésped(es). Envíales el mensaje y pulsa «Actualizar formularios» cuando lo rellenen.`];
+      if (d.puedeComunicar) return ['ok', `Todo listo. Plazo legal: hasta el ${d.plazo}.`];
+      return null;
+    };
+
+    const pintarRegistroViajeros = (d) => {
+      const chips = $('viajeros-chips');
+      chips.innerHTML = '';
+      [chip(`Formularios ${d.formularios} de ${d.personas}`, d.faltanFormularios ? 'err' : 'ok'),
+        chip(`Validados ${d.validados} de ${d.formularios}`, d.formularios && d.validados === d.formularios ? 'ok' : 'av'),
+        chipSES('Reserva', d.estadoSES.reserva), chipSES('Parte', d.estadoSES.parte)]
+        .filter(Boolean).forEach((c) => chips.append(c));
+      const aviso = avisoRegistro(d);
+      $('viajeros-aviso').hidden = !aviso;
+      if (aviso) { $('viajeros-aviso').className = `aviso-viajeros ${aviso[0]}`; $('viajeros-aviso').textContent = aviso[1]; }
+      const parteEnCurso = Boolean(d.estadoSES.parte && ['Pendiente', 'Enviada', 'Comunicada'].includes(d.estadoSES.parte.estado));
+      const lista = $('viajeros-lista');
+      lista.innerHTML = '';
+      d.huespedes.forEach((h) => lista.append(tarjetaHuesped(h, parteEnCurso)));
+      $('btn-comunicar-parte').disabled = !d.puedeComunicar;
+      $('btn-comunicar-parte').hidden = parteEnCurso;
+      $('btn-comprobar-ses').hidden = !(d.estadoSES.parte && ['Pendiente', 'Enviada'].includes(d.estadoSES.parte.estado));
+      $('viajeros-nota').textContent = parteEnCurso ? '' : 'Se activa con todos los formularios recibidos y validados. Solo Gestión y Admin.';
+      $('viajeros-nota').dataset.personas = d.formularios;
+    };
+
+    const comunicarParteUI = () => {
+      const n = $('viajeros-nota').dataset.personas;
+      confirmarAccion(`Se enviará a SES.Hospedajes el parte de ${n} huésped(es) de esta reserva. ¿Continuar?`,
+        () => llamarRegistro('Enviando el parte a SES…', 'comunicarParte', reservaActualId));
+    };
+
+    const inicializarRegistroViajeros = () => {
+      if (!$('bloque-viajeros')) return;
+      $('btn-actualizar-viajeros').addEventListener('click', () => llamarRegistro('Leyendo los formularios…', 'cargarViajeros', reservaActualId));
+      $('btn-comunicar-parte').addEventListener('click', comunicarParteUI);
+      $('btn-comprobar-ses').addEventListener('click', () => llamarRegistro('Comprobando en SES…', 'comprobarSES', reservaActualId));
+    };
+
+    // Comprobar la conexión con SES (F-30): el panel solo se muestra a Admin; el servidor vuelve a comprobarlo.
+    const pintarConexionSES = (diagnostico) => {
+      const resultado = $('resultado-conexion-ses');
+      resultado.hidden = false;
+      resultado.className = `aviso-viajeros ${diagnostico.ok ? 'ok' : 'err'}`;
+      resultado.textContent = diagnostico.mensaje;
+      if (diagnostico.ok) mostrarExito('Conexión con SES correcta.');
+      else mostrarMensaje(diagnostico.mensaje, 'error');
+    };
+
+    const inicializarConexionSES = () => {
+      if (!$('panel-conexion-ses')) return;
+      google.script.run
+        .withSuccessHandler((res) => { $('panel-conexion-ses').hidden = !(res.success && res.data.esAdmin); })
+        .withFailureHandler(() => { $('panel-conexion-ses').hidden = true; })
+        .obtenerPerfil();
+      $('btn-probar-ses').addEventListener('click', () => servidor('Comprobando la conexión con SES…')
+        .withSuccessHandler((res) => (res.success ? pintarConexionSES(res.data) : mostrarMensaje(res.error, 'error')))
+        .withFailureHandler(() => mostrarMensaje('No se pudo comprobar la conexión con SES. Inténtalo de nuevo.', 'error'))
+        .probarConexionSES());
+    };
+
+    inicializarRegistroViajeros();
+    inicializarConexionSES();
+  </script>

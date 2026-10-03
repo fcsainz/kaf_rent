@@ -7,6 +7,7 @@
       { momento: 'Check-out', titulo: 'Check-out', video: 'Out' },
     ];
     const ESTADOS = { HECHO: 'Hecho', NO_APLICA: 'No aplica', PENDIENTE: 'Pendiente' };
+    const RESPUESTAS_DANOS = ['Sin daños', 'Con daños'];
     const MAX_MB_VIDEO_CLIENTE = 100;
 
     let checklistReservaId = null;
@@ -27,7 +28,7 @@
     };
 
     const pedirChecklist = (m, det) => {
-      google.script.run
+      servidor('Cargando la checklist…')
         .withSuccessHandler((res) => {
           if (!res.success) { det.querySelector('summary').textContent = `${m.titulo} — no se pudo cargar`; mostrarMensaje(res.error, 'error'); return; }
           renderChecklist(m, det, res.data);
@@ -38,6 +39,7 @@
 
     const puntoResueltoUI = (p) => {
       if (p.tipo === 'Foto') return true;
+      if (p.tipo === 'Daños') return p.estado === ESTADOS.HECHO && RESPUESTAS_DANOS.includes(p.valor);
       if (p.estado === ESTADOS.NO_APLICA) return true;
       return p.estado === ESTADOS.HECHO && (p.tipo !== 'Fecha' || Boolean(p.valor));
     };
@@ -84,7 +86,11 @@
       botonTerminar.type = 'button';
       botonTerminar.className = 'btn btn-primario';
       botonTerminar.textContent = `Dar el ${m.titulo.toLowerCase()} por terminado`;
-      botonGuardar.addEventListener('click', () => guardarChecklistUI(m, puntos, obs.value, botonGuardar, () => mostrarExito('Checklist guardada.')));
+      botonGuardar.addEventListener('click', () => guardarChecklistUI(m, puntos, obs.value, botonGuardar, (res) => {
+        if (!res.reabierta) { mostrarExito('Checklist guardada.'); return; }
+        reabrirDetalle();
+        mostrarMensaje(`Checklist guardada. El ${m.titulo.toLowerCase()} ya no está terminado: quedan puntos pendientes.`, 'aviso');
+      }));
       botonTerminar.addEventListener('click', () => confirmarAccion(
         `¿Das el ${m.titulo.toLowerCase()} por terminado? Quedará registrado a tu nombre.`,
         () => guardarChecklistUI(m, puntos, obs.value, botonTerminar, () => terminarChecklistUI(m, puntos)),
@@ -121,6 +127,8 @@
         check.addEventListener('change', () => { p.estado = check.checked ? ESTADOS.HECHO : ESTADOS.PENDIENTE; refrescarNoAplica(); alCambiar(); });
         noAplica.addEventListener('click', () => { check.checked = false; });
         principal.append(check, etiqueta);
+      } else if (p.tipo === 'Daños') {
+        principal.appendChild(controlDanos(p, alCambiar));
       } else if (p.tipo === 'Fecha') {
         const fecha = document.createElement('input');
         fecha.type = 'date';
@@ -142,8 +150,30 @@
       });
       refrescarNoAplica();
       fila.append(principal);
-      if (p.tipo !== 'Foto') fila.append(noAplica);
+      if (p.tipo !== 'Foto' && p.tipo !== 'Daños') fila.append(noAplica);
       return fila;
+    };
+
+    // B-19: dos opciones excluyentes; cualquiera completa el punto y "Con daños" lleva a registrar la incidencia.
+    const controlDanos = (p, alCambiar) => {
+      const grupo = document.createElement('fieldset');
+      grupo.className = 'checklist-danos';
+      const leyenda = document.createElement('legend');
+      leyenda.textContent = p.punto;
+      grupo.appendChild(leyenda);
+      RESPUESTAS_DANOS.forEach((respuesta, i) => {
+        const opcion = document.createElement('input');
+        opcion.type = 'radio';
+        opcion.name = `punto-${p.id}`;
+        opcion.id = `punto-${p.id}-${i}`;
+        opcion.checked = p.valor === respuesta;
+        opcion.addEventListener('change', () => { p.valor = respuesta; p.estado = ESTADOS.HECHO; alCambiar(); });
+        const etiqueta = document.createElement('label');
+        etiqueta.htmlFor = opcion.id;
+        etiqueta.textContent = respuesta;
+        grupo.append(opcion, etiqueta);
+      });
+      return grupo;
     };
 
     // Vídeo (se marca solo al subirlo) o fotos de desperfectos (opcionales, se van añadiendo).
@@ -175,7 +205,7 @@
           alCambiar();
           mostrarExito(p.tipo === 'Video' ? 'Vídeo subido.' : 'Foto añadida.');
         };
-        const runner = google.script.run.withSuccessHandler(alTerminar)
+        const runner = servidor(p.tipo === 'Video' ? 'Subiendo el vídeo…' : 'Subiendo la foto…').withSuccessHandler(alTerminar)
           .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el archivo. Inténtalo de nuevo.', 'error'); });
         if (p.tipo === 'Video') runner.subirVideo(checklistReservaId, m.video, archivo);
         else runner.subirFotoDesperfecto(checklistReservaId, archivo);
@@ -187,31 +217,36 @@
 
     const estadosParaGuardar = (puntos) => puntos
       .filter((p) => p.tipo !== 'Foto')
-      .map((p) => ({ idPunto: p.id, estado: p.estado, valor: p.tipo === 'Fecha' ? (p.valor || '') : '' }));
+      .map((p) => ({ idPunto: p.id, estado: p.estado, valor: p.tipo === 'Fecha' || p.tipo === 'Daños' ? (p.valor || '') : '' }));
 
     const guardarChecklistUI = (m, puntos, observaciones, boton, alGuardar) => {
       boton.disabled = true;
-      google.script.run
+      servidor('Guardando la checklist…')
         .withSuccessHandler((res) => {
           boton.disabled = false;
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-          alGuardar();
+          alGuardar(res);
         })
         .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo guardar la checklist.', 'error'); })
         .guardarChecklist(checklistReservaId, m.momento, estadosParaGuardar(puntos), observaciones);
     };
 
-    // Si en el check-out algún "Sin daños…" se marcó "No aplica", hay daños: se lleva al usuario a registrar la incidencia.
-    const hayDanos = (puntos) => puntos.some((p) => /^Sin daños/i.test(p.punto) && p.estado === ESTADOS.NO_APLICA);
+    // Si algún punto de daños se respondió "Con daños", se lleva al usuario a registrar la incidencia (B-19).
+    const hayDanos = (puntos) => puntos.some((p) => p.tipo === 'Daños' && p.valor === 'Con daños');
+
+    // Vuelve a abrir la reserva para ver su estado recalculado.
+    const reabrirDetalle = () => {
+      const id = checklistReservaId;
+      cerrarDetalle();
+      modificar(id);
+    };
 
     const terminarChecklistUI = (m, puntos) => {
-      google.script.run
+      servidor('Terminando la checklist…')
         .withSuccessHandler((res) => {
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
           mostrarExito(`${m.titulo} terminado.`);
-          const id = checklistReservaId;
-          cerrarDetalle();
-          modificar(id);
+          reabrirDetalle();
           if (m.momento === 'Check-out' && hayDanos(puntos)) {
             mostrarMensaje('Has indicado daños. Registra la incidencia en el formulario: Incidencias → "Con incidentes".', 'aviso');
           }
@@ -236,7 +271,7 @@
       if (!espacio) return;
       const cont = $('ck-lista');
       cont.textContent = 'Cargando…';
-      google.script.run
+      servidor('Cargando el catálogo…')
         .withSuccessHandler((res) => {
           if (!res.success) { cont.textContent = ''; mostrarMensaje(res.error, 'error'); return; }
           renderEditor(res.data, espacio, momento);
@@ -247,7 +282,7 @@
 
     const guardarPuntoUI = (datos, boton) => {
       if (boton) boton.disabled = true;
-      google.script.run
+      servidor('Guardando el punto…')
         .withSuccessHandler((res) => {
           if (boton) boton.disabled = false;
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }

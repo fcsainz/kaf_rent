@@ -4,7 +4,6 @@ const CAMPO_REVISION_POR_MOMENTO = { 'Check-in': 'checkin', 'Check-out': 'checko
 const ETIQUETA_REVISION_POR_MOMENTO = { 'Check-in': 'Check-in revisado', 'Check-out': 'Check-out revisado' };
 const MOMENTO_POR_VIDEO = { In: 'Check-in', Out: 'Check-out' };
 const MAX_OBSERVACIONES_CHECKLIST = 2000;
-const FORMATO_ISO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const DIAS_OFFICE_REPONER_DEFECTO = 3;
 
 const esMomentoChecklist_ = (momento) => Object.values(MOMENTO_CHECKLIST).includes(momento);
@@ -65,11 +64,9 @@ const validarEstadosChecklist_ = (entrada, puntos, observaciones) => {
   if (!Array.isArray(entrada)) return invalido_('No se recibieron los puntos de la checklist.');
   if (texto_(observaciones).length > MAX_OBSERVACIONES_CHECKLIST) return invalido_('Las observaciones son demasiado largas.');
   const porId = new Map(puntos.map((p) => [p.id, p]));
-  const estadosValidos = Object.values(ESTADO_PUNTO);
   const erroneo = entrada.find((e) => {
     const punto = porId.get(texto_(e && e.idPunto));
-    if (!punto || !estadosValidos.includes(texto_(e.estado))) return true;
-    return punto.tipo === TIPO_PUNTO.FECHA && texto_(e.valor) !== '' && !FORMATO_ISO_FECHA.test(texto_(e.valor));
+    return !punto || !estadoPuntoValido_(punto, texto_(e.estado), texto_(e.valor));
   });
   return erroneo ? invalido_('Hay puntos no válidos para esta checklist. Recarga la página e inténtalo de nuevo.') : valido_();
 };
@@ -84,9 +81,22 @@ const guardarChecklist = (id, momento, estados, observaciones) => ejecutarEndpoi
     ...estados.map((e) => ({ idPunto: texto_(e.idPunto), estado: texto_(e.estado), valor: texto_(e.valor) })),
     { idPunto: PUNTO_OBSERVACIONES, estado: '', valor: texto_(observaciones) },
   ];
-  guardarRegistroChecklist_(entrada.reserva.id, momento, registros, obtenerEmailSesion_(), new Date());
-  return { success: true };
+  const email = obtenerEmailSesion_();
+  const ahora = new Date();
+  guardarRegistroChecklist_(entrada.reserva.id, momento, registros, email, ahora);
+  const reabierta = reabrirSiQuedanPendientes_(lectura.tabla, entrada, momento, puntos, mapaEstados_(registros), email, ahora);
+  return { success: true, reabierta };
 }, { bloqueo: true, errorUsuario: 'No se pudo guardar la checklist. Inténtalo de nuevo.' });
+
+// B-18: una checklist terminada que vuelve a tener puntos pendientes deja de estar terminada (y la reserva se recalcula).
+const reabrirSiQuedanPendientes_ = (tabla, entrada, momento, puntos, estados, email, ahora) => {
+  const campo = CAMPO_REVISION_POR_MOMENTO[momento];
+  if (entrada.reserva[campo] !== REVISION.HECHO || checklistResuelta_(puntos, estados)) return false;
+  const { reserva, diffs } = aplicarCambios_(entrada.reserva, { ...entrada.reserva, [campo]: REVISION.PENDIENTE }, email, ahora);
+  guardarReserva_(tabla, entrada, reserva);
+  registrarHistorial_(reserva.id, diffs, email, ahora);
+  return true;
+};
 
 // Da la lista por terminada (tras la confirmación del usuario): marca Hecho, recalcula el estado y lo audita.
 const confirmarChecklist = (id, momento) => ejecutarEndpoint_('confirmarChecklist', { id, momento }, () => {

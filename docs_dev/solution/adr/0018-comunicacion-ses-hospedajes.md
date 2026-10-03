@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted; "sin anulaciones automáticas" (D-31) sustituido por ADR-0022
 date: 2026-10-02
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: —
@@ -56,7 +56,7 @@ Opciones elegidas (decisiones del usuario D-30 a D-33, 2026-10-02):
 
 * Tests unitarios de la validación y del XML de `RH` y `PV` frente a los campos obligatorios de la especificación v3.1.3.
 * Tests de endpoints con dobles de `UrlFetchApp` y del Sheet del Form: éxito, rechazo de SES, fallo de red, 3 reintentos.
-* Prueba real contra el entorno de pruebas (`pre-ses`) antes de producción; revisión RGPD (EXT-02).
+* ~~Prueba real contra el entorno de pruebas (`pre-ses`) antes de producción~~ → pre-ses respondió HTTP 502 el 2026-10-02; la conexión y el catálogo se comprobaron en producción y SES se activó allí (usuario, 2026-10-02). Queda verificar el alta y la consulta del lote con la primera reserva real (S29) y la revisión RGPD (EXT-02).
 
 ## Pros y contras de las opciones
 
@@ -78,5 +78,5 @@ Opciones elegidas (decisiones del usuario D-30 a D-33, 2026-10-02):
 ## Más información
 
 * **Diseño:** [DD-02](../design-docs/DD-02-comunicacion-ses-hospedajes.md).
-* **Trazabilidad:** HU-35, HU-36 · RF-75 a RF-78 (se reescriben al aprobar) · RNF-34, RNF-38 · registro de la sesión: [mejoras_2026-10-02.md](../../../docs_work/docs_mejoras/mejoras_2026-10-02.md).
+* **Trazabilidad:** HU-35, HU-36 · RF-76, RF-77, RF-78, RF-89, RF-90, RF-91 (RF-75 retirado) · RNF-34, RNF-38 · registro de la sesión: [mejoras_2026-10-02.md](../../../docs_work/docs_mejoras/mejoras_2026-10-02.md).
 * **Cuestiones abiertas:** credenciales del servicio web (el usuario las localiza o las vuelve a pedir); revisión RGPD (EXT-02) antes de producción; preguntas abiertas de DD-02 §5.

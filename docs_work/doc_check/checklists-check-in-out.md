@@ -1,12 +1,12 @@
 # Checklists de check-in y check-out — Calle 16
 
-**Versión:** 1.0 · **Aprobada:** 2026-09-27 · **Espacios:** Exterior (Piscina / Jardín) e Interior (Habitación)
+**Versión:** 1.1 · **Aprobada:** 2026-10-02 · **Espacios:** Exterior (Piscina / Jardín) e Interior (Habitación)
 
 > Contenido aprobado de las 4 checklists. Es la **semilla** del catálogo de la app (`Catálogo_Checklist`, F-14, [DD-01](../../docs_dev/solution/design-docs/DD-01-checklists-digitales.md)).
 > Cuando la app esté en uso, la lista viva es la hoja `Catálogo_Checklist` del Sheet (el admin la edita desde la app). Este documento se actualiza cuando cambie, con una nueva versión en el histórico.
 > Origen: [Checklist_Piscina_Jardin.pdf](Checklist_Piscina_Jardin.pdf) (versión en papel del exterior); el interior se diseñó de cero.
 
-**Condiciones:** 🔥 = solo si se contrató `Carbón 1 Bolsa` o `Utensilios BBQ` · ➕ = solo si se contrató ese extra · 📅 = se resuelve con una fecha.
+**Condiciones:** 🔥 = solo si se contrató `Carbón 1 Bolsa` o `Utensilios BBQ` · ➕ = solo si se contrató ese extra · 📅 = se resuelve con una fecha. ⚠️ = se responde **Sin daños** o **Con daños** (tipo `Daños`, sin "No aplica"; B-19).
 
 ### Exterior — Check-in
 1. **Limpieza:** suelo de la barbacoa barrido y baldeado · suelo de la pérgola barrido y baldeado · suelo del chillout barrido y baldeado · mesa y sillas de la pérgola limpias · mesa verde auxiliar limpia · fregadero limpio · cubo de basura limpio con bolsa nueva · barbacoa limpia del uso anterior.
@@ -20,10 +20,10 @@
 
 ### Exterior — Check-out
 1. **Evidencia (lo primero):** vídeo de fin · fotos de desperfectos, si los hay.
-2. **Daños:** sin daños en el mobiliario · sin daños en instalaciones ni piscina · incidencias anotadas.
+2. **Daños:** ⚠️ mobiliario · ⚠️ instalaciones y piscina · incidencias anotadas.
 3. **Limpieza:** suelo de la barbacoa barrido y baldeado · pérgola barrida · chillout barrido · mesas y superficies de trabajo limpias · fregadero limpio · cubo vaciado · residuos tirados.
 4. **WC:** WC limpio · alfombra retirada para secar · papel, jabón y toalla repuestos · bolsas de basura con stock suficiente.
-5. **Mobiliario:** tumbonas en su sitio · sombrilla cerrada y asegurada · mesa y sillas limpias y en su sitio · mantel retirado o en buen estado · cojines sin daños · inventario completo.
+5. **Mobiliario:** tumbonas en su sitio · sombrilla cerrada y asegurada · mesa y sillas limpias y en su sitio · mantel retirado o en buen estado · ⚠️ cojines · inventario completo.
 6. 🔥 **Barbacoa:** barbacoa limpia tras el uso · plancha desmontada y guardada · utensilios limpios y guardados · carbón sobrante recogido.
 7. ➕ **Extras:** capazo devuelto · colchonetas guardadas · pistolas de agua guardadas · vajilla completa y limpia · bolsas de hielo retiradas · toallas retiradas.
 8. **Agua:** skimmers limpios · superficie del agua limpia · presión del agua correcta · nivel del agua correcto · Zodiac puesto.
@@ -39,7 +39,7 @@
 
 ### Interior — Check-out
 1. **Evidencia (lo primero):** vídeo de fin · fotos de desperfectos, si los hay.
-2. **Daños:** sin daños · incidencias anotadas.
+2. **Daños:** ⚠️ habitación · incidencias anotadas.
 3. **Habitación:** ropa de cama y toallas retiradas · cajones y baldas vacíos (nada olvidado) · TV, persiana y luces funcionan · llave de la puerta y su copia en su sitio.
 4. **WC:** 📅 WC limpio (se elige el día de la limpieza en un calendario) · papel, gel, champú y jabón repuestos.
 5. **Office** — según la siguiente reserva de la Habitación:
@@ -51,3 +51,4 @@
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1.0 | 2026-09-27 | Primera versión digital: exterior revisado a partir del PDF; interior nuevo; "No aplica" en todos los puntos; barbacoa y extras según servicios contratados; WC interior con fecha de limpieza; office interior según la siguiente reserva. |
+| 1.1 | 2026-10-02 | Los 4 puntos de "sin daños" (EXT-OUT-03, EXT-OUT-04, EXT-OUT-21, INT-OUT-03) pasan al tipo `Daños`: se responden Sin daños / Con daños y no admiten "No aplica" (B-19). Sus textos pasan a "Mobiliario", "Instalaciones y piscina", "Cojines" y "Habitación", porque la respuesta ya dice si hay daños. |

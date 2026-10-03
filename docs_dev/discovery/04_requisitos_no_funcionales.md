@@ -41,11 +41,11 @@
 
 | ID | Requisito | Verificación | Prioridad | ↑ Origen | ↓ RF | ADR | ↓ Sprint | Estado |
 |---|---|---|---|---|---|---|---|---|
-| RNF-08 | Ana y Luis deben completar los journeys J-1 a J-5 sin formación ni ayuda. | UAT con guion de journeys ([01_problema.md, Anexo A](01_problema.md#anexo-a--user-journeys-validación-de-usabilidad)) | M | **Sin HU directa** · P-11, JTBD-11 | RF-07, RF-09, RF-13, RF-16, RF-43, RF-55 | 0008 | **S11** (T-05) + EXT-03 | 🔍 (sin UAT registrado, D-07) |
-| RNF-09 | Toda acción debe dar feedback visible (carga, éxito, error); los errores dicen qué falló y cómo arreglarlo; los formatos se validan al introducirlos. | E2E + revisión con CLAUDE.md §6 | M | **Sin HU directa** · P-11 | RF-03, RF-10, RF-26, RF-33, RF-51, RF-81, RF-82 | — | S2–S4 | ✅ |
+| RNF-08 | Ana y Luis deben completar los journeys J-1 a J-5 sin formación ni ayuda. | UAT con guion de journeys ([01_problema.md, Anexo A](01_problema.md#anexo-a--user-journeys-validación-de-usabilidad)) | M | **Sin HU directa** · P-11, JTBD-11 | RF-07, RF-09, RF-13, RF-16, RF-43, RF-55, RF-93, RF-94 | 0008 | **S11** (T-05) + EXT-03 | 🔍 (sin UAT registrado, D-07) |
+| RNF-09 | Toda acción debe dar feedback visible (carga, éxito, error); los errores dicen qué falló y cómo arreglarlo; los formatos se validan al introducirlos. | E2E + revisión con CLAUDE.md §6 | M | **Sin HU directa** · P-11 | RF-03, RF-10, RF-26, RF-33, RF-51, RF-81, RF-82, RF-94, RF-95, RF-96 | — | S2–S4 | ✅ |
 | RNF-10 | Las acciones irreversibles deben pedir confirmación explícita. | E2E (modal de cancelación) | M | HU-26 | RF-52 | — | S4 | ✅ |
 | RNF-11 | La interfaz debe ser usable en móvil y tablet (mobile-first, sin necesitar pantalla ancha). | E2E con viewport móvil (`tests/e2e/movil.spec.js`, 393 px) + prueba manual en móvil | M *(confirmado 2026-09-25; antes Could)* | **Sin HU directa** · PER-02, PER-03 (usan móvil) | RF-07, RF-13, RF-42, RF-85 | 0011 | S2 · **S11** ✔ (B-17) | ✅ |
-| RNF-12 | La interfaz debe cumplir WCAG 2.1 AA: contraste ≥ 4.5:1, foco visible, etiquetas asociadas, áreas táctiles ≥ 44 px, color nunca como único portador de significado. | `tests/interfaz/contraste.test.js` (contraste de los tokens) + `tests/e2e/accesibilidad.spec.js` (áreas táctiles) + E2E de foco y teclado en ventanas (`avisos.spec.js`); auditoría Lighthouse/axe + revisión manual | S | **Sin HU directa** · Transversal — personas no técnicas; Directiva UE 2016/2102 como referencia | RF-81 (ventanas modales accesibles) · resto sin RF directo — tokens de diseño + auditoría Lighthouse/axe | 0011 | **S11** ✔ contraste, áreas táctiles y ventanas (B-12) · pendiente: auditoría axe completa | 🟡 |
+| RNF-12 | La interfaz debe cumplir WCAG 2.1 AA: contraste ≥ 4.5:1, foco visible, etiquetas asociadas, áreas táctiles ≥ 44 px, color nunca como único portador de significado. | `tests/interfaz/contraste.test.js` (contraste de los tokens) + `tests/e2e/accesibilidad.spec.js` (áreas táctiles) + E2E de foco y teclado en ventanas (`avisos.spec.js`); auditoría Lighthouse/axe + revisión manual | S | **Sin HU directa** · Transversal — personas no técnicas; Directiva UE 2016/2102 como referencia | RF-07 (barra inferior con icono y texto, áreas táctiles) · RF-81 (ventanas modales accesibles) · resto sin RF directo — tokens de diseño + auditoría Lighthouse/axe | 0011 | **S11** ✔ contraste, áreas táctiles y ventanas (B-12) · pendiente: auditoría axe completa | 🟡 |
 
 ## 4. Fiabilidad
 
@@ -54,7 +54,7 @@
 | RNF-13 | Ningún error puede ser silencioso: todo error de servidor se registra en `Errores` y el usuario recibe un mensaje claro. | Tests unitarios de los endpoints (camino de error) + revisión | M | **Sin HU directa** · Transversal — sin monitorización de pago, `Errores` es la única fuente de diagnóstico (R-06) | RF-37, RF-67, RF-73 | — | S1 | ✅ |
 | RNF-14 | Una operación que falle a medias no debe dejar datos inconsistentes. | Tests de integración con fallos inyectados | M | **Sin HU directa** · P-12 | RF-48, RF-49, RF-50, RF-85 | — | S8 ✔ (B-03, B-11) | ✅ |
 | RNF-15 | Las escrituras concurrentes críticas (crear, editar, cancelar, servicios, gastos) deben serializarse con `LockService`. | Revisión de código + test de integración | M | **Sin HU directa** · P-01 (R-02) | RF-30, RF-49, RF-80 | 0003 | S3–S4 | ✅ |
-| RNF-16 | Los fallos de Calendar y del email no deben bloquear la operación principal y deben poder reconciliarse después. | Tests unitarios con dobles que fallan | M | HU-17 a HU-20 | RF-34, RF-35, RF-36, RF-37, RF-38, RF-39, RF-40, RF-41, RF-82, RF-83 | 0006, 0010 | S3–S4 | ✅ |
+| RNF-16 | Los fallos de Calendar y del email no deben bloquear la operación principal y deben poder reconciliarse después. | Tests unitarios con dobles que fallan | M | HU-17 a HU-20 | RF-34, RF-35, RF-36, RF-37, RF-38, RF-39, RF-40, RF-41, RF-82, RF-83, RF-90 | 0006, 0010, 0018 | S3–S4 | ✅ |
 | RNF-17 | Debe existir copia de seguridad del Sheet con una ventana de recuperación ≥ 30 días, configurable. | Revisión mensual de la carpeta Backups | M | **Sin HU directa** · P-12 (R-08, R-14) | RF-68 | 0013, 0016 | S5 | ✅ |
 | RNF-18 | La disponibilidad es la de Google Apps Script (> 99 %); no se añade infraestructura propia. | — (heredado) | M | **Sin HU directa** · Transversal — restricción de coste | **Sin RF directo** — heredado de Google | — | — | ✅ |
 
@@ -97,11 +97,11 @@
 
 | ID | Requisito | Verificación | Prioridad | ↑ Origen | ↓ RF | ADR | ↓ Sprint | Estado |
 |---|---|---|---|---|---|---|---|---|
-| RNF-34 | Los datos de huéspedes se tratan con base legal contractual (art. 6.1.b RGPD) y minimización: solo nombre, teléfono y email opcionales. | Revisión del modelo de datos | M | **Sin HU directa** · P-12 (R-03) | RF-24, RF-75, RF-82 | — | S3 | ✅ |
+| RNF-34 | Los datos de huéspedes se tratan con base legal contractual (art. 6.1.b RGPD) y minimización: solo nombre, teléfono y email opcionales. | Revisión del modelo de datos | M | **Sin HU directa** · P-12 (R-03) | RF-24, RF-77, RF-82 | — | S3 | ✅ |
 | RNF-35 | Debe existir y aplicarse una política de retención: Logs 90 días, Errores 365 días, vídeos 180 días, documentos y reservas sin borrado dentro de los plazos legales. | Revisión de `Config` + tests de las purgas | M | **Sin HU directa** · P-12, P-07 | RF-57, RF-69, RF-70 | 0013, 0014 | S5 · EXT-02 | 🟡 Falta la política RGPD formal de datos de huéspedes |
 | RNF-36 | Justificantes, gastos y reservas deben conservarse ≥ 4 años (amortización: periodo + 4 años). | Revisión: ninguna purga toca `Documentos` | M | **Sin HU directa** · P-09 | RF-54, RF-64, RF-65, RF-66 | 0012 | S4, S6 | ✅ |
 | RNF-37 | Registro de actividades de tratamiento (RGPD art. 30). | Documento legal | S | **Sin HU directa** · P-12 | **Sin RF directo** — documento legal (EXT-02) | — | EXT-02 | ⏳ |
-| RNF-38 | Registro de viajeros conforme al RD 933/2021 (SES.Hospedajes). | Revisión legal + E2E del formulario | M (Fase 2) | **Sin HU directa** · P-10 | RF-75, RF-76, RF-77, RF-78 | 0007 | **Fase 2** | ⏳ |
+| RNF-38 | Registro de viajeros conforme al RD 933/2021 (SES.Hospedajes). | Revisión legal + E2E del formulario | M (Fase 2) | **Sin HU directa** · P-10 | RF-76, RF-77, RF-78, RF-89, RF-90, RF-91, RF-92, RF-93, RF-94, RF-96 | 0007, 0018, 0022 | **Fase 2** (S26–S29) | 🟡 |
 
 ---
 

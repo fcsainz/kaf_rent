@@ -17,8 +17,8 @@ Hoy la checklist de Piscina/Jardín es un PDF impreso ([Checklist_Piscina_Jardin
 ### 3.1 Datos (solo se añade; nada se renombra ni se borra)
 | Hoja | Columnas | Para qué |
 |---|---|---|
-| `Catálogo_Checklist` (nueva) | ID_Punto · Espacio · Momento (Check-in/Check-out) · Bloque · Punto · Tipo (Casilla / Fecha) · Servicios_Requeridos · Condicion · Punto_Pareja · Orden · Activo | Los puntos de cada lista. Se editan desde la app (admin) o desde el Sheet. |
-| `Registro_Checklist` (nueva) | ID_Reserva · Momento · ID_Punto · Estado (Hecho / No aplica / Pendiente) · Valor (fecha, en puntos de tipo Fecha) · Usuario · Fecha_Hora | Qué se marcó, quién y cuándo. |
+| `Catálogo_Checklist` (nueva) | ID_Punto · Espacio · Momento (Check-in/Check-out) · Bloque · Punto · Tipo (Casilla / Fecha / Daños, B-19) · Servicios_Requeridos · Condicion · Punto_Pareja · Orden · Activo | Los puntos de cada lista. Se editan desde la app (admin) o desde el Sheet. |
+| `Registro_Checklist` (nueva; **sustituida por `Checklists_Reserva`, una fila por checklist, [ADR-0020](../adr/0020-una-fila-por-checklist.md)**) | ID_Reserva · Momento · ID_Punto · Estado (Hecho / No aplica / Pendiente) · Valor (fecha, en puntos de tipo Fecha) · Usuario · Fecha_Hora | Qué se marcó, quién y cuándo. |
 | `Catálogo_Servicios_Extra` | fila nueva: Piscina / Jardín · **Pistolas de agua** | Para que su punto salga solo si se contrata (precio a definir, §5). |
 
 - `Servicios_Requeridos`: vacío = el punto sale siempre; con nombres de servicios separados por `|` = solo si la reserva tiene alguno contratado. Así funcionan Barbacoa y extras, distintos en cada espacio.
@@ -31,7 +31,7 @@ Hoy la checklist de Piscina/Jardín es un PDF impreso ([Checklist_Piscina_Jardin
 En **Gestionar → Modificar**, dos bloques plegables: **Check-in** y **Check-out**, con sus secciones en el orden de §3.5. Cada punto: casilla grande (≥ 44 px) y botón **"No aplica"**. Contador "12 de 20" (los "No aplica" cuentan como resueltos). Observaciones al final.
 - **Vídeo:** el punto de vídeo tiene su botón de subida; al subirlo, se marca solo.
 - **Fotos de desperfectos (check-out):** botón "Añadir foto" junto al vídeo; se guardan en la carpeta de la reserva en Drive.
-- **Daños:** si "Sin daños…" no se marca, la app lleva a registrar la incidencia.
+- **Daños:** ~~si "Sin daños…" no se marca, la app lleva a registrar la incidencia~~. Desde S22 (B-19), los puntos de daños son de tipo `Daños` y se responden **Sin daños** o **Con daños** (sin "No aplica"); "Con daños" lleva a registrar la incidencia.
 - **Terminar:** cuando todo está resuelto, **"Dar el check-in por terminado"** abre una confirmación; solo al confirmar pasa a "Hecho".
 
 ### 3.3 Editor de la checklist (solo Admin, RF-84)

@@ -13,15 +13,25 @@ const rpc = async (request, nombre, ...args) => (await (await request.post(`/rpc
 
 const datosHabitacion = (cambios = {}) => ({
   espacio: 'Habitación Interior', canal: 'Airbnb', comision: '3',
-  fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33),
+  fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33), horaLlegada: '16:00', horaSalida: '12:00',
   adultos: '2', menores: '0', importeAlquiler: '300',
   nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com', refCanal: 'HMTEST1234', servicios: [],
   ...cambios,
 });
 
+// Navega con la barra inferior (F-25): Gestionar y Crear están en el segundo piso, que abre "Reservas".
+const SUBSECCIONES_RESERVAS = ['Gestionar Reservas', 'Crear Reservas'];
+const irA = async (page, seccion) => {
+  const boton = page.getByRole('button', { name: seccion, exact: true });
+  if (SUBSECCIONES_RESERVAS.includes(seccion) && !(await boton.isVisible())) {
+    await page.getByRole('button', { name: 'Reservas', exact: true }).click();
+  }
+  await boton.click();
+};
+
 // Rellena el formulario de Crear Reserva para la Habitación (modo Rango_Dias).
 const rellenarReservaHabitacion = async (page, { entrada = isoDentroDe(30), salida = isoDentroDe(33), nombre = 'Marta Pérez' } = {}) => {
-  await page.getByRole('button', { name: 'Crear Reserva' }).click();
+  await irA(page, 'Crear Reservas');
   await page.locator('#campo-espacio').selectOption('Habitación Interior');
   await expect(page.locator('#campo-canal option', { hasText: 'Airbnb' })).toHaveCount(1);
   await page.locator('#campo-canal').selectOption('Airbnb');
@@ -39,9 +49,9 @@ const dialogo = (page) => page.getByRole('alertdialog');
 const resolverChecklist = async (request, id, momento) => {
   const { data } = await rpc(request, 'cargarChecklist', id, momento);
   const estados = data.bloques.flatMap((b) => b.puntos).filter((p) => p.tipo !== 'Foto')
-    .map((p) => ({ idPunto: p.id, estado: 'Hecho', valor: p.tipo === 'Fecha' ? isoDentroDe(0) : '' }));
+    .map((p) => ({ idPunto: p.id, estado: 'Hecho', valor: { Fecha: isoDentroDe(0), 'Daños': 'Sin daños' }[p.tipo] || '' }));
   return rpc(request, 'guardarChecklist', id, momento, estados, '');
 };
 const idInterno = async (request) => (await prueba(request, '/__test/hoja?nombre=Reservas'))[0].ID_Reserva;
 
-module.exports = { isoDentroDe, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, resolverChecklist, idInterno };
+module.exports = { irA, isoDentroDe, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, resolverChecklist, idInterno };

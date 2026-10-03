@@ -3,9 +3,18 @@
 
 const obtenerCalendario_ = () => {
   const id = texto_(obtenerConfig_('Calendar_Id', ''));
-  const calendario = id ? CalendarApp.getCalendarById(id) : CalendarApp.getDefaultCalendar();
-  if (!calendario) throw new Error(`Calendar_Id '${id}' no encontrado o sin acceso. Corrígelo en Config.`);
-  return calendario;
+  if (!id) return CalendarApp.getDefaultCalendar();
+  return CalendarApp.getCalendarById(id) ?? suscribirCalendarioOculto_(id);
+};
+
+// B-14 (D-26): getCalendarById devuelve null si el calendario compartido no está en la lista del usuario.
+// Se le suscribe oculto y sin marcar para no ensuciar su vista de Calendar.
+const suscribirCalendarioOculto_ = (id) => {
+  try {
+    return CalendarApp.subscribeToCalendar(id, { hidden: true, selected: false });
+  } catch (error) {
+    throw new Error(`Calendar_Id '${id}' sin acceso: ${error.message}. Compártelo con el usuario o corrígelo en Config.`);
+  }
 };
 
 // Color por posición del espacio en el catálogo (sin nombres de espacio en el código, B-10).
@@ -41,6 +50,17 @@ const actualizarTituloEvento_ = (reserva) => {
     if (evento) evento.setTitle(tituloEventoReserva_(reserva));
   } catch (error) {
     registrarError_('actualizarTituloEvento_', error, { id: reserva.id });
+  }
+};
+
+// D-28: lleva el evento a las fechas corregidas de la reserva.
+const actualizarHorarioEvento_ = (reserva) => {
+  if (!reserva.calendarEventId) return;
+  try {
+    const evento = obtenerCalendario_().getEventById(reserva.calendarEventId);
+    if (evento) evento.setTime(reserva.inicio, reserva.fin);
+  } catch (error) {
+    registrarError_('actualizarHorarioEvento_', error, { id: reserva.id });
   }
 };
 

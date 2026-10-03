@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; horas del punto 3 sustituidas por ADR-0019
 date: 2026-09-25
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: Resto de copropietarios (PER-02, PER-03)
@@ -42,7 +42,7 @@ Opción elegida: "Formulario HTML propio + catálogos en cascada", porque es la 
 **Campos y comportamiento:**
 1. **Espacio**: solo activos. Al cambiarlo se vacían canal, servicios y fechas.
 2. **Canal**: filtrado por espacio; autocompleta `%_Comisión` (editable, 0–100).
-3. **Fechas** según `Modo_Fecha`: `Dia_y_Hora` → fecha + hora de llegada + hora de salida; `Rango_Dias` → entrada + salida. No se admiten fechas pasadas. Siempre se guarda `Fecha_Hora_Inicio`/`Fin` completos (en `Rango_Dias`, con las horas de check-in y check-out de `Config`).
+3. **Fechas** según `Modo_Fecha`: `Dia_y_Hora` → fecha + hora de llegada + hora de salida; `Rango_Dias` → entrada + salida. No se admiten fechas pasadas. Siempre se guarda `Fecha_Hora_Inicio`/`Fin` completos (en `Rango_Dias`, con las horas de check-in y check-out de `Config`). *Horas sustituidas por [ADR-0019](0019-horas-obligatorias-en-todos-los-espacios.md): obligatorias en los dos modos, prerrellenas con `Config` en `Rango_Dias`.*
 4. **Personas**: adultos ≥ 1, menores ≥ 0.
 5. **Servicios extra** con cantidad ≥ 1, en la hoja `Reserva_Servicios` (una fila por servicio) con **snapshot** del coste y el precio unitarios, para que un cambio de tarifa no altere reservas pasadas.
 6. **Huésped**: nombre obligatorio; teléfono (9 cifras) y email opcionales, validados en cliente y servidor.

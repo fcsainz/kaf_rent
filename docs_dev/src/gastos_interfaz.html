@@ -60,7 +60,7 @@
   const enviarGasto = (datos, archivo) => {
     const boton = $('btn-guardar-gasto');
     boton.disabled = true;
-    google.script.run
+    servidor('Guardando el gasto…')
       .withSuccessHandler((res) => {
         boton.disabled = false;
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -75,7 +75,7 @@
   const calcularResumen = () => {
     const boton = $('btn-resumen');
     boton.disabled = true;
-    google.script.run
+    servidor('Calculando el resumen fiscal…')
       .withSuccessHandler((res) => {
         boton.disabled = false;
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }

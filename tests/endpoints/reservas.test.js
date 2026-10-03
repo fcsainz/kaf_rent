@@ -26,6 +26,31 @@ test.describe('RF-02/RF-05 · autorización de endpoints', () => {
     assert.deepEqual(r.data.map((x) => x.nombre), ['Piscina / Jardín', 'Habitación Interior']);
   });
 
+  test('F-23 · los espacios por días llegan con las horas de Config; los de un día, sin ellas', () => {
+    const e = crearEntornoConDatos();
+    const [piscina, habitacion] = e.llamar('cargarEspaciosFormulario').data;
+    assert.equal(piscina.horasPorDefecto, null);
+    assert.deepEqual(habitacion.horasPorDefecto, { llegada: '16:00', salida: '12:00' });
+  });
+
+  test('B-22 · las horas de Config guardadas por Sheets como valor de hora se leen como HH:mm', () => {
+    const e = crearEntornoConDatos();
+    e.hoja('Config').datos.forEach((f) => {
+      if (f[0] === 'Hora_CheckIn_Default') f[1] = new Date(1899, 11, 30, 16, 0);
+      if (f[0] === 'Hora_CheckOut_Default') f[1] = new Date(1899, 11, 30, 11, 30);
+    });
+    const habitacion = e.llamar('cargarEspaciosFormulario').data.find((x) => x.modoFecha === 'Rango_Dias');
+    assert.deepEqual(habitacion.horasPorDefecto, { llegada: '16:00', salida: '11:30' });
+  });
+
+  test('F-23 · no se crea una reserva sin hora de llegada', () => {
+    const e = crearEntornoConDatos();
+    const r = crear(e, datosReservaHabitacion({ horaLlegada: '' }));
+    assert.equal(r.success, false);
+    assert.match(r.error, /hora de llegada/);
+    assert.equal(reservas(e).length, 0);
+  });
+
   test('RF-15 · solo se ofrecen canales y servicios activos del espacio', () => {
     const e = crearEntornoConDatos();
     const r = e.llamar('cargarOpcionesEspacio', 'Habitación Interior');
@@ -133,14 +158,14 @@ test.describe('RF-34..RF-37 · avisos y calendario al crear', () => {
   test('aviso de cierre solo si hay otros canales activos; confirmación siempre', () => {
     const e = crearEntornoConDatos();
     crear(e, datosReservaPiscina());
-    const cierre = e.correos.find((c) => /Cerrar canales/.test(c.subject));
+    const cierre = e.correos.find((c) => /! Cierra canales/.test(c.subject));
     assert.ok(cierre);
     assert.match(cierre.body, /Directo/);
-    assert.ok(e.correos.some((c) => /Reserva 01\//.test(c.subject)));
+    assert.ok(e.correos.some((c) => /✓ Nueva reserva 01\//.test(c.subject)));
 
     e.correos.length = 0;
     crear(e, datosReservaHabitacion());
-    assert.ok(!e.correos.some((c) => /Cerrar canales/.test(c.subject)), 'Habitación solo tiene un canal activo');
+    assert.ok(!e.correos.some((c) => /Cierra canales/.test(c.subject)), 'Habitación solo tiene un canal activo');
   });
 
   test('crea el evento con color del espacio y guarda su ID', () => {
@@ -172,6 +197,25 @@ test.describe('RF-34..RF-37 · avisos y calendario al crear', () => {
   test('B-14 · si el evento se crea, la respuesta no lleva aviso', () => {
     const e = crearEntornoConDatos();
     assert.equal(crear(e, datosReservaPiscina()).aviso, undefined);
+  });
+
+  test('B-14 · si el usuario no tiene el calendario en su lista, se le suscribe oculto y sin marcar y se crea el evento', () => {
+    const e = crearEntornoConDatos();
+    e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Calendar_Id') f[1] = 'CAL-GRUPO'; });
+    e.calendario.suscrito = false;
+    const r = crear(e, datosReservaPiscina());
+    assert.equal(r.aviso, undefined);
+    assert.equal(e.calendario.eventos.length, 1);
+    assert.deepEqual(e.calendario.opcionesSuscripcion, { hidden: true, selected: false });
+  });
+
+  test('B-14 · si la suscripción falla, la reserva se guarda, se avisa y se registra el error', () => {
+    const e = crearEntornoConDatos();
+    e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Calendar_Id') f[1] = 'CAL-AJENO'; });
+    const r = crear(e, datosReservaPiscina());
+    assert.equal(r.success, true);
+    assert.match(r.aviso, /calendario/i);
+    assert.match(e.hoja('Errores').registros().at(-1).Contexto, /Sin acceso al calendario CAL-AJENO/);
   });
 });
 
@@ -272,6 +316,27 @@ test.describe('RF-08/RF-11 · Inicio y buscador', () => {
     assert.equal(e.llamar('cargarUltimasReservas').data.length, 5);
   });
 
+  test('F-26 · últimas reservas: espacio corto, código del canal y fechas cortas', () => {
+    const e = crearEntornoConDatos();
+    crear(e, datosReservaHabitacion());
+    crear(e, datosReservaPiscina());
+    const ultimas = e.llamar('cargarUltimasReservas').data;
+    const habitacion = ultimas.find((r) => r.nombre === 'Marta Pérez');
+    const piscina = ultimas.find((r) => r.nombre === 'Grupo Ruiz');
+    assert.equal(habitacion.espacio, 'Interior');
+    assert.equal(habitacion.refCanal, 'HMTEST1234');
+    assert.match(habitacion.inicioTexto, /^\d\d\/\d\d\/\d\d 16:00$/);
+    assert.equal(piscina.espacio, 'Exterior');
+    assert.equal(piscina.refCanal, '');
+  });
+
+  test('F-26 · si el espacio no tiene nombre corto, se usa el nombre completo', () => {
+    const e = crearEntornoConDatos();
+    e.hoja('Catálogo_Espacios').datos.forEach((f) => { if (f[0] === 'Habitación Interior') f[3] = ''; });
+    crear(e, datosReservaHabitacion());
+    assert.equal(e.llamar('cargarUltimasReservas').data[0].espacio, 'Habitación Interior');
+  });
+
   test('busca por nombre (sin mayúsculas) y por fecha ocupada, y excluye canceladas (B-02)', () => {
     const e = crearEntornoConDatos();
     crear(e, datosReservaHabitacion());
@@ -308,5 +373,41 @@ test.describe('RF-84 · roles de usuario (F-11)', () => {
     e.correos.length = 0;
     e.llamar('notificarIncidencia', r.incidencia);
     assert.deepEqual(e.correos[0].to.split(',').sort(), ['admin@test.com', 'soporte@test.com']);
+  });
+});
+
+test.describe('D-28 · corregir las reservas guardadas a 00:00 (B-22)', () => {
+  const ponerAMedianoche = (e) => {
+    const datos = e.hoja('Reservas').datos;
+    ['Fecha_Hora_Inicio', 'Fecha_Hora_Fin'].forEach((cabecera) => {
+      const col = datos[0].indexOf(cabecera);
+      datos.slice(1).forEach((fila) => { const f = fila[col]; fila[col] = new Date(f.getFullYear(), f.getMonth(), f.getDate()); });
+    });
+  };
+
+  test('corrige las reservas por días, su evento y lo anota en el historial; las de un día no se tocan', () => {
+    const e = crearEntornoConDatos();
+    crear(e, datosReservaHabitacion());
+    crear(e, datosReservaPiscina());
+    ponerAMedianoche(e);
+    const r = e.comoPropietario(() => e.llamar('corregirHorasReservas'));
+    assert.equal(r.corregidas.length, 1);
+    const [habitacion, piscina] = reservas(e);
+    assert.equal(habitacion.Fecha_Hora_Inicio.getHours(), 16);
+    assert.equal(habitacion.Fecha_Hora_Fin.getHours(), 12);
+    assert.equal(piscina.Fecha_Hora_Inicio.getHours(), 0);
+    const evento = e.calendario.eventos.find((ev) => ev.id === habitacion.Calendar_Event_Id);
+    assert.equal(evento.inicio.getHours(), 16);
+    const historial = e.hoja('Historial_Cambios').registros().filter((h) => h.ID_Reserva === habitacion.ID_Reserva);
+    assert.equal(historial.length, 2);
+    assert.match(historial[0].Valor_Nuevo, / 16:00$/);
+  });
+
+  test('volver a ejecutarla no cambia nada', () => {
+    const e = crearEntornoConDatos();
+    crear(e, datosReservaHabitacion());
+    ponerAMedianoche(e);
+    e.comoPropietario(() => e.llamar('corregirHorasReservas'));
+    assert.deepEqual(e.comoPropietario(() => e.llamar('corregirHorasReservas')).corregidas, []);
   });
 });

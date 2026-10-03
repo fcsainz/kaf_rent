@@ -1,6 +1,6 @@
 # Próximos pasos — KAF Rent
 
-**Actualizado:** 2026-10-02 (cierre de sesión sin código: diagnóstico de Calendar (B-14 reabierto) y de horas (B-22), mejoras de interfaz, diseño de la comunicación a SES (ADR-0018, DD-02); registro en [mejoras_2026-10-02.md](docs_mejoras/mejoras_2026-10-02.md))  
+**Actualizado:** 2026-10-02, cierre de la segunda sesión: S22, S23, S9 y S26–S28 implementados; SES activo en producción. Registro en [mejoras_2026-10-02.md](docs_mejoras/mejoras_2026-10-02.md); valoración a precio de mercado en [valor_dev.md](valor_dev.md).  
 **Framework:** Scrum adaptado a un desarrollador único: **sprints por objetivo, sin duración fija** (se trabajan en ratos libres y se cierran al cumplir el objetivo), backlog priorizado y tallas convertidas a horas ([CLAUDE.md §2.4](../CLAUDE.md))  
 **Sustituye a:** `docs/discovery/09_roadmap.md`
 
@@ -12,37 +12,13 @@
 
 ### Acciones manuales pendientes (no son decisiones)
 
-- **ACC-03 — Cerrar el despliegue de la v2:** publicada el 2026-09-27 (implementación v37). **Falta el smoke con las tres cuentas** (T-06, la checklist se escribe en S9). El CHANGELOG pasa a 2.0.0 cuando se haga. El fallo de Calendar de Esperanza y Aura (B-14) se corrige en S22.
-- **ACC-04 — Credenciales del servicio web de SES.Hospedajes** (EXT-04): localizar o volver a pedir el usuario y la contraseña del servicio web, el código de arrendador y el de establecimiento (y los del entorno de pruebas, si los dan). Se guardarán en las *Propiedades del script* (D-32). Bloquea la prueba real (S29).
-- **ACC-05 — Responder las preguntas de [DD-02 §5](../docs_dev/solution/design-docs/DD-02-comunicacion-ses-hospedajes.md#5-riesgos-y-preguntas-abiertas):** valores del desplegable `Tipo_Comunicación` del Form; si nacionalidad, país, sexo y tipo de documento son desplegables o texto libre; si la pregunta "Código de reserva de Airbnb" pasa a llamarse "Código de reserva".
+- **ACC-03 — Cerrar el despliegue de la v2:** implementada de nuevo el 2026-10-02 con S22–S28. El usuario hizo la prueba en su móvil ("todo ok"). **Falta comprobar B-14 con Esperanza y Aura:** que cada una cree una reserva de prueba de Piscina / Jardín y aparezca en el calendario. Hecho eso, el CHANGELOG pasa a 2.0.0.
+- **ACC-06 — Primera reserva real de la Habitación (verificación de SES en producción, S29):**
+  1. Cuando llegue el Form del huésped, debe llegar el email "✓ SES Reserva" o "✕".
+  2. En el check-in: validar a cada huésped → *Comunicar parte* → email "✓ SES Huéspedes".
+  3. Reenviar a Claude cualquier email ✕.
 
-### D-34 — Aprobar el diseño de SES (ADR-0018 y DD-02) (bloquea S26–S29)
-**Qué hay que decidir (en llano):** si el diseño de la comunicación a SES recoge lo que pediste, para empezar a programarlo.
-**Por qué ahora:** sin OK, el ADR sigue *proposed* y no se programa (CLAUDE.md §5.5).
-
-| | A (recomendada): aprobar tal cual | B: aprobar con cambios |
-|---|---|---|
-| En llano | Se programa según [DD-02](../docs_dev/solution/design-docs/DD-02-comunicacion-ses-hospedajes.md) | Indicas qué cambiar y se corrige antes |
-| Pros | Se puede empezar ya por el dominio (S26), que no necesita credenciales | El diseño queda a tu gusto antes de escribir código |
-| Contras | Cambios posteriores cuestan más | Retrasa el inicio |
-
-**Si no se decide:** la Fase 2 no empieza.
-
-### D-35 — ¿Cuándo se rediseñan los emails? (F-18)
-**Qué hay que decidir:** el diseño ya está acordado (cabecera con color y logo; errores con datos técnicos completos; informes con totales por periodo y comparativas). Falta el calendario.
-
-| | A (recomendada): plantilla común + emails de SES e incidencias en S28; informes con comparativas en S18 | B: todos los emails a la vez en S28 |
-|---|---|---|
-| Pros | Las comparativas van con el rediseño del informe (F-15) y la ocupación (D-13), que tocan los mismos datos | Todo igual de una vez |
-| Contras | Convivirán dos estilos hasta S18 | +4–5 h en S28 y adelanta trabajo de datos que depende de D-13 |
-
-### D-36 — Script de verificación de la trazabilidad (hallazgo de la revisión de cierre)
-**Qué hay que decidir:** las reglas generales del usuario piden, en los repos con requisitos trazados, un script que compruebe la reciprocidad ↑/↓, los huérfanos, los estados sin decisión y los enlaces y anclas rotos (referencia: `kaf_finance/docs_work/scripts/verificar_trazabilidad.mjs`). KAF Rent no lo tiene.
-
-| | A (recomendada): adaptarlo del de KAF Finance y meterlo en `npm test` y la CI | B: seguir revisando a mano |
-|---|---|---|
-| Pros | La revisión 2 deja de depender de la vista; detecta enlaces rotos en cada push | Sin esfuerzo |
-| Contras | ~2–3 h; los documentos de KAF Rent tienen otro formato (tablas con ↑/↓), hay que adaptar el analizador | Los fallos de trazabilidad se escapan |
+  Las dos respuestas enviadas con "DNI" antes de D-42 se comunican como NIF.
 
 ### D-13 — % de ocupación del Informe de Gestión (aplazada por el usuario, bloquea S18)
 Hay que cuadrarlo con las noches **ofrecidas**, no solo con las del periodo. Para Airbnb no hace falta entrar en la cuenta: su enlace de calendario (iCal) da lo reservado y lo bloqueado y la app podría leerlo; los demás canales, a revisar uno a uno.
@@ -59,44 +35,28 @@ Con `setFaviconUrl` el acceso directo de Android sigue sin icono (Chrome toma el
 ### D-24 — Recordatorios automáticos (HU-37, bloquea parte de S13)
 **Propuesta:** cobro sin ingresar y check-out sin hacer, a los 10 y 15 días de la salida y después cada 7 días hasta cerrarse; a los usuarios con rol Gestión; sin guardar nada.
 
-### Resueltas en esta sesión (2026-10-02) — detalle en [mejoras_2026-10-02.md](docs_mejoras/mejoras_2026-10-02.md)
-- **D-21 →** `README.md` se mantiene y entra en el mapa de CLAUDE.md §1.
-- **D-22 →** Pistolas de agua sin precio mientras nadie las pida.
-- **D-26 →** Calendar: la app suscribe al usuario al calendario operativo, **oculto y sin marcar**, y reintenta; se mantienen las invitaciones (B-14).
-- **D-27 →** vídeos grandes: subida directa del navegador a Drive (ADR nuevo en S24); sustituye a B-13.
-- **D-28 →** se corrigen las reservas guardadas a 00:00 (B-22).
-- **D-29 →** espacio de Drive para vídeos: se deja como está (riesgo R-20 aceptado).
-- **D-30 →** KAF Rent lee el Sheet del Google Form de viajeros sin copiar los datos (ADR-0018).
-- **D-31 →** la reserva (`RH`) se comunica solo si llega un Form antes del día de entrada; el parte (`PV`) siempre, tras validar; sin anulaciones automáticas (riesgo R-21 aceptado).
-- **D-32 →** credenciales de SES en las Propiedades del script (excepción en CLAUDE.md §4.8).
-- **D-33 →** sin fotos del documento.
-- **TD-01 →** se deja como está. **TD-02 →** una fila por checklist. **B-18, B-19, F-23 a F-28 →** aprobados (§2).
-- **Regla nueva:** al pedir una decisión que no estaba en la intervención anterior, Claude vuelve a mostrar su resumen (CLAUDE.md §2.1). **Registro de mejoras por sesión** en `docs_work/docs_mejoras/` (CLAUDE.md §5.1).
+### Resueltas el 2026-10-02
+D-21, D-22, D-26 a D-35 y D-37 a D-42, más la activación de SES en producción y D-36 (aprobada como T-09): detalle en [mejoras_2026-10-02.md](docs_mejoras/mejoras_2026-10-02.md) y en el [CHANGELOG](../CHANGELOG.md).
 
 ---
 
 ## §1 Sprints pendientes
 
-Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad del usuario), interfaz, calidad y el resto.
+Orden propuesto: primero verificar SES en uso real (S29), luego calidad (S30) y el resto por prioridad.
 
 | Sprint | Objetivo | Contenido (resumen) | Estimación | Estado |
 |---|---|---|---|---|
-| **S22** | Calendar, horas y checklists fiables | B-14 (suscripción oculta al calendario) · B-22 + D-28 (horas a 00:00 y corrección de reservas) · F-23 (hora de llegada y salida obligatorias) · B-18 · B-19 (tipo de punto "Daños") · B-21 · TD-02 (una fila por checklist) | 12–14 h | ⏳ Listo para empezar |
-| **S26** | SES: dominio | SES-2 de DD-02: casado, viajero, validación, XML `RH`/`PV`, traducción de códigos, clasificación de errores, reintentos; tests unitarios | 6–8 h | ⏳ Tras D-34 |
-| **S27** | SES: conexión y datos | SES-3: adaptador SOAP, lectura y escritura del Sheet del Form, hojas nuevas, `procesarComunicacionesSES` | 6–8 h | ⏳ Tras S26 |
-| **S28** | SES: pantallas y emails | SES-4: mensaje de WhatsApp (F-27), validar identidades y comunicar (F-28), emails con plantilla común (F-18, según D-35) | 8–10 h | ⏳ Tras S27 + ACC-05 |
-| **S29** | SES: prueba real y producción | SES-5: catálogos reales e INE, prueba en pre-ses, paso a producción | 3–4 h | ⏳ Tras S28 + ACC-04 + EXT-02 |
-| **S23** | Interfaz móvil como KAF Finance | F-24 (icono en la cabecera) · F-25 (navegación inferior en dos pisos) · F-26 (tabla "Últimas reservas") | 6–8 h | ⏳ Listo para empezar |
-| **S9** | Calidad estática y despliegue | T-06 (checklist de smoke) · T-07 (ESLint) · T-08 (scripts npm de clasp) · TD-04 (`dominio_mantenimiento.gs`) · D-36 si se aprueba | 5–7 h | ⏳ Listo para empezar |
+| **S29** | SES: verificación en producción | ACC-06: comprobar con la primera reserva real la comunicación de la reserva (RH), el parte (PV) y la consulta del lote; la anulación, en la primera cancelación · B-26 (mensaje de los errores 5xx) · corregir lo que salga | 2–3 h | ⏳ Con la primera reserva real de la Habitación |
+| **S30** | Calidad: trazabilidad y E2E pendientes | T-09 (script de verificación en `npm test`) · T-10 (E2E de F-27 a F-30) · B-25 (`describirFormulario` y las fechas obligatorias) | 7–9 h | ⏳ Listo para empezar (aprobado) |
 | **S24** | Vídeos grandes | D-27: ADR + subida reanudable directa a Drive + parámetro de tamaño (mín. 500 MB) | 5–6 h | ⏳ Listo para empezar |
-| **S17** | Registro de gastos | F-19: formulario de tres preguntas + clasificación por pieza y tipo | 7–9 h | ⏳ Bloqueado por D-18 |
-| **S18** | Informe de Gestión y emails | F-15 (bloque mensual + análisis de precios) · B-08 y F-05 (ocupación, métricas por zona) · F-18 (informes con totales y comparativas) | 14–16 h | ⏳ Bloqueado por D-13 |
 | **S19** | Informe Técnico y chequeo de salud | F-16 · chequeo de salud en real (T-04) · prueba de viabilidad del scraping (F-17) | ~10 h | ⏳ Listo para empezar |
 | **S20** | Precios de la competencia | F-17: ADR + lectores por web + aviso de rotura + reconstrucción | 8–12 h | ⏳ Tras S19 |
+| **S17** | Registro de gastos | F-19: formulario de tres preguntas + clasificación por pieza y tipo | 7–9 h | ⏳ Bloqueado por D-18 |
+| **S18** | Informe de Gestión | F-15 (bloque mensual + análisis de precios) · B-08 y F-05 (ocupación, métricas por zona) | 12–14 h | ⏳ Bloqueado por D-13 |
 | **S21** | Informe del IRPF | F-20: informe por copropietario y agregado, con casillas; valida D-15 | 12–16 h | ⏳ Tras S17 + EXT-01 |
 | **S13** | Mejoras "Could" | HU-38/RF-80 (editar fechas y canal hasta el check-in) · recordatorios (HU-37, D-24) · reconciliación automática de Calendar (F-04) | 12–18 h | ⏳ Listo salvo recordatorios (D-24) |
 
-**Tareas externas en paralelo:** EXT-01 valores de amortización · EXT-02 revisión RGPD (antes de S29) · EXT-04 credenciales de SES.
+**Tareas externas en paralelo:** EXT-01 valores de amortización · EXT-02 revisión RGPD (SES ya está activo: comunicar es una obligación legal, art. 6.1.c RGPD; queda revisar el registro de actividades y la retención).
 
 ---
 
@@ -121,17 +81,19 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 | B-11 | Evento de Calendar huérfano si fallaba la escritura | RF-36, RNF-14 | 2 | XS | ✅ S8 |
 | B-12 | Contrastes WCAG AA y áreas táctiles (queda la auditoría axe) | HU-25, HU-28, RNF-12 | 4 | S | ✅ S11 (axe: backlog) |
 | B-13 | El cliente fija en 100 MB el máximo de vídeo. **Sustituido por D-27:** con vídeos de ≥ 300 MB el límite real es el de Apps Script (~50 MB por envío), no la cifra | RNF-27 | 6 | XS | → S24 |
-| B-14 | **Reabierto (2026-10-02).** "Calendar_Id no encontrado" al crear reservas con Esperanza y Aura (incidencia del 28/09, reserva 15/26). El calendario está bien compartido; `getCalendarById` devuelve `null` si el usuario no lo tiene en su lista. Corrección (D-26): suscribir al usuario oculto y sin marcar y reintentar | RF-36, RF-82, ADR-0017 | 1 | S | **S22** |
+| B-14 | **Reabierto (2026-10-02).** "Calendar_Id no encontrado" al crear reservas con Esperanza y Aura (incidencia del 28/09, reserva 15/26). El calendario está bien compartido; `getCalendarById` devuelve `null` si el usuario no lo tiene en su lista. Corrección (D-26): suscribir al usuario oculto y sin marcar y reintentar. **Hecho en código (2026-10-02, `suscribirCalendarioOculto_`); falta el smoke con Esperanza y Aura** | RF-36, RF-82, ADR-0017 | 1 | S | ✅ S22 (falta comprobarlo con Esperanza y Aura, ACC-03) |
 | B-15 | La referencia usaba el año de entrada | RF-31, ADR-0014 | 2 | XS | ✅ S14 |
 | B-16 | "Reparar hojas" reescribía cabeceras existentes | RF-72, R-19, D-19 | 1 | S | ✅ S14 |
 | B-17 | Tablas que ensanchaban la página en móvil | RNF-11 | 2 | XS | ✅ S11 |
-| B-18 | Si se edita una checklist terminada y queda un punto pendiente, sigue "Hecho"; debe volver a "sin terminar" | RF-85 | 5 | XS | **S22** |
-| B-19 | El aviso de daños depende de que el punto empiece por "Sin daños" ("Cojines sin daños" no avisa). Corrección aprobada: tipo de punto **"Daños"** con dos opciones (Sin daños / Con daños) en los 4 puntos | RF-85 | 5 | S | **S22** |
+| B-18 | Si se edita una checklist terminada y queda un punto pendiente, sigue "Hecho"; debe volver a "sin terminar". **Hecho (2026-10-02)** | RF-85 | 5 | XS | ✅ S22 |
+| B-19 | El aviso de daños depende de que el punto empiece por "Sin daños" ("Cojines sin daños" no avisa). Corrección aprobada: tipo de punto **"Daños"** con dos opciones (Sin daños / Con daños) en los 4 puntos. **Hecho (2026-10-02); `Tipo` y textos de los 4 puntos cambiados en el Sheet al implementar** | RF-85 | 5 | S | ✅ S22 |
 | B-20 | En producción v1, `gastos_interfaz.html` era una copia de Gestionar | HU-33 | 2 | XS | ✅ Despliegue v2 |
-| B-21 | En Gestionar, el código de reserva del canal solo se valida en el servidor | RF-88 | 6 | XS | **S22** |
-| B-22 | Las horas de la Habitación se guardan a 00:00: Sheets convierte "16:00" de `Config` en un valor de hora y `combinarFechaHora_` espera texto. Afecta a pantalla, eventos y solapamiento. Incluye corregir las reservas guardadas (D-28) | HU-11, RF-20, ADR-0003 | 2 | S | **S22** |
+| B-21 | En Gestionar, el código de reserva del canal solo se valida en el servidor. **Hecho (2026-10-02)** | RF-88 | 6 | XS | ✅ S22 |
+| B-22 | Las horas de la Habitación se guardan a 00:00: Sheets convierte "16:00" de `Config` en un valor de hora y `combinarFechaHora_` espera texto. Afecta a pantalla, eventos y solapamiento. Incluye corregir las reservas guardadas (D-28). **Hecho (2026-10-02): `obtenerConfigHora_` + tarea `corregirHorasReservas`, ejecutada al implementar** | HU-11, RF-20, ADR-0003, ADR-0019 | 2 | S | ✅ S22 |
 | B-23 | Eventos duplicados dentro del mismo calendario (causa sin investigar) | RF-36, RF-40 | 4 | S | Backlog (aparcado por el usuario) |
 | B-24 | Los otros usuarios no ven las modificaciones del último día; hipótesis: el usuario entra por `/dev` y ellos por la v37 | ADR-0015 | 4 | XS | Backlog (aparcado por el usuario) |
+| B-25 | `describirFormulario` (script del Form) no marca con `*` las preguntas obligatorias de tipo fecha; el informe parece decir que no lo son | ADR-0021 | 6 | XS | S30 |
+| B-26 | La comprobación de conexión con SES dice "respuesta inesperada" ante un error 5xx; debería decir que SES está fallando y que no es cosa de las credenciales, y guardar en `Logs` el inicio de la respuesta | RF-96 | 5 | XS | S29 |
 
 ### Tests (T)
 
@@ -142,9 +104,11 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 | T-03 | GitHub Actions | RNF-29, RNF-33 | 3 | S | ✅ S8 |
 | T-04 | Integración: chequeo de salud de solo lectura en producción | RNF-29 | 3 | M | S19 |
 | T-05 | E2E con Playwright | RNF-08, RNF-11 | 3 | L | ✅ S11 |
-| T-06 | Checklist de smoke post-despliegue en DEVELOPMENT.md; Claude la recuerda en cada publicación | RNF-19, RNF-20 | 3 | XS | S9 |
-| T-07 | ESLint (aprobado 2026-10-02): `devDependency`, `eslint.config.js`, `npm run lint`, en la CI; apartado en DEVELOPMENT.md | RNF-28 | 3 | S | S9 |
-| T-08 | clasp: `.clasp.json` y comparación hechos (2026-09-27); faltan los scripts `npm run push` / `deploy` con `--user familia` (los lanza el usuario) | ADR-0015, RNF-27 | 3 | S | S9 |
+| T-06 | Checklist de smoke post-despliegue en DEVELOPMENT.md; Claude la recuerda en cada publicación. **Hecho (2026-10-02)** | RNF-19, RNF-20 | 3 | XS | **S9** ✅ |
+| T-07 | ESLint (aprobado 2026-10-02): `devDependency`, `eslint.config.js`, `npm run lint`, en la CI; apartado en DEVELOPMENT.md. **Hecho (2026-10-02)**; no analiza el JS de los `.html` | RNF-28 | 3 | S | **S9** ✅ |
+| T-08 | clasp: `.clasp.json` y comparación hechos (2026-09-27); scripts `npm run push` (tests + lint + push) y `npm run deploy` (ID en `KAF_RENT_ID_IMPLEMENTACION`). **Hecho (2026-10-02)** | ADR-0015, RNF-27 | 3 | S | **S9** ✅ |
+| T-09 | Script de verificación de trazabilidad (regla global; referencia `kaf_finance/docs_work/scripts/verificar_trazabilidad.mjs`): reciprocidad HU↔RF↔RNF, huérfanos, estados sin decisión, enlaces y anclas rotos; dentro de `npm test`. **Aprobado (2026-10-02, antes D-36)** | Revisión de cierre 2026-10-02 | 3 | S | S30 |
+| T-10 | E2E de las pantallas nuevas de la v2 (DoD de release, CLAUDE.md §8.3): registro de viajeros (F-28), mensaje al huésped (F-27), ventana de "trabajando" (F-29) y comprobar conexión (F-30). Se implementó sin ellos (revisión de cierre 2026-10-02); el escenario `/__test/viajeros` del servidor E2E ya existe | RNF-29, CLAUDE.md §8.3 | 3 | M | S30 |
 
 ### Deuda técnica (REF / TD) — detalle en [arc42 §11.2](../docs_dev/solution/arc42.md#112-deuda-técnica)
 
@@ -152,9 +116,9 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 |---|---|---|---|---|
 | REF-01 a REF-04 | Importes únicos, columnas por esquema, envoltorio de endpoint, funciones cortas | 5 | — | ✅ S8 |
 | TD-01 | `registrarLog_`/`registrarError_` escriben en el orden del esquema | 5 | XS | Aceptada (2026-10-02) |
-| TD-02 | `Registro_Checklist` se reescribe entera; pasa a **una fila por checklist** en hoja nueva (la actual no tiene filas: sin migración) | 5 | S | **S22** |
+| TD-02 | `Registro_Checklist` se reescribe entera; pasa a **una fila por checklist** en hoja nueva (la actual no tiene filas: sin migración). **Hecho (2026-10-02, ADR-0020): hoja `Checklists_Reserva`; `Registro_Checklist` borrada al implementar** | 5 | S | ✅ S22 |
 | TD-03 | `Config.Calendar_Url` repite `Calendar_Id` | 6 | XS | Backlog |
-| TD-04 | Funciones puras de las copias a `dominio_mantenimiento.gs` (aprobado) | 5 | XS | S9 |
+| TD-04 | Funciones puras de las copias a `dominio_mantenimiento.gs` (aprobado). **Hecho (2026-10-02)** | 5 | XS | **S9** ✅ |
 
 ### Funcionalidades (F / HU)
 
@@ -175,19 +139,21 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 | F-13 | Invitaciones de Calendar a los usuarios con permiso de gestión | ADR-0010 | 4 | S | ✅ S14 (RF-83); se mantienen (D-26) |
 | F-14 | Checklists digitales | HU-24 | 4 | L | ✅ S16 |
 | F-15 | Informe de Gestión: bloque mensual + análisis de precios | HU-32, ADR-0009 | 4 | M | S18 |
-| F-16 | Informe Técnico (KPIs de salud, solo Soporte/Admin) | F-11 | 4 | M | S19 |
+| F-16 | Informe Técnico (KPIs de salud, solo Soporte/Admin). Debe incluir los errores técnicos del mes de la hoja `Errores`, incluidos los de SES no avisados por email (usuario, 2026-10-02) | F-11, DD-02 §3.5 | 4 | M | S19 |
 | F-17 | Precios de la competencia por scraping propio, tras prueba de viabilidad | F-15 | 6 | S + M/L | S19–S20 |
-| F-18 | Rediseño de los emails: plantilla común con color y logo; errores con datos técnicos completos; informes con totales por periodo y comparativas | ADR-0006 | 5 | M | S28 + S18 (D-35) |
+| F-18 | Rediseño de los emails: plantilla común con color y logo; errores con datos técnicos completos; informes con totales por periodo y comparativas. **Plantilla aplicada a todos los emails, con comparativa en los informes (D-41) y "Validado por" en el parte comunicado (2026-10-02, S28)** | ADR-0006 | 5 | M | **S28** ✅ + S18 (D-35) |
 | F-19 | Registro de gastos | ADR-0012, D-18 | 4 | M | S17 |
 | F-20 | Informe del IRPF por copropietario | ADR-0012, D-15 | 4 | L | S21 |
 | F-21 | Avisos y errores en ventana modal + "Enviar al administrador" | HU-39, RF-81, RF-82 | 1 | M | ✅ S14 |
 | F-22 | Código de reserva del canal | HU-40, RF-88 | 4 | S | ✅ 2026-09-27 |
-| F-23 | Hora de llegada y de salida obligatorias en los dos espacios (Habitación, prerrellenas con `Config`) | HU-11, RF-20, ADR-0003 | 4 | M | **S22** |
-| F-24 | Icono de la app en la cabecera, como KAF Finance | design-system | 6 | XS | S23 |
-| F-25 | Navegación inferior en dos pisos: Inicio · Reservas · Checklists · Gastos · Estadísticas; Reservas abre Gestionar / Crear | HU-05, ADR-0008, design-system | 6 | M | S23 |
-| F-26 | "Últimas reservas": Espacio corto (`Nombre_Corto` en `Catálogo_Espacios`) · Código de reserva del canal · Nombre · Inicio y Fin `dd/mm/aa hh:mm` · Importe Neto; botón "Ver calendario" | HU-04 | 6 | S | S23 |
-| F-27 | Botón "Mensaje para el huésped" (WhatsApp) con el enlace al Form prerrellenado | ADR-0018, DD-02 | 4 | S | S28 |
-| F-28 | Validación presencial de identidades en Gestionar (Habitación) → comunicación a SES | ADR-0018, DD-02, HU-35, HU-36 | 4 | L | S26–S29 |
+| F-23 | Hora de llegada y de salida obligatorias en los dos espacios (Habitación, prerrellenas con `Config`). **Hecho (2026-10-02, ADR-0019)** | HU-10, HU-11, RF-19, RF-20, ADR-0019 | 4 | M | ✅ S22 |
+| F-24 | Icono de la app en la cabecera, como KAF Finance | design-system | 6 | XS | **S23** ✅ |
+| F-25 | Navegación inferior en dos pisos: Inicio · Reservas · Checklists · Gastos · Estadísticas; Reservas abre Gestionar / Crear | HU-05, ADR-0008, design-system | 6 | M | **S23** ✅ |
+| F-26 | "Últimas reservas": Espacio corto (`Nombre_Corto` en `Catálogo_Espacios`) · Código de reserva del canal · Nombre · Inicio y Fin `dd/mm/aa hh:mm` · Importe Neto; botón "Ver calendario" | HU-04 | 6 | S | **S23** ✅ |
+| F-27 | Botón "Mensaje para el huésped" (WhatsApp) con el enlace al Form prerrellenado. **Hecho (2026-10-02, RF-93)** | ADR-0018, DD-02 | 4 | S | ✅ S28 |
+| F-28 | Validación presencial de identidades en Gestionar (Habitación) → comunicación a SES. **Hecho (2026-10-02, RF-94)** | ADR-0018, DD-02, HU-35, HU-36 | 4 | L | ✅ S28 (verificación en producción: S29) |
+| F-29 | Ventana de "trabajando" en toda la app mientras espera al servidor (usuario, 2026-10-02). **Hecho (RF-95)** | RNF-09 | 4 | S | **S28** ✅ |
+| F-30 | Comprobar la conexión con SES (solo lectura): menú del Sheet + botón de Inicio solo para Admin (usuario, 2026-10-02). **Hecho (RF-96)** | ADR-0018 | 4 | S | **S28** ✅ |
 
 ### Tareas externas (EXT)
 
@@ -196,7 +162,7 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 | EXT-01 | Datos para validar el IRPF: valor de construcción, instalaciones exteriores, mobiliario, gastos reales | ADR-0012, D-15 |
 | EXT-02 | Revisión RGPD: registro de actividades (art. 30), retención de datos de huéspedes y viajeros; antes de S29 | RNF-35, RNF-37, R-03, R-11 |
 | EXT-03 | ~~UAT de los journeys~~ → hecho de facto (D-07) | RNF-08, R-10 |
-| EXT-04 | Credenciales del servicio web de SES.Hospedajes (ACC-04) | ADR-0018 |
+| EXT-04 | ~~Credenciales del servicio web de SES.Hospedajes (ACC-04)~~ ✅ 2026-10-02 | ADR-0018 |
 
 ---
 
@@ -220,6 +186,10 @@ Orden propuesto: primero lo que falla en uso real (S22), luego SES (prioridad de
 | S16 | Checklists digitales (F-14, DD-01) | 2.0.0 | — |
 | Despliegue v2 | clasp, copias abuelo-padre-hijo, código de reserva del canal, ejecutar como quien accede; v2 publicada (implementación v37). El smoke (T-06) pasa a S9 | 2.0.0 (publicada 2026-09-27) | M4 ✅ |
 | SES-0 + SES-1 | Prueba de conexión a SES desde Apps Script (conecta validando el certificado); referencia técnica corregida (`RH` **y** `PV`); ADR-0018 (*proposed*) y DD-02 (borrador) | — (solo documentación, 2026-10-02) | — |
+| S22 | Calendar, horas y checklists fiables (B-14, B-18, B-19, B-21, B-22 + D-28, F-23, TD-02; ADR-0019, ADR-0020) | 2.0.0 (implementada 2026-10-02) | — |
+| S23 | Interfaz móvil como KAF Finance (F-24, F-25, F-26) | 2.0.0 (implementada 2026-10-02) | — |
+| S9 | Calidad estática y despliegue (T-06, T-07 ESLint, T-08 scripts de clasp, TD-04) | 2.0.0 (implementada 2026-10-02) | — |
+| S26–S28 | SES.Hospedajes: dominio, conexión, Form con script propio (ADR-0021), anulación al cancelar (ADR-0022), validación presencial (F-28), WhatsApp (F-27), ventana de "trabajando" (F-29), comprobar conexión (F-30), emails con plantilla (D-35, D-41) | 2.0.0 (implementada 2026-10-02; SES activo en producción) | M5 ✅ |
 
 ---
 

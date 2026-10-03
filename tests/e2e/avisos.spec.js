@@ -1,10 +1,10 @@
 // F-21 / RF-81, RF-82 · Éxitos centrados que se cierran solos; errores y avisos en ventana que hay que cerrar.
 const { test, expect } = require('@playwright/test');
-const { reiniciar, prueba, rellenarReservaHabitacion, dialogo } = require('./ayudas');
+const { irA, reiniciar, prueba, rellenarReservaHabitacion, dialogo } = require('./ayudas');
 
 // El botón Guardar aparece al elegir el espacio; el resto de campos se deja vacío.
 const abrirFormularioVacio = async (page) => {
-  await page.getByRole('button', { name: 'Crear Reserva' }).click();
+  await irA(page, 'Crear Reservas');
   await page.locator('#campo-espacio').selectOption('Habitación Interior');
 };
 

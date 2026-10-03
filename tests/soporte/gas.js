@@ -6,17 +6,20 @@ const vm = require('vm');
 const { crearServicios } = require('./dobles');
 
 const DIR_SRC = path.join(__dirname, '..', '..', 'docs_dev', 'src');
-const ficherosGs = () => fs.readdirSync(DIR_SRC).filter((f) => f.endsWith('.gs')).sort();
-const leerFuente = (f) => fs.readFileSync(path.join(DIR_SRC, f), 'utf8');
+const DIR_SRC_FORM = path.join(__dirname, '..', '..', 'docs_dev', 'src_form_checkin');
+const ficherosGs = (dir = DIR_SRC) => fs.readdirSync(dir).filter((f) => f.endsWith('.gs')).sort();
+const leerFuente = (f, dir = DIR_SRC) => fs.readFileSync(path.join(dir, f), 'utf8');
 
 const EMAIL_PROPIETARIO = 'operacion@test.com';
 const EMAILS_AUTORIZADOS = ['ana@test.com', 'luis@test.com', 'carlos@test.com'];
 
 const crearEntorno = (opciones = {}) => {
   const entorno = crearServicios({ usuarioEfectivo: EMAIL_PROPIETARIO, ...opciones });
-  const ctx = vm.createContext({ ...entorno.servicios, Buffer, Date, Math, JSON });
-  const orden = opciones.ordenInverso ? ficherosGs().reverse() : ficherosGs();
-  orden.forEach((f) => vm.runInContext(leerFuente(f), ctx, { filename: path.join(DIR_SRC, f) }));
+  const ctx = vm.createContext({ ...entorno.servicios, ...(opciones.serviciosExtra || {}), Buffer, Date, Math, JSON, console });
+  // `dirSrc`: carpeta del proyecto de Apps Script (por defecto, KAF Rent; DIR_SRC_FORM para el script del Form).
+  const dir = opciones.dirSrc || DIR_SRC;
+  const orden = opciones.ordenInverso ? ficherosGs(dir).reverse() : ficherosGs(dir);
+  orden.forEach((f) => vm.runInContext(leerFuente(f, dir), ctx, { filename: path.join(dir, f) }));
 
   const fn = (nombre) => vm.runInContext(nombre, ctx);
   // Como google.script.run, la respuesta viaja serializada: se clona por JSON (y los objetos quedan en el ámbito del test).
@@ -82,7 +85,7 @@ const isoDentroDe = (dias) => {
 
 const datosReservaHabitacion = (cambios = {}) => ({
   espacio: 'Habitación Interior', canal: 'Airbnb', comision: '3',
-  fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33),
+  fechaEntrada: isoDentroDe(30), fechaSalida: isoDentroDe(33), horaLlegada: '16:00', horaSalida: '12:00',
   adultos: '2', menores: '0', importeAlquiler: '300',
   nombre: 'Marta Pérez', telefono: '600111222', email: 'marta@huesped.com', refCanal: 'HMTEST1234',
   servicios: [{ nombre: 'Desayuno', cantidad: '2' }],
@@ -99,6 +102,7 @@ const datosReservaPiscina = (cambios = {}) => ({
 });
 
 module.exports = {
+  DIR_SRC_FORM,
   crearEntorno, crearEntornoConDatos, ficherosGs, leerFuente, isoDentroDe,
   datosReservaHabitacion, datosReservaPiscina, EMAIL_PROPIETARIO, EMAILS_AUTORIZADOS,
 };

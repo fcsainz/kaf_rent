@@ -30,27 +30,21 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 - **Backend:** Google Apps Script (V8, JavaScript ES2019+), ficheros `.gs`.
 - **Frontend:** HTML Service (HTML/CSS/JS servido desde Apps Script), mobile-first.
 - **Datos:** Google Sheets. **Archivos:** Google Drive. **Ocupación:** Google Calendar. **Email:** MailApp.
-- **Despliegue:** VS Code → `clasp` con credenciales locales de la cuenta operativa (en implantación, [ADR-0015](docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)); Git y GitHub. Ver [DEVELOPMENT.md](docs_dev/DEVELOPMENT.md).
+- **Despliegue:** VS Code → `clasp` con credenciales locales de la cuenta operativa ([ADR-0015](docs_dev/solution/adr/0015-despliegue-con-clasp-multicuenta.md)); Git y GitHub. Ver [DEVELOPMENT.md](docs_dev/DEVELOPMENT.md).
 
 ## Estructura del repositorio
 
 ```
 .
-├── CLAUDE.md               # Reglas de trabajo y estándares (código, docs, UX, tests, DoD)
-├── PROXIMOS_PASOS.md       # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
-├── CHANGELOG.md            # Keep a Changelog + SemVer
-├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
-├── docs_dev/               # Documentación y código de desarrollo del producto
-│   ├── src/                # Código Apps Script (.gs + HTML Service)
-│   ├── DEVELOPMENT.md      # Puesta en marcha, clasp, despliegue y día a día
-│   ├── discovery/          # QUÉ y POR QUÉ: problema+JTBD, HU, RF, RNF (trazabilidad ↑/↓ en cada uno)
-│   └── solution/           # CÓMO: arc42.md, adr/ (MADR), design-system.md
-└── docs_work/
-    ├── docs_ses/           # Apoyo técnico: SES.Hospedajes (referencia-tecnica-ses-hospedajes.md)
-    ├── doc_hacienda/       # Apoyo técnico: IRPF y gastos deducibles (referencia-tecnica-irpf-alquileres.md)
-    ├── doc_check/          # Apoyo técnico: checklists físicas de check-in/check-out de Piscina/Jardín
-    └── (resto del propósito de docs_work por definir, ver PROXIMOS_PASOS D-11)
+├── CLAUDE.md          # Reglas de trabajo y estándares; mapa completo del repositorio en su §1
+├── README.md · CHANGELOG.md · package.json · eslint.config.js · .clasp.json.example
+├── .github/workflows/ # CI: lint, tests y E2E en cada push
+├── tests/             # Unitarios, endpoints, interfaz, E2E (Playwright) y script del Form
+├── docs_dev/          # Producto: src/ (Apps Script), src_form_checkin/ (script del Form), DEVELOPMENT.md, discovery/, solution/
+└── docs_work/         # Trabajo: PROXIMOS_PASOS.md, valor_dev.md, docs_mejoras/, emails_propuesta/, docs_ses/, doc_hacienda/, doc_check/
 ```
+
+El detalle de cada carpeta está en [CLAUDE.md §1](CLAUDE.md).
 
 ## Cómo leer la documentación
 

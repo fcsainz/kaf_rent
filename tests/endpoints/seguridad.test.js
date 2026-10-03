@@ -4,17 +4,19 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { crearEntornoConDatos, ficherosGs, leerFuente } = require('../soporte/gas');
 
-// Endpoints que usa la interfaz (28).
+// Endpoints que usa la interfaz.
 const ENDPOINTS = [
   'cargarEspaciosFormulario', 'cargarOpcionesEspacio', 'crearReserva', 'cargarUltimasReservas', 'buscarReservas',
   'listarReservasActivas', 'obtenerReserva', 'actualizarReserva', 'cargarServiciosReserva', 'actualizarServiciosReserva',
   'cancelarReserva', 'obtenerHistorial', 'subirContrato', 'subirVideo', 'obtenerEnlaceCalendario',
   'cargarEstadisticas', 'recalcularEstadisticas', 'cargarCategoriasGasto', 'registrarGasto', 'calcularResumenFiscal',
   'notificarIncidencia', 'cargarChecklist', 'guardarChecklist', 'confirmarChecklist', 'subirFotoDesperfecto',
-  'cargarCatalogoChecklist', 'guardarPuntoChecklist', 'obtenerPerfil',
+  'cargarCatalogoChecklist', 'guardarPuntoChecklist', 'obtenerPerfil', 'mensajeHuesped',
+  'cargarViajeros', 'validarViajero', 'deshacerValidacionViajero', 'comunicarParte', 'comprobarSES', 'probarConexionSES',
 ];
 // Puntos de entrada de Google (web, plantillas, menú, triggers) y utilidades de editor, todas protegidas.
-const ENTRADAS_SISTEMA = ['doGet', 'include', 'onOpen', 'tareasNocturnas', 'informesProgramados', 'instalarTriggers', 'inicializarBaseDeDatos', 'sincronizarReservasCalendario'];
+const ENTRADAS_SISTEMA = ['doGet', 'include', 'onOpen', 'tareasNocturnas', 'informesProgramados', 'instalarTriggers', 'inicializarBaseDeDatos', 'sincronizarReservasCalendario', 'corregirHorasReservas',
+  'alEnviarFormularioViajeros', 'procesarComunicacionesSES', 'actualizarCatalogosSES', 'comprobarConexionSES'];
 
 const funcionesGlobales = () => ficherosGs().flatMap((f) => {
   const fuente = leerFuente(f);
@@ -42,8 +44,13 @@ test('RNF-20 · un usuario autorizado no puede lanzar tareas del sistema desde l
   e.llamar('inicializarBaseDeDatos');
   e.llamar('instalarTriggers');
   e.llamar('sincronizarReservasCalendario');
+  e.llamar('corregirHorasReservas');
+  e.llamar('alEnviarFormularioViajeros', { triggerUid: 'inventado' });
+  e.llamar('procesarComunicacionesSES');
+  e.llamar('actualizarCatalogosSES');
+  e.llamar('comprobarConexionSES');
   assert.ok(e.hoja('Logs').registros().some((l) => l.Email === 'x'), 'no purga');
-  assert.equal(e.hoja('Logs').registros().filter((l) => l.Tipo === 'SISTEMA_DENEGADO').length, 5, 'cada intento queda registrado');
+  assert.equal(e.hoja('Logs').registros().filter((l) => l.Tipo === 'SISTEMA_DENEGADO').length, 10, 'cada intento queda registrado');
   assert.equal(e.disparadores.length, 0, 'no instala triggers');
   assert.equal(e.correos.length, 0, 'no envía informes');
 });
@@ -60,7 +67,7 @@ test('ADR-0017 · con USER_ACCESSING (efectivo = quien navega) un usuario autori
 test('las tareas del sistema sí se ejecutan desde un trigger real del proyecto', () => {
   const e = crearEntornoConDatos({ usuarioActivo: '' });
   e.comoPropietario(() => e.llamar('instalarTriggers'));
-  assert.equal(e.disparadores.length, 2);
+  assert.equal(e.disparadores.length, 3, 'sin Sheet_Viajeros_Id no hay activador del Form');
   e.hoja('Logs').appendRow([new Date(2000, 0, 1), 'ACCESO', 'x', '']);
   const uid = e.disparadores.find((t) => t.funcion === 'tareasNocturnas').getUniqueId();
   e.llamar('tareasNocturnas', { triggerUid: uid });

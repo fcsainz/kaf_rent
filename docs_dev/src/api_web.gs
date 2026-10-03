@@ -4,7 +4,7 @@ const NOMBRE_APP = 'KAF Rent';
 
 const doGet = () => {
   const acceso = verificarAcceso_(obtenerEmailSesion_());
-  return renderizarVista_(acceso.autorizado ? 'index' : 'acceso-denegado', { email: acceso.email });
+  return renderizarVista_(acceso.autorizado ? 'index' : 'acceso-denegado', { email: acceso.email, icono: texto_(obtenerConfig_('Icono_Url', '')) });
 };
 
 const renderizarVista_ = (nombreArchivo, datos) => {

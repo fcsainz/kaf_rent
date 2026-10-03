@@ -4,7 +4,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { crearEntornoConDatos } = require('../soporte/gas');
+const { crearEntornoConDatos, datosReservaHabitacion } = require('../soporte/gas');
+const { CABECERAS_FORM, filaAdulto, filaMenor } = require('../soporte/form_viajeros');
 
 const PUERTO = Number(process.env.PUERTO_E2E) || 4173;
 const DIR_SRC = path.join(__dirname, '..', '..', 'docs_dev', 'src');
@@ -14,6 +15,23 @@ let entorno = null;
 const reiniciar = () => {
   entorno = crearEntornoConDatos({ usuarioActivo: USUARIO_POR_DEFECTO });
   entorno.hoja('Usuarios_Autorizados').appendRow(['admin@test.com', 'Sí', 'Admin']);
+};
+
+// F-28: reserva de la Habitación (1 adulto + 1 menor) con sus dos formularios; el del menor con un municipio que no
+// está en el INE. Sheet del Form, catálogos y municipios simulados; datos inventados.
+const prepararViajeros = () => {
+  const config = { Sheet_Viajeros_Id: 'FORM-E2E', Form_Viajeros_Enlace: 'https://docs.google.com/forms/d/e/FORM/viewform?entry.1={codigo}' };
+  entorno.hoja('Config').datos.forEach((f) => { if (config[f[0]] !== undefined) f[1] = config[f[0]]; });
+  require('vm').runInContext('cacheConfig_ = null;', entorno.ctx);
+  entorno.llamar('crearReserva', datosReservaHabitacion({ adultos: '1', menores: '1' }));
+  const libro = new entorno.LibroFalso();
+  const form = libro.insertSheet('Respuestas de formulario 1');
+  [CABECERAS_FORM, filaAdulto(), filaMenor({ 'Municipio del menor': 'Madrid ciudad' })].forEach((f) => form.appendRow(f));
+  entorno.librosExternos['FORM-E2E'] = libro;
+  [['PAIS', 'ESP', 'España'], ['SEXO', 'M', 'Mujer'], ['SEXO', 'H', 'Hombre'], ['TIPO_DOCUMENTO', 'NIF', 'NIF'], ['TIPO_DOCUMENTO', 'PAS', 'Pasaporte'], ['TIPO_PARENTESCO', 'HJ', 'Hijo/a']]
+    .forEach((f) => entorno.hoja('Catálogo_SES').appendRow(f));
+  [['Madrid', 'Madrid', '28079'], ['Madrid', 'Majadahonda', '28080'], ['Madrid', 'Alcalá de Henares', '28005']]
+    .forEach((f) => entorno.hoja('Municipios_INE').appendRow(f));
 };
 
 // Sustituye a google.script.run en el navegador: cada llamada viaja por POST /rpc/<funcion>.
@@ -42,6 +60,7 @@ const leerPlantilla = (nombre) => fs.readFileSync(path.join(DIR_SRC, `${nombre}.
 const renderizar = (nombre, datos) => leerPlantilla(nombre)
   .replace(/<\?!=\s*include\('([^']+)'\);?\s*\?>/g, (_, archivo) => leerPlantilla(archivo))
   .replace(/<\?=\s*datos\.email\s*\?>/g, () => escapar(datos.email))
+  .replace(/<\?=\s*datos\.icono\s*\?>/g, () => escapar(datos.icono || ''))
   .replace('<head>', `<head>\n<meta name="viewport" content="width=device-width, initial-scale=1">${SIMULADOR_GOOGLE}`);
 
 const leerCuerpo = (req) => new Promise((resolver) => {
@@ -58,6 +77,7 @@ const json = (res, datos) => responder(res, 200, 'application/json', JSON.string
 
 const rutasDePrueba = {
   '/__test/reiniciar': () => { reiniciar(); return { ok: true }; },
+  '/__test/viajeros': () => { prepararViajeros(); return { ok: true }; },
   '/__test/usuario': ({ email }) => { entorno.sesion.activo = email; return { ok: true }; },
   '/__test/calendario-falla': ({ falla }) => { entorno.calendario.fallar = falla === '1'; return { ok: true }; },
   '/__test/correos': () => entorno.correos,

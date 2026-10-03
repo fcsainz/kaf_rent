@@ -8,6 +8,60 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased] — en curso hacia 2.0.0
 
+### Implementación en producción y documentación (2026-10-02)
+- **Implementación:** el usuario implementó la versión con S22, S23, S9 y S26–S28 tras *Reparar hojas*, `corregirHorasReservas`, `instalarTriggers` y los ajustes del Sheet (checklists, `Nombre_Corto`, `Config`). Prueba en el móvil del usuario sin fallos; falta comprobar B-14 con Esperanza y Aura (ACC-03).
+- **SES.Hospedajes activo en producción.** Pre-ses respondía HTTP 502. La conexión y los catálogos (`actualizarCatalogosSES`) se comprobaron en producción, así que `SES_Url` apunta a producción. El Form tiene sus listas y validaciones con el catálogo real (D-42). La primera reserva real de la Habitación hace de verificación (S29, riesgo R-23).
+- **Changed:** CLAUDE.md §2.2. Claude sube con clasp (KAF Rent y el script del Form) solo con OK en cada subida; implementar lo hace el usuario. Se distingue "subir" de "implementar".
+- **Added:** `docs_work/valor_dev.md`, valoración del proyecto a precio de mercado por comparables (≈ 750–1.210 € al año en cuotas equivalentes; ≈ 1.060–1.520 € con lo previsto), registrada en CLAUDE.md §1 y §5.1.
+- **Changed:** registro de mejoras `mejoras_2026-10-02.md` con la segunda sesión; PROXIMOS_PASOS regenerado (S29 verificación de SES en producción, S30 trazabilidad, B-25, B-26).
+
+### Código — S22, S23, S9 y S26–S28 (2026-10-02)
+- **Fixed:** B-14. Si el usuario no tiene el calendario operativo en su lista, la app lo suscribe oculto y sin marcar y crea el evento (`suscribirCalendarioOculto_`, D-26). Falta el smoke con Esperanza y Aura.
+- **Fixed:** B-22. Las horas de `Config` que Sheets guarda como valor de hora se leen como `HH:mm` (`obtenerConfigHora_`).
+- **Added:** D-28. Tarea de editor `corregirHorasReservas`, que se ejecuta una vez: pone la hora de `Config` a las reservas de la Habitación guardadas a 00:00, mueve su evento y lo anota en `Historial_Cambios`.
+- **Changed:** F-23 ([ADR-0019](docs_dev/solution/adr/0019-horas-obligatorias-en-todos-los-espacios.md), sustituye la parte de horas de ADR-0003). Hora de llegada y de salida obligatorias en los dos espacios; en la Habitación llegan prerrellenas con las de `Config`. HU-10, HU-11, RF-19 y RF-20 actualizados.
+- **Fixed:** B-18. Si una checklist terminada se guarda con algún punto pendiente, vuelve a sin terminar, la reserva se recalcula y queda en el historial.
+- **Fixed:** B-19. Los puntos de daños son de un tipo propio, `Daños`, y se responden *Sin daños* o *Con daños*, sin "No aplica". El aviso de incidencia depende de la respuesta, no del texto del punto. Afecta a los 4 puntos de la semilla, que pasan a llamarse "Mobiliario", "Instalaciones y piscina", "Cojines" y "Habitación", y a la checklist v1.1.
+- **Changed:** TD-02 ([ADR-0020](docs_dev/solution/adr/0020-una-fila-por-checklist.md)). Hoja nueva `Checklists_Reserva`, con una fila por checklist y los puntos en JSON; `Registro_Checklist` sale del esquema. Guardar escribe solo esa fila.
+- **Added:** EXT-04 hecha. Claves `SES_Codigo_Arrendador` y `SES_Codigo_Establecimiento` en `Config` del Sheet; `SES_USUARIO` y `SES_CONTRASENA` en las Propiedades del script (D-32, DD-02).
+- **Fixed:** B-21. Gestionar avisa en el momento si falta el código de reserva del canal cuando es obligatorio; el servidor lo sigue revalidando.
+- **Changed:** S23, F-24. La cabecera muestra el icono de la app (`Config.Icono_Url`) junto a "KAF Rent".
+- **Changed:** S23, F-25. Navegación inferior fija en dos pisos: Inicio · Reservas (Gestionar / Crear) · Checklists · Gastos · Estadísticas, con icono y texto. Sustituye a la fila de botones superior.
+- **Changed:** S23, F-26. "Últimas reservas" muestra el espacio corto (columna nueva `Nombre_Corto` en `Catálogo_Espacios`), el código del canal, el nombre, Inicio y Fin cortos y el neto. El enlace al calendario pasa a botón "Ver calendario".
+- **Added:** S26, dominio de SES ([DD-02](docs_dev/solution/design-docs/DD-02-comunicacion-ses-hospedajes.md)). `dominio_ses.gs` lee el Google Form de viajeros por cabecera, casa cada respuesta con la reserva por código, traduce a códigos de SES (INE de 5 dígitos), valida `PV` y `RH`, construye su XML y clasifica errores y reintentos. Tests en `tests/dominio/ses.test.js`.
+- **Changed:** RF-75 retirado (lo sustituye el Google Form, ADR-0018). RF-76 y RF-77 reescritos; RF-89 a RF-91 nuevos; HU-35 reescrita.
+- **Added:** S9, T-07. ESLint 9 como dependencia de desarrollo (`eslint.config.js`, `npm run lint`) y en la CI antes de los tests.
+- **Added:** S9, T-08. `npm run push` (tests + lint + `clasp push`) y `npm run deploy` (ID de implementación en una variable de entorno).
+- **Added:** S9, T-06. Checklist de smoke tras publicar en DEVELOPMENT.md.
+- **Changed:** S9, TD-04. Las reglas puras de las copias pasan a `dominio_mantenimiento.gs`.
+- **Changed:** RF-10. El texto de tabla vacía depende del contexto: "Todavía no hay reservas." (Inicio) y "Ninguna reserva coincide con ese nombre o fecha." (buscador).
+- **Added:** [ADR-0021](docs_dev/solution/adr/0021-script-propio-del-form-de-viajeros.md). Script propio ligado al Form de viajeros, en `docs_dev/src_form_checkin/` y sin credenciales de SES. DD-02 §3.6 recoge los cambios del Form (D-37).
+- **Added:** script del Form de viajeros (`docs_dev/src_form_checkin/`, ADR-0021). Rellena los desplegables desde `Catálogo_SES` conservando los saltos de sección, pone validaciones con mensaje (DNI/NIE, soporte, email, teléfono) y muestra un informe. Incluye `npm run push:form`, tests en `tests/form_checkin/` y lint. Subido el 2026-10-02 al proyecto ligado al Form (cuenta operaciontangai).
+- **Changed:** D-37. KAF Rent lee el Form por título único: sin lectura por posición ni separación heurística de apellidos. Se traduce con `Catálogo_SES` (`Equivalencias_SES` retirada) y se comprueba la letra del DNI/NIE. DD-02 §3.6 trae la lista exacta de cambios a mano en el Form.
+- **Added:** D-38. El menor sin teléfono ni email lleva el de su adulto responsable (`completarContactoMenores_`). D-37 (E): el segundo apellido es obligatorio en el Form con un guion si no tiene (lo pone el script del Form) y KAF Rent entiende el guion como vacío. El script del Form gana `describirFormulario` (solo lectura).
+- **Added:** S27, conexión con SES (DD-02 SES-3).
+  - Cliente SOAP (`infra_ses.gs`): ZIP + Base64 y HTTP Basic con las credenciales en las Propiedades del script.
+  - Lectura del Sheet del Form y anotación del resultado igual que a mano, con "Automática" (`infra_formulario_viajeros.gs`).
+  - Hojas `Catálogo_SES`, `Municipios_INE`, `Comunicaciones_SES` y `Validacion_Viajeros`, y claves de `Config` de SES.
+  - Tareas `alEnviarFormularioViajeros` (programa la RH y actualiza `Registro_Viajeros_Estado`, RF-78), `procesarComunicacionesSES` (cada 10 min: envía, consulta el lote y reintenta) y `actualizarCatalogosSES`.
+  - Tests en `tests/endpoints/ses.test.js`.
+- **Added:** avisos de SES por email a `Emails_Notificacion`: Form sin reserva, datos que corregir, parte en manual y reserva no comunicada tras los reintentos. La reserva (RH) que agota los intentos queda "No comunicada", sin acción manual. El resultado de la RH va en columnas propias del Sheet del Form. Catálogos de SES automáticos el día 1 de cada mes.
+- **Added:** [ADR-0022](docs_dev/solution/adr/0022-anulacion-en-ses-al-cancelar.md) (D-40). Al cancelar una reserva ya comunicada, la confirmación lo avisa y se anula en SES (operación B) con reintentos y avisos; lo pendiente se descarta. Se anota en el Form. RF-92 nuevo.
+- **Removed:** D-39. La hoja `Registro_Viajeros` sale del esquema: era del diseño antiguo, que copiaba datos de huéspedes.
+- **Added:** S28, F-28 (RF-94). En Gestionar, en las reservas de la Habitación, bloque "Registro de viajeros (SES)": huéspedes con formulario, validar en persona (o deshacer), elegir el municipio si no está en el INE (se corrige en el Form), comunicar el parte con todos validados, estado ante SES, "Actualizar formularios" y "Comprobar ahora". Solo Gestión y Admin.
+- **Changed:** S28, F-18 (D-35 B). Todos los emails usan la plantilla común aprobada (`infra_plantilla_email.gs`): cabecera con el logo (`Config.Icono_Url`), etiqueta de estado, resumen, datos clave, "Qué hacer", botones (KAF Rent, Sheet del Form, web de SES) y datos técnicos, con versión en texto. Asuntos nuevos (`[KAF Rent] {✓ ! ✕} …`) e importes en formato español (`2.840,00 €`). Nueva clave `Config.SES_Web_Url`.
+- **Added:** S28. Emails de éxito de SES: reserva comunicada, parte comunicado (con quién validó en persona) y comunicación anulada (con su código).
+- **Changed:** D-42. El script del Form pone en "Tipo de documento" el catálogo de SES tal cual y asigna a cada opción la sección de su equivalente (NIF → DNI; Otro, CIF y CIF extranjero → pasaporte); si no puede, no toca la pregunta. Corrige el error "Invalid data updating form" al mezclar opciones con y sin salto. `describirFormulario` resume las listas largas.
+- **Changed:** D-42. KAF Rent acepta "DNI" como NIF en las respuestas del Form enviadas antes del cambio a la lista de SES.
+- **Added:** S28, F-30 (RF-96). Comprobar la conexión con SES.Hospedajes sin enviar datos: menú del Sheet *KAF Rent → Comprobar la conexión con SES* y botón en Inicio solo para Admin; dice si es correcta, si fallan las credenciales o si SES no responde, y en qué entorno.
+- **Added:** S28, D-41. Los informes mensual y trimestral comparan el neto por espacio y canal con el periodo anterior y con el mismo periodo del año anterior (▲/▼ %; "—" sin datos).
+- **Added:** S28, F-29 (RF-95). Ventana de "trabajando" en toda la app ("Cargando la reserva…", "Enviando el parte a SES…").
+- **Fixed:** los botones desactivados no se distinguían de los activos (faltaba el estado `disabled`, CLAUDE.md §6.4).
+- **Added:** S28, F-27 (RF-93). Botón "Mensaje para el huésped" en las reservas de Habitación con el texto aprobado y el enlace prerrellenado del Form (`Config.Form_Viajeros_Enlace`); abre WhatsApp si hay teléfono y, si no, copia el texto.
+- **Changed:** avisos de SES con el trámite y el número de intento en el asunto (`SES Reserva: 2º intento · rechazada por SES`). Se recupera el aviso en cada intento fallido con la hora del reintento, ya aprobado en DD-02 §3.5 y que la primera versión de S27 había omitido.
+- **Changed:** "Reparar hojas" añade a `Config` las claves nuevas que falten, sin tocar las existentes, para que lleguen a producción.
+- **Changed:** D-34 aprobada. ADR-0018 pasa a *accepted* y DD-02 a aprobado, lo que desbloquea S26–S29.
+
 ### Documentación — diagnóstico, mejoras y diseño de SES (2026-10-02, sin cambios de código)
 Registro completo de la sesión: [docs_work/docs_mejoras/mejoras_2026-10-02.md](docs_work/docs_mejoras/mejoras_2026-10-02.md).
 - **Added:** [ADR-0018](docs_dev/solution/adr/0018-comunicacion-ses-hospedajes.md) (*proposed*), que propone la comunicación automática a SES.Hospedajes desde el Google Form de viajeros, con validación presencial; sustituye parte de ADR-0007.

@@ -17,9 +17,12 @@ const HOJA_HISTORICO_INFORMES   = 'Historico_Informes';
 const HOJA_ESTADISTICAS_CACHE   = 'Estadisticas_Cache';
 const HOJA_GASTOS               = 'Gastos';
 const HOJA_RESUMEN_FISCAL       = 'Resumen_Fiscal';
-const HOJA_REGISTRO_VIAJEROS    = 'Registro_Viajeros';
 const HOJA_CAT_CHECKLIST        = 'Catálogo_Checklist';
-const HOJA_REGISTRO_CHECKLIST   = 'Registro_Checklist';
+const HOJA_CHECKLISTS_RESERVA   = 'Checklists_Reserva';
+const HOJA_CATALOGO_SES         = 'Catálogo_SES';
+const HOJA_MUNICIPIOS_INE       = 'Municipios_INE';
+const HOJA_COMUNICACIONES_SES   = 'Comunicaciones_SES';
+const HOJA_VALIDACION_VIAJEROS  = 'Validacion_Viajeros';
 
 const CAMPOS_RESERVA = {
   id: 'ID_Reserva', espacio: 'Espacio', canal: 'Canal', inicio: 'Fecha_Hora_Inicio', fin: 'Fecha_Hora_Fin',
@@ -35,7 +38,7 @@ const CAMPOS_RESERVA = {
   videoOutUrl: 'Video_Out_Url', costeFijoCanal: 'Coste_Canal_Fijo', refCanal: 'Ref_Canal',
 };
 const CAMPOS_LINEA_SERVICIO = { idReserva: 'ID_Reserva', nombre: 'Nombre_Servicio', cantidad: 'Cantidad', coste: 'Coste_Unitario_Snapshot', precio: 'Precio_Unitario_Snapshot' };
-const CAMPOS_ESPACIO = { nombre: 'Nombre_Espacio', activo: 'Activo', modoFecha: 'Modo_Fecha' };
+const CAMPOS_ESPACIO = { nombre: 'Nombre_Espacio', activo: 'Activo', modoFecha: 'Modo_Fecha', nombreCorto: 'Nombre_Corto' };
 const CAMPOS_CANAL = { espacio: 'Espacio', nombre: 'Nombre_Canal', activo: 'Activo', comision: '%_Comisión_Default', gestionContrato: 'Gestión_Contrato', costeFijo: 'Coste_Fijo_Por_Reserva', requiereRef: 'Requiere_Ref_Canal' };
 const CAMPOS_SERVICIO = { espacio: 'Espacio', nombre: 'Nombre_Servicio', activo: 'Activo', coste: 'Coste_Unitario', precio: 'Precio_Unitario' };
 const CAMPOS_CATEGORIA_GASTO = { nombre: 'Nombre_Categoria', descripcion: 'Descripcion', activo: 'Activo', deducibleDefault: 'Deducible_Default', esAmortizacion: 'Es_Amortizacion' };
@@ -48,14 +51,22 @@ const CAMPOS_INFORME = { periodo: 'Periodo', tipo: 'Tipo', espacio: 'Espacio', c
 const CAMPOS_ESTADISTICA = { zona: 'Zona', totalReservas: 'Total_Reservas_Anyo', ingresosNetos: 'Ingresos_Netos', actualizado: 'Fecha_Actualizacion' };
 const CAMPOS_GASTO = { id: 'ID_Gasto', fecha: 'Fecha', ejercicio: 'Ejercicio', concepto: 'Concepto', categoria: 'Categoria', espacio: 'Espacio', importe: 'Importe', deducible: 'Deducible', pagadoPor: 'Pagado_Por', justificante: 'Justificante', notas: 'Notas' };
 const CAMPOS_RESUMEN_FISCAL = { ejercicio: 'Ejercicio', espacio: 'Espacio', ingresos: 'Ingresos_Integros', gastosDeducibles: 'Gastos_Deducibles', rendimiento: 'Rendimiento_Neto', tercio: 'Tercio_Comunero' };
-const CAMPOS_VIAJERO = {
-  idReserva: 'ID_Reserva', nombre: 'Nombre_Completo', tipoDocumento: 'Tipo_Documento', numDocumento: 'Num_Documento', numSoporte: 'Num_Soporte',
-  nacionalidad: 'Nacionalidad', fechaNacimiento: 'Fecha_Nacimiento', direccion: 'Direccion', telefono: 'Telefono', email: 'Email',
-  parentesco: 'Parentesco', fotoAnverso: 'Foto_Anverso', fotoReverso: 'Foto_Reverso',
-};
 
 const CAMPOS_PUNTO_CHECKLIST = { id: 'ID_Punto', espacio: 'Espacio', momento: 'Momento', bloque: 'Bloque', punto: 'Punto', tipo: 'Tipo', servicios: 'Servicios_Requeridos', condicion: 'Condicion', pareja: 'Punto_Pareja', orden: 'Orden', activo: 'Activo' };
-const CAMPOS_REGISTRO_CHECKLIST = { idReserva: 'ID_Reserva', momento: 'Momento', idPunto: 'ID_Punto', estado: 'Estado', valor: 'Valor', usuario: 'Usuario', fecha: 'Fecha_Hora' };
+// TD-02 (ADR-0020): una fila por checklist; `puntos` = JSON [{ idPunto, estado, valor, usuario, fecha }].
+const CAMPOS_CHECKLIST_RESERVA = { idReserva: 'ID_Reserva', momento: 'Momento', puntos: 'Puntos', observaciones: 'Observaciones', usuario: 'Usuario', fecha: 'Fecha_Hora' };
+// SES.Hospedajes (ADR-0018, DD-02 §3.2): sin datos personales; Filas_Form apunta a las filas del Sheet del Form.
+const CAMPOS_CATALOGO_SES = { catalogo: 'Catalogo', codigo: 'Codigo', descripcion: 'Descripcion' };
+const CAMPOS_MUNICIPIO_INE = { provincia: 'Provincia', municipio: 'Municipio', codigo: 'Codigo_INE' };
+const CAMPOS_COMUNICACION_SES = {
+  id: 'ID_Comunicacion', idReserva: 'ID_Reserva', tipo: 'Tipo', estado: 'Estado', intento: 'Intento', filasForm: 'Filas_Form',
+  lote: 'Lote', codigo: 'Codigo_Comunicacion', error: 'Error', usuario: 'Usuario', fechaEnvio: 'Fecha_Envio', proximoIntento: 'Proximo_Intento',
+  anulaA: 'Anula_A', // en las anulaciones (tipo AN): ID_Comunicacion que se anula (ADR-0022)
+};
+const CAMPOS_VALIDACION_VIAJERO = {
+  idReserva: 'ID_Reserva', filaForm: 'Fila_Form', marcaTemporal: 'Marca_Temporal_Form', validadoPor: 'Validado_Por', fecha: 'Fecha_Hora',
+  codigoMunicipio: 'Codigo_INE_Municipio', // si se corrigió el municipio al validar (F-28)
+};
 
 // Semilla de las 4 checklists (F-14): copia exacta de docs_work/doc_check/checklists-check-in-out.md v1.0.
 // Un test comprueba que coincide con el documento. En producción manda la hoja (el admin la edita desde la app).
@@ -102,8 +113,8 @@ const SEMILLA_CHECKLIST = [
   ['EXT-IN-40', 'Piscina / Jardín', 'Check-in', 'Evidencia', 'Revisión visual final', 'Casilla', '', '', '', 40, 'Sí'],
   ['EXT-OUT-01', 'Piscina / Jardín', 'Check-out', 'Evidencia', 'Vídeo de fin', 'Video', '', '', '', 1, 'Sí'],
   ['EXT-OUT-02', 'Piscina / Jardín', 'Check-out', 'Evidencia', 'Fotos de desperfectos, si los hay', 'Foto', '', '', '', 2, 'Sí'],
-  ['EXT-OUT-03', 'Piscina / Jardín', 'Check-out', 'Daños', 'Sin daños en el mobiliario', 'Casilla', '', '', '', 3, 'Sí'],
-  ['EXT-OUT-04', 'Piscina / Jardín', 'Check-out', 'Daños', 'Sin daños en instalaciones ni piscina', 'Casilla', '', '', '', 4, 'Sí'],
+  ['EXT-OUT-03', 'Piscina / Jardín', 'Check-out', 'Daños', 'Mobiliario', 'Daños', '', '', '', 3, 'Sí'],
+  ['EXT-OUT-04', 'Piscina / Jardín', 'Check-out', 'Daños', 'Instalaciones y piscina', 'Daños', '', '', '', 4, 'Sí'],
   ['EXT-OUT-05', 'Piscina / Jardín', 'Check-out', 'Daños', 'Incidencias anotadas', 'Casilla', '', '', '', 5, 'Sí'],
   ['EXT-OUT-06', 'Piscina / Jardín', 'Check-out', 'Limpieza', 'Suelo de la barbacoa barrido y baldeado', 'Casilla', '', '', '', 6, 'Sí'],
   ['EXT-OUT-07', 'Piscina / Jardín', 'Check-out', 'Limpieza', 'Pérgola barrida', 'Casilla', '', '', '', 7, 'Sí'],
@@ -120,7 +131,7 @@ const SEMILLA_CHECKLIST = [
   ['EXT-OUT-18', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Sombrilla cerrada y asegurada', 'Casilla', '', '', '', 18, 'Sí'],
   ['EXT-OUT-19', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Mesa y sillas limpias y en su sitio', 'Casilla', '', '', '', 19, 'Sí'],
   ['EXT-OUT-20', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Mantel retirado o en buen estado', 'Casilla', '', '', '', 20, 'Sí'],
-  ['EXT-OUT-21', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Cojines sin daños', 'Casilla', '', '', '', 21, 'Sí'],
+  ['EXT-OUT-21', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Cojines', 'Daños', '', '', '', 21, 'Sí'],
   ['EXT-OUT-22', 'Piscina / Jardín', 'Check-out', 'Mobiliario', 'Inventario completo', 'Casilla', '', '', '', 22, 'Sí'],
   ['EXT-OUT-23', 'Piscina / Jardín', 'Check-out', 'Barbacoa', 'Barbacoa limpia tras el uso', 'Casilla', 'Carbón 1 Bolsa|Utensilios BBQ', '', '', 23, 'Sí'],
   ['EXT-OUT-24', 'Piscina / Jardín', 'Check-out', 'Barbacoa', 'Plancha desmontada y guardada', 'Casilla', 'Carbón 1 Bolsa|Utensilios BBQ', '', '', 24, 'Sí'],
@@ -181,7 +192,7 @@ const SEMILLA_CHECKLIST = [
   ['INT-IN-37', 'Habitación Interior', 'Check-in', 'Recepción', 'Dinámica de uso del espacio exterior', 'Casilla', '', '', '', 37, 'Sí'],
   ['INT-OUT-01', 'Habitación Interior', 'Check-out', 'Evidencia', 'Vídeo de fin', 'Video', '', '', '', 1, 'Sí'],
   ['INT-OUT-02', 'Habitación Interior', 'Check-out', 'Evidencia', 'Fotos de desperfectos, si los hay', 'Foto', '', '', '', 2, 'Sí'],
-  ['INT-OUT-03', 'Habitación Interior', 'Check-out', 'Daños', 'Sin daños', 'Casilla', '', '', '', 3, 'Sí'],
+  ['INT-OUT-03', 'Habitación Interior', 'Check-out', 'Daños', 'Habitación', 'Daños', '', '', '', 3, 'Sí'],
   ['INT-OUT-04', 'Habitación Interior', 'Check-out', 'Daños', 'Incidencias anotadas', 'Casilla', '', '', '', 4, 'Sí'],
   ['INT-OUT-05', 'Habitación Interior', 'Check-out', 'Habitación', 'Ropa de cama y toallas retiradas', 'Casilla', '', '', '', 5, 'Sí'],
   ['INT-OUT-06', 'Habitación Interior', 'Check-out', 'Habitación', 'Cajones y baldas vacíos (nada olvidado)', 'Casilla', '', '', '', 6, 'Sí'],
@@ -205,7 +216,7 @@ const ESQUEMA_HOJAS = [
   { nombre: HOJA_RESERVA_SERVICIOS, campos: CAMPOS_LINEA_SERVICIO },
   {
     nombre: HOJA_CAT_ESPACIOS, campos: CAMPOS_ESPACIO,
-    semilla: [['Piscina / Jardín', 'Sí', 'Dia_y_Hora'], ['Habitación Interior', 'Sí', 'Rango_Dias']],
+    semilla: [['Piscina / Jardín', 'Sí', 'Dia_y_Hora', 'Exterior'], ['Habitación Interior', 'Sí', 'Rango_Dias', 'Interior']],
   },
   { nombre: HOJA_CAT_CANALES, campos: CAMPOS_CANAL },
   { nombre: HOJA_CAT_SERVICIOS, campos: CAMPOS_SERVICIO },
@@ -249,6 +260,17 @@ const ESQUEMA_HOJAS = [
       ['Calendar_Url', '', 'Enlace al calendario para el botón del Inicio (ADR-0010)'],
       ['Icono_Url', '', 'Enlace público directo al icono PNG de 192 px (pestaña y acceso directo del móvil; D-23)'],
       ['Dias_Office_Reponer', '3', 'Checklist de salida de la Habitación: si la siguiente reserva empieza en estos días o menos, se repone el office; si no, se recoge entero (F-14)'],
+      ['Sheet_Viajeros_Id', '', 'ID del Sheet de respuestas del Google Form de viajeros (ADR-0018)'],
+      ['Form_Viajeros_Enlace', '', 'Enlace prerrellenado del Form de viajeros con {codigo} en el lugar del código de reserva (mensaje de WhatsApp, F-27)'],
+      ['Sheet_Viajeros_Hoja', 'Respuestas de formulario 1', 'Pestaña de ese Sheet con las respuestas'],
+      ['SES_Url', 'https://hospedajes.pre-ses.mir.es/hospedajes-web/ws/v1/comunicacion', 'Servicio web de SES: pruebas (pre-ses) o producción (hospedajes.ses.mir.es)'],
+      ['SES_Codigo_Arrendador', '', 'Código de arrendador asignado por SES (el usuario y la contraseña van en las Propiedades del script, D-32)'],
+      ['SES_Codigo_Establecimiento', '', 'Código del establecimiento (Habitación) asignado por SES'],
+      ['SES_Aplicacion', 'KAF Rent', 'Nombre de la aplicación que se envía a SES'],
+      ['SES_Tipo_Pago', '', 'Código de TIPO_PAGO de SES para "otras formas de pago" (Catálogo_SES)'],
+      ['SES_Reintento_Minutos', '30', 'Minutos entre reintentos de una comunicación fallida (DD-02 §3.5)'],
+      ['SES_Max_Intentos', '3', 'Intentos antes de pasar a comunicación manual (DD-02 §3.5)'],
+      ['SES_Web_Url', 'https://hospedajes.ses.mir.es/', 'Web de SES.Hospedajes para comunicar o anular a mano (botón de los emails de aviso)'],
     ],
   },
   { nombre: HOJA_USUARIOS, campos: CAMPOS_USUARIO },
@@ -259,9 +281,12 @@ const ESQUEMA_HOJAS = [
   { nombre: HOJA_ESTADISTICAS_CACHE, campos: CAMPOS_ESTADISTICA },
   { nombre: HOJA_GASTOS, campos: CAMPOS_GASTO },
   { nombre: HOJA_RESUMEN_FISCAL, campos: CAMPOS_RESUMEN_FISCAL },
-  { nombre: HOJA_REGISTRO_VIAJEROS, campos: CAMPOS_VIAJERO },
   { nombre: HOJA_CAT_CHECKLIST, campos: CAMPOS_PUNTO_CHECKLIST, semilla: SEMILLA_CHECKLIST },
-  { nombre: HOJA_REGISTRO_CHECKLIST, campos: CAMPOS_REGISTRO_CHECKLIST },
+  { nombre: HOJA_CHECKLISTS_RESERVA, campos: CAMPOS_CHECKLIST_RESERVA },
+  { nombre: HOJA_CATALOGO_SES, campos: CAMPOS_CATALOGO_SES },
+  { nombre: HOJA_MUNICIPIOS_INE, campos: CAMPOS_MUNICIPIO_INE },
+  { nombre: HOJA_COMUNICACIONES_SES, campos: CAMPOS_COMUNICACION_SES },
+  { nombre: HOJA_VALIDACION_VIAJEROS, campos: CAMPOS_VALIDACION_VIAJERO },
 ];
 
 const definicionHoja_ = (nombre) => {

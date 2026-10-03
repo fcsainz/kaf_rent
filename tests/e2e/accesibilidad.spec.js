@@ -1,9 +1,9 @@
 // RNF-12 · B-12: áreas táctiles de al menos 44×44 px en móvil (WCAG 2.5.5, CLAUDE.md §6.5).
 const { test, expect } = require('@playwright/test');
-const { reiniciar, rpc, datosHabitacion } = require('./ayudas');
+const { irA, reiniciar, rpc, datosHabitacion } = require('./ayudas');
 
 const MINIMO_PX = 44;
-const SECCIONES = ['Inicio', 'Crear Reserva', 'Gestionar Reserva', 'Estadísticas', 'Gastos'];
+const SECCIONES = ['Inicio', 'Crear Reservas', 'Gestionar Reservas', 'Estadísticas', 'Gastos'];
 
 test('RNF-12 · botones y campos visibles miden al menos 44 px de alto', async ({ page, request }, info) => {
   test.skip(info.project.name !== 'movil', 'solo aplica al móvil');
@@ -12,7 +12,7 @@ test('RNF-12 · botones y campos visibles miden al menos 44 px de alto', async (
   await page.goto('/');
   const pequenos = [];
   for (const seccion of SECCIONES) {
-    await page.getByRole('button', { name: seccion, exact: true }).click();
+    await irA(page, seccion);
     await page.waitForLoadState('networkidle');
     const encontrados = await page.evaluate((minimo) => [...document.querySelectorAll('button, select, input:not([type=checkbox]):not([type=radio]):not([type=file]), a')]
       .filter((el) => el.offsetParent !== null)

@@ -1,21 +1,35 @@
 <script>
   // Navegación entre secciones (HTML Service no tiene enrutado nativo, ver ADR-0008).
+  // Barra inferior en dos pisos (F-25): Gestionar y Crear cuelgan de "Reservas".
+  const SECCIONES_RESERVAS = ['gestionar', 'crear'];
+
+  const mostrarSubpisoReservas = (visible) => {
+    $('nav-subpiso-reservas').hidden = !visible;
+    $('btn-nav-reservas').setAttribute('aria-expanded', String(visible));
+    document.body.classList.toggle('con-subpiso', visible);
+  };
+
   const navegar = (seccion) => {
     document.querySelectorAll('.seccion').forEach((s) => {
       s.classList.toggle('activa', s.id === 'seccion-' + seccion);
     });
     document.querySelectorAll('.btn-nav').forEach((b) => {
-      const activo = b.dataset.seccion === seccion;
-      b.classList.toggle('activo', activo);
-      b.classList.toggle('btn-primario', activo);
-      b.classList.toggle('btn-secundario', !activo);
+      if (b.dataset.seccion === seccion) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
     });
+    const enReservas = SECCIONES_RESERVAS.includes(seccion);
+    if (enReservas) $('btn-nav-reservas').setAttribute('aria-current', 'page');
+    else $('btn-nav-reservas').removeAttribute('aria-current');
+    mostrarSubpisoReservas(enReservas);
+    window.scrollTo(0, 0);
   };
 
   const inicializarNavegacion = () => {
     document.querySelectorAll('.btn-nav').forEach((btn) => {
       btn.addEventListener('click', () => navegar(btn.dataset.seccion));
     });
+    $('btn-nav-reservas').addEventListener('click', () => mostrarSubpisoReservas($('nav-subpiso-reservas').hidden));
+    navegar('inicio');
     const btnCancelar = $('btn-cancelar-crear');
     if (btnCancelar) btnCancelar.addEventListener('click', () => navegar('inicio'));
   };
@@ -29,6 +43,45 @@
   let costeFijoCanal = 0;
 
   const $ = (id) => document.getElementById(id);
+
+  // ----- F-29: ventana de "trabajando" -----
+  // servidor('Guardando…').withSuccessHandler(…).withFailureHandler(…).metodo(…) se usa igual que google.script.run
+  // y muestra la ventana mientras dura la llamada (solo si pasa de RETARDO_OCUPADO_MS, para que no parpadee).
+  const RETARDO_OCUPADO_MS = 300;
+  let llamadasEnCurso = 0;
+  let temporizadorOcupado = null;
+
+  const empezarOcupado = (texto) => {
+    llamadasEnCurso += 1;
+    $('ocupado-texto').textContent = texto;
+    if (!temporizadorOcupado) temporizadorOcupado = setTimeout(() => { $('ocupado').hidden = llamadasEnCurso === 0; }, RETARDO_OCUPADO_MS);
+  };
+
+  const terminarOcupado = () => {
+    llamadasEnCurso = Math.max(0, llamadasEnCurso - 1);
+    if (llamadasEnCurso > 0) return;
+    clearTimeout(temporizadorOcupado);
+    temporizadorOcupado = null;
+    $('ocupado').hidden = true;
+  };
+
+  const servidor = (texto) => {
+    let alTerminarBien = () => {};
+    let alFallar = () => {};
+    const llamada = new Proxy({}, {
+      get: (_, nombre) => {
+        if (nombre === 'withSuccessHandler') return (f) => { alTerminarBien = f; return llamada; };
+        if (nombre === 'withFailureHandler') return (f) => { alFallar = f; return llamada; };
+        return (...args) => {
+          empezarOcupado(texto);
+          google.script.run
+            .withSuccessHandler((r) => { terminarOcupado(); alTerminarBien(r); })
+            .withFailureHandler((e) => { terminarOcupado(); alFallar(e); })[nombre](...args);
+        };
+      },
+    });
+    return llamada;
+  };
 
   const formatearEuros = (importe) =>
     Number(importe || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -81,12 +134,13 @@
 
     const espacio = espaciosCatalogo.find((esp) => esp.nombre === nombre);
     mostrarCamposFecha(espacio ? espacio.modoFecha : '');
+    prerrellenarHoras(espacio ? espacio.horasPorDefecto : null);
     $('bloque-dependiente').hidden = false;
     cargarOpcionesDeEspacio(nombre);
   };
 
   const cargarOpcionesDeEspacio = (espacio) => {
-    google.script.run
+    servidor('Cargando las opciones del espacio…')
       .withSuccessHandler((res) => {
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
         rellenarCanales(res.data.canales);
@@ -202,6 +256,13 @@
   const mostrarCamposFecha = (modo) => {
     $('fechas-dia-hora').hidden = modo !== 'Dia_y_Hora';
     $('fechas-rango').hidden = modo !== 'Rango_Dias';
+    $('horas-reserva').hidden = !modo;
+  };
+
+  // F-23: en los espacios por días, las horas llegan rellenas con las de Config y se pueden cambiar.
+  const prerrellenarHoras = (horas) => {
+    $('campo-hora-llegada').value = horas ? horas.llegada : '';
+    $('campo-hora-salida').value = horas ? horas.salida : '';
   };
 
   const resetearCamposDependientes = () => {
@@ -234,7 +295,7 @@
   const enviarReserva = () => {
     const boton = $('btn-guardar-reserva');
     boton.disabled = true;
-    google.script.run
+    servidor('Guardando la reserva…')
       .withSuccessHandler((res) => {
         boton.disabled = false;
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
@@ -304,6 +365,8 @@
       if (!$('campo-fecha-entrada').value) errores.push({ campo: 'campo-fecha-entrada', mensaje: 'Indica la fecha de entrada.' });
       if (!$('campo-fecha-salida').value) errores.push({ campo: 'campo-fecha-salida', mensaje: 'Indica la fecha de salida.' });
     }
+    if (modo && !$('campo-hora-llegada').value) errores.push({ campo: 'campo-hora-llegada', mensaje: 'Indica la hora de llegada.' });
+    if (modo && !$('campo-hora-salida').value) errores.push({ campo: 'campo-hora-salida', mensaje: 'Indica la hora de salida.' });
 
     const importeAlquiler = $('campo-importe-alquiler').value.trim();
     if (importeAlquiler === '' || parseFloat(importeAlquiler) < 0) {
@@ -422,7 +485,7 @@
     const enviar = (boton) => {
       boton.disabled = true;
       boton.textContent = 'Enviando…';
-      google.script.run
+      servidor('Enviando la incidencia…')
         .withSuccessHandler((res) => {
           if (!res.success) { boton.disabled = false; boton.textContent = 'Enviar al administrador'; mostrarMensaje(res.error, 'error'); return; }
           cerrar();
@@ -474,7 +537,7 @@
 
   const pintarFilas = (tbody, reservas, columnas, textoVacio) => {
     tbody.innerHTML = '';
-    if (reservas.length === 0) { tbody.appendChild(filaVacia(textoVacio)); return; }
+    if (reservas.length === 0) { tbody.appendChild(filaVacia(textoVacio, tbody.closest('table').querySelectorAll('thead th').length)); return; }
     reservas.forEach((r) => {
       const tr = document.createElement('tr');
       columnas.forEach((celda) => tr.appendChild(crearCelda(celda(r))));
@@ -484,8 +547,8 @@
 
   const renderUltimas = () => pintarFilas(
     $('tabla-ultimas'), ultimasReservas,
-    [(r) => r.espacio, (r) => r.inicioTexto, (r) => r.finTexto, (r) => r.nombre, (r) => formatearEuros(r.neto)],
-    'Sin reservas todavía.'
+    [(r) => r.espacio, (r) => r.refCanal || '—', (r) => r.nombre, (r) => r.inicioTexto, (r) => r.finTexto, (r) => formatearEuros(r.neto)],
+    'Todavía no hay reservas.'
   );
 
   const ordenarUltimas = (clave, tipo) => {
@@ -501,7 +564,7 @@
     document.querySelectorAll('#tabla-inicio th.orden').forEach((th) => {
       th.addEventListener('click', () => ordenarUltimas(th.dataset.clave, th.dataset.tipo));
     });
-    google.script.run
+    servidor('Cargando las últimas reservas…')
       .withSuccessHandler((res) => {
         if (!res.success) { pintarFilas($('tabla-ultimas'), [], [], res.error); return; }
         ultimasReservas = res.data;
@@ -515,13 +578,13 @@
   const renderBusqueda = (reservas) => pintarFilas(
     $('tabla-busqueda'), reservas,
     [(r) => r.id, (r) => r.espacio, (r) => r.inicioTexto, (r) => r.finTexto, (r) => r.nombre],
-    'No hay reservas registradas.'
+    'Ninguna reserva coincide con ese nombre o fecha.'
   );
 
   const ejecutarBusqueda = () => {
     const boton = $('btn-buscar');
     boton.disabled = true;
-    google.script.run
+    servidor('Buscando reservas…')
       .withSuccessHandler((res) => {
         boton.disabled = false;
         if (!res.success) { mostrarMensaje(res.error, 'error'); return; }

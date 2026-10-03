@@ -118,9 +118,11 @@ test.describe('RF-61 · informes', () => {
     const fila = cab.map((c) => ({ ID_Reserva: '2000-001', Espacio: 'Piscina / Jardín', Canal: '<b>Raro</b>', Fecha_Hora_Inicio: mesPasado, Fecha_Hora_Fin: mesPasado, Importe_Bruto: 100, Importe_Comisión: 10, Importe_Neto: 90, Estado_Reserva: 'Abierta' }[c] ?? ''));
     hoja.appendRow(fila);
     e.comoPropietario(() => e.llamar('informesProgramados'));
-    const informe = e.correos.find((c) => /Informe Mensual/.test(c.subject));
+    const informe = e.correos.find((c) => /Informe de \S+ \d{4} · /.test(c.subject));
     assert.ok(informe, 'se envía el informe mensual');
     assert.ok(!informe.htmlBody.includes('<b>Raro</b>'), 'el HTML se escapa');
+    assert.match(informe.body, /Espacio · canal \| Reservas \| Neto \| vs\. \S+ \d{4} \| vs\. \S+ \d{4}/, 'comparativa con el periodo anterior y el del año anterior (D-41)');
+    assert.match(informe.body, /sin datos de .* para comparar/);
     assert.ok(e.hoja('Historico_Informes').filas().length >= 1);
   });
 });

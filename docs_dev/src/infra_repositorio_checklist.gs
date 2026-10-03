@@ -1,30 +1,58 @@
 // Capa: INFRAESTRUCTURA — repositorio de checklists (F-14, DD-01): catálogo de puntos y registro por reserva.
+// Registro: una fila por checklist (reserva + momento) con los puntos en JSON (TD-02, ADR-0020).
 
 const PUNTO_OBSERVACIONES = 'OBSERVACIONES';
-const FORMATO_FECHA_PUNTO = 'yyyy-MM-dd';
 
 const leerCatalogoChecklist_ = () => registrosDe_(HOJA_CAT_CHECKLIST);
 
-// Sheets convierte '2026-09-27' en fecha al escribir: se devuelve siempre como texto ISO.
-const valorPunto_ = (valor) => (esFechaValida_(valor) ? Utilities.formatDate(valor, zonaHoraria_(), FORMATO_FECHA_PUNTO) : texto_(valor));
+const buscarFilaChecklist_ = (tabla, idReserva, momento) =>
+  tabla.entradas.find((e) => texto_(e.registro.idReserva) === idReserva && texto_(e.registro.momento) === momento) || null;
 
-const leerRegistroChecklist_ = (idReserva, momento) => registrosDe_(HOJA_REGISTRO_CHECKLIST)
-  .filter((r) => texto_(r.idReserva) === idReserva && texto_(r.momento) === momento)
-  .map((r) => ({ ...r, idPunto: texto_(r.idPunto), estado: texto_(r.estado), valor: valorPunto_(r.valor) }));
+// Una celda ilegible se notifica: guardar encima perdería lo marcado.
+const puntosGuardados_ = (entrada) => {
+  if (!entrada) return [];
+  try {
+    return JSON.parse(texto_(entrada.registro.puntos) || '[]');
+  } catch (error) {
+    throw new Error(`Puntos ilegibles en ${HOJA_CHECKLISTS_RESERVA} (fila ${entrada.filaSheet}): ${error.message}`);
+  }
+};
 
-const claveRegistro_ = (r) => `${texto_(r.idReserva)}|${texto_(r.momento)}|${texto_(r.idPunto)}`;
+// Puntos marcados + una entrada OBSERVACIONES con el texto libre.
+const leerRegistroChecklist_ = (idReserva, momento) => {
+  const entrada = buscarFilaChecklist_(leerTabla_(HOJA_CHECKLISTS_RESERVA), idReserva, momento);
+  if (!entrada) return [];
+  return [
+    ...puntosGuardados_(entrada).map((p) => ({ idPunto: texto_(p.idPunto), estado: texto_(p.estado), valor: texto_(p.valor) })),
+    { idPunto: PUNTO_OBSERVACIONES, estado: '', valor: texto_(entrada.registro.observaciones) },
+  ];
+};
 
-// Guarda los puntos recibidos en una sola escritura (RNF-14). Un punto sin cambios conserva quién y cuándo lo marcó.
-const guardarRegistroChecklist_ = (idReserva, momento, puntos, email, ahora) => {
-  const tabla = leerTabla_(HOJA_REGISTRO_CHECKLIST);
-  const actuales = tabla.entradas.map((e) => e.registro);
-  const porClave = new Map(actuales.map((r) => [claveRegistro_(r), r]));
-  const recibidos = puntos.map((p) => {
-    const nuevo = { idReserva, momento, idPunto: p.idPunto, estado: p.estado, valor: texto_(p.valor), usuario: email, fecha: ahora };
-    const previo = porClave.get(claveRegistro_(nuevo));
-    const igual = previo && texto_(previo.estado) === nuevo.estado && valorPunto_(previo.valor) === nuevo.valor;
-    return igual ? previo : nuevo;
+// Combina los puntos recibidos con los guardados: uno sin cambios conserva quién y cuándo lo marcó.
+const combinarPuntos_ = (guardados, recibidos, email, ahora) => {
+  const porId = new Map(guardados.map((p) => [p.idPunto, p]));
+  recibidos.forEach((p) => {
+    const previo = porId.get(p.idPunto);
+    const igual = previo && previo.estado === p.estado && previo.valor === texto_(p.valor);
+    if (!igual) porId.set(p.idPunto, { idPunto: p.idPunto, estado: p.estado, valor: texto_(p.valor), usuario: email, fecha: ahora.toISOString() });
   });
-  const clavesRecibidas = new Set(recibidos.map(claveRegistro_));
-  reescribirRegistros_(tabla, [...actuales.filter((r) => !clavesRecibidas.has(claveRegistro_(r))), ...recibidos]);
+  return [...porId.values()];
+};
+
+// Escribe solo la fila de esta checklist (RNF-14).
+const guardarRegistroChecklist_ = (idReserva, momento, puntos, email, ahora) => {
+  const tabla = leerTabla_(HOJA_CHECKLISTS_RESERVA);
+  const entrada = buscarFilaChecklist_(tabla, idReserva, momento);
+  const observaciones = puntos.find((p) => p.idPunto === PUNTO_OBSERVACIONES);
+  const recibidos = puntos.filter((p) => p.idPunto !== PUNTO_OBSERVACIONES);
+  const registro = {
+    idReserva,
+    momento,
+    puntos: JSON.stringify(combinarPuntos_(puntosGuardados_(entrada), recibidos, email, ahora)),
+    observaciones: observaciones ? texto_(observaciones.valor) : texto_(entrada?.registro.observaciones),
+    usuario: email,
+    fecha: ahora,
+  };
+  if (entrada) actualizarRegistro_(tabla, entrada, registro);
+  else anadirRegistro_(tabla, registro);
 };

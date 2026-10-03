@@ -155,7 +155,7 @@ test.describe('RF-52/RF-53 · cancelar e historial', () => {
     assert.equal(e.llamar('cancelarReserva', idPiscina).success, true);
     assert.equal(reserva(e, idPiscina).Estado_Reserva, 'Cancelada');
     assert.equal(e.calendario.eventos.length, eventos - 1);
-    assert.ok(e.correos.some((c) => /Reabrir canales/.test(c.subject)));
+    assert.ok(e.correos.some((c) => /! Reabre canales · .* \(reserva \d\d\/\d\d cancelada\)/.test(c.subject)));
     assert.equal(e.llamar('cancelarReserva', idPiscina).success, false);
     const h = e.llamar('obtenerHistorial', idPiscina).data;
     assert.equal(h[0].nuevo, 'Cancelada');
@@ -179,6 +179,12 @@ test.describe('RF-88 · código de reserva del canal', () => {
     const { e, idPiscina, idHabitacion } = preparar();
     assert.equal(reserva(e, idPiscina).Ref_Canal, '');
     assert.equal(e.llamar('obtenerReserva', idHabitacion).data.refCanal, 'HMTEST1234');
+  });
+
+  test('B-21 · la ficha indica si el código es obligatorio al editar, con la misma regla que el servidor', () => {
+    const { e, idPiscina, idHabitacion } = preparar();
+    assert.equal(e.llamar('obtenerReserva', idHabitacion).data.refCanalObligatoria, true);
+    assert.equal(e.llamar('obtenerReserva', idPiscina).data.refCanalObligatoria, false);
   });
 
   test('editar no permite borrarlo si el canal lo exige, pero sí cambiarlo (y se audita)', () => {

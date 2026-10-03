@@ -42,6 +42,9 @@ const rolDe_ = (email) => {
 
 const sesionEsAdmin_ = () => esRolAdmin_(rolDe_(obtenerEmailSesion_()));
 
+// Gestión y Admin (F-28: validar huéspedes y comunicar a SES).
+const sesionTieneGestion_ = () => tienePermiso_(rolDe_(obtenerEmailSesion_()), PERMISO.GESTION);
+
 // Reciben las incidencias técnicas (F-21): Admin y Soporte (RF-84).
 const obtenerEmailsSoporte_ = () => emailsConPermiso_(PERMISO.TECNICO);
 

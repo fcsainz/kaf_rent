@@ -23,10 +23,11 @@ const tipoDe = (texto) => {
   if (texto.startsWith('📅')) return 'Fecha';
   if (/^vídeo de/i.test(texto)) return 'Video';
   if (/^fotos de desperfectos/i.test(texto)) return 'Foto';
+  if (texto.startsWith('⚠️')) return 'Daños';
   return 'Casilla';
 };
 
-const textoPunto = (crudo) => capitalizar(crudo.replace(/^📅\s*/, '').replace(/\s*\(se elige[^)]*\)/, '').trim());
+const textoPunto = (crudo) => capitalizar(crudo.replace(/^(📅|⚠️)\s*/u, '').replace(/\s*\(se elige[^)]*\)/, '').trim());
 
 const serviciosDe = (marca, punto) => {
   if (marca === '🔥') return SERVICIOS_BBQ;

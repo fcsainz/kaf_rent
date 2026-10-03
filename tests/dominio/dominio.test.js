@@ -24,24 +24,47 @@ const cambiosDe = (r, extra = {}) => ({
 });
 
 test.describe('RF-19..RF-21 · fechas', () => {
-  const horas = { checkIn: '16:00', checkOut: '12:00' };
+  const horas = { horaLlegada: '16:00', horaSalida: '12:00' };
   test('Dia_y_Hora combina fecha y horas', () => {
-    const r = fn('construirFechas_')('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '10:30', horaSalida: '18:00' }, horas, HOY);
+    const r = fn('construirFechas_')('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '10:30', horaSalida: '18:00' }, HOY);
     assert.equal(r.valido, true);
     assert.equal(r.inicio.getHours(), 10);
     assert.equal(r.fin.getMinutes(), 0);
   });
-  test('Rango_Dias usa las horas por defecto', () => {
-    const r = fn('construirFechas_')('Rango_Dias', { fechaEntrada: '2030-07-01', fechaSalida: '2030-07-03' }, horas, HOY);
+  test('Rango_Dias combina cada fecha con su hora', () => {
+    const r = fn('construirFechas_')('Rango_Dias', { fechaEntrada: '2030-07-01', fechaSalida: '2030-07-03', ...horas }, HOY);
     assert.equal(r.inicio.getHours(), 16);
     assert.equal(r.fin.getHours(), 12);
   });
+  test('F-23 · rechaza la reserva sin hora de llegada o de salida, o con una hora mal formada', () => {
+    const f = fn('construirFechas_');
+    assert.match(f('Rango_Dias', { fechaEntrada: '2030-07-01', fechaSalida: '2030-07-03', horaSalida: '12:00' }, HOY).error, /llegada/);
+    assert.match(f('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '10:00' }, HOY).error, /salida/);
+    assert.equal(f('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '25:00', horaSalida: '18:00' }, HOY).valido, false);
+  });
   test('rechaza pasado, salida no posterior, sin fechas y modo desconocido', () => {
     const f = fn('construirFechas_');
-    assert.equal(f('Rango_Dias', { fechaEntrada: '2030-06-01', fechaSalida: '2030-06-03' }, horas, HOY).valido, false);
-    assert.equal(f('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '18:00', horaSalida: '10:00' }, horas, HOY).valido, false);
-    assert.equal(f('Rango_Dias', {}, horas, HOY).valido, false);
-    assert.equal(f('Otro', {}, horas, HOY).valido, false);
+    assert.equal(f('Rango_Dias', { fechaEntrada: '2030-06-01', fechaSalida: '2030-06-03', ...horas }, HOY).valido, false);
+    assert.equal(f('Dia_y_Hora', { fechaUnica: '2030-07-01', horaLlegada: '18:00', horaSalida: '10:00' }, HOY).valido, false);
+    assert.equal(f('Rango_Dias', { ...horas }, HOY).valido, false);
+    assert.equal(f('Otro', { ...horas }, HOY).valido, false);
+  });
+});
+
+test.describe('D-28 · corrección de las horas guardadas a 00:00 (B-22)', () => {
+  const horas = { llegada: '16:00', salida: '12:00' };
+  test('pone la hora por defecto a la entrada y a la salida que están a 00:00', () => {
+    const r = fn('corregirHorasMedianoche_')({ inicio: d(2030, 7, 1), fin: d(2030, 7, 4) }, horas);
+    assert.equal(r.inicio.getTime(), d(2030, 7, 1, 16).getTime());
+    assert.equal(r.fin.getTime(), d(2030, 7, 4, 12).getTime());
+  });
+  test('respeta la hora que ya no es 00:00', () => {
+    const r = fn('corregirHorasMedianoche_')({ inicio: d(2030, 7, 1, 18), fin: d(2030, 7, 4) }, horas);
+    assert.equal(r.inicio.getHours(), 18);
+    assert.equal(r.fin.getHours(), 12);
+  });
+  test('devuelve null si no hay nada que corregir', () => {
+    assert.equal(fn('corregirHorasMedianoche_')({ inicio: d(2030, 7, 1, 16), fin: d(2030, 7, 4, 12) }, horas), null);
   });
 });
 
@@ -209,6 +232,22 @@ test.describe('RF-59, RF-61 · estadísticas e informes', () => {
     const agregados = fn('agregarPorEspacioCanal_')(reservas.slice(0, 2));
     assert.equal(agregados.length, 2);
     assert.deepEqual(plano(fn('totalesInforme_')(agregados)), { numReservas: 2, brutos: 440, comisiones: 29.6, netos: 402.4 });
+  });
+  test('D-41 · se compara con el periodo anterior y con el mismo del año anterior', () => {
+    const septiembre = fn('periodoMensual_')(d(2026, 10, 1, 7));
+    const mensual = fn('periodosDeComparacion_')(septiembre);
+    assert.deepEqual([mensual.anterior.periodo, mensual.anyoAnterior.periodo], ['2026-08', '2025-09']);
+    const t3 = fn('periodosDeComparacion_')(fn('periodoTrimestral_')(d(2026, 10, 1, 7)));
+    assert.deepEqual([t3.anterior.periodo, t3.anyoAnterior.periodo], ['2026-T2', '2025-T3']);
+    const enero = fn('periodosDeComparacion_')(fn('periodoMensual_')(d(2027, 2, 1)));
+    assert.deepEqual([enero.anterior.periodo, enero.anyoAnterior.periodo], ['2026-12', '2026-01']);
+  });
+  test('D-41 · variación del neto por espacio y canal; sin base, null; un canal que cae a cero también sale', () => {
+    const a = (canal, netos, numReservas = 1) => ({ espacio: 'Piscina / Jardín', canal, numReservas, brutos: netos, comisiones: 0, netos });
+    const r = plano(fn('comparativaInforme_')({ actual: [a('Cocopool', 120)], anterior: [a('Cocopool', 100), a('Directo', 50)], anyoAnterior: [] }));
+    assert.deepEqual(r.filas.map((f) => [f.canal, f.numReservas, f.vsAnterior, f.vsAnyoAnterior]), [['Cocopool', 1, 0.2, null], ['Directo', 0, -1, null]]);
+    assert.ok(Math.abs(r.total.vsAnterior - (120 - 150) / 150) < 1e-9);
+    assert.equal(r.total.vsAnyoAnterior, null);
   });
 });
 

@@ -1,11 +1,11 @@
 // Journeys J-1 a J-6 (01_problema.md, Anexo A) de principio a fin en el navegador (T-05).
 const { test, expect } = require('@playwright/test');
-const { reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, isoDentroDe, resolverChecklist, idInterno } = require('./ayudas');
+const { irA, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, isoDentroDe, resolverChecklist, idInterno } = require('./ayudas');
 
 const reservaEnHoja = async (request) => (await prueba(request, '/__test/hoja?nombre=Reservas'))[0];
 
 const abrirModificar = async (page, nombre = 'Marta Pérez') => {
-  await page.getByRole('button', { name: 'Gestionar Reserva' }).click();
+  await irA(page, 'Gestionar Reservas');
   const fila = page.locator('#tabla-gestion tr', { hasText: nombre });
   await fila.getByRole('button', { name: 'Modificar' }).click();
   await expect(page.locator('#edicion-titulo')).toContainText('Reserva');
@@ -87,7 +87,7 @@ test('J-5 · buscar por nombre desde el Inicio', async ({ page, request }) => {
 
 test('J-6 · registrar un gasto y ver el resumen fiscal del ejercicio', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Gastos' }).click();
+  await irA(page, 'Gastos');
   await page.locator('#ga-fecha').fill(isoDentroDe(-1));
   await page.locator('#ga-importe').fill('120');
   await page.locator('#ga-concepto').fill('Productos de piscina');

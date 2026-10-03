@@ -47,6 +47,8 @@ Es decir: **no hace falta llevar un libro-registro propio**, pero **sí hay que 
 
 **Protocolo:** SOAP sobre HTTPS (TLS obligatorio, hay que importar el certificado del servicio en el almacén de confianza del cliente). Autenticación **HTTP Basic** (`Authorization: Basic base64(usuario:contraseña)`).
 
+**Comprobado en producción (2026-10-02):** con las credenciales del registro, la consulta de catálogo responde bien en producción; pre-ses respondió HTTP 502 (también al repetir). Catálogos reales: `TIPO_DOCUMENTO` = CIF, CIF_E, NIE, NIF, OTRO, PAS; `TIPO_PAGO` incluye `OTRO` (otros medios de pago).
+
 **Certificado TLS (comprobado el 2026-10-02 con `openssl s_client`):** pruebas y producción usan certificados de la FNMT (`AC Componentes Informáticos`, raíz `AC RAIZ FNMT-RCM`) y **el servidor no envía el certificado intermedio** (`Verify return code: 21`). Por eso el PDF pide importar el certificado en el almacén de confianza del cliente. Apps Script (`UrlFetchApp`) no permite importar certificados: si Google no completa la cadena por su cuenta, la llamada falla, y la única salida dentro de Apps Script es `validateHttpsCertificates: false` (no verifica el servidor). **Probado el 2026-10-02 (SES-0):** `UrlFetchApp` contra pre-ses conecta **validando el certificado** (HTTP 401 sin credenciales, lo esperado). No hace falta desactivar la validación.
 
 **Cómo se obtienen las credenciales:** registrándose primero como sujeto obligado en el formulario de la Sede Electrónica del Ministerio del Interior (fuera del webservice; es un trámite administrativo previo, no una llamada API). **Pendiente de investigar:** si ese alta exige algún tipo de certificación como "proveedor de software" o basta con el registro estándar de particular/no profesional — no está claro en el PDF (cuestión abierta de ADR-0007).
@@ -128,7 +130,7 @@ Es decir: **no hace falta llevar un libro-registro propio**, pero **sí hay que 
 |---|---|---|---|
 | `direccion` | String(100) | Sí | Calle, número, piso... |
 | `direccionComplementaria` | String(100) | No | |
-| `codigoMunicipio` | String | si país = España | **Inconsistencia en el PDF original:** en unos sitios dice 5 dígitos y en otros "código INE (6 dígitos)" — verificar con un caso de prueba real antes de codificar el validador |
+| `codigoMunicipio` | String(5) | si país = España | Código INE de **5 dígitos**: lo fija el bloque común §4.1 de la especificación v3.1.3 (en otro apartado decía 6; manda §4.1, revisado 2026-10-02) |
 | `nombreMunicipio` | String(100) | si país ≠ España | |
 | `codigoPostal` | String(20) | Sí | |
 | `pais` | String(3) | Sí | ISO 3166-1 alfa-3 |
@@ -194,4 +196,4 @@ Los códigos de `tipoDocumento`, `sexo`, `nacionalidad` (parcialmente, es ISO), 
 - **Alta como sujeto obligado:** ¿el registro previo en la Sede Electrónica exige certificación de software, o basta con darse de alta como particular no profesional? No lo dice este documento.
 - **Fotos del documento de identidad:** no las pide el RD ni el webservice; su necesidad (o no) es una decisión de producto/legal de ADR-0007, no de esta especificación.
 - **Envío automático vs. manual:** ADR-0007 fijó que la primera fase será manual. Con este documento ya hay base técnica para valorar la automatización (llamada SOAP desde `infra_` con `UrlFetchApp`), pero sigue siendo una decisión de alcance pendiente (§2.1) cuándo se aborde.
-- **Entorno de pruebas:** antes de integrar de verdad, probar contra `hospedajes.pre-ses.mir.es` con las credenciales de prueba que el Ministerio facilite.
+- **Entorno de pruebas:** antes de integrar de verdad, probar contra `hospedajes.pre-ses.mir.es` (§2.1 del manual). El manual no dice si las credenciales del registro valen también en pruebas: se comprueba con *Comprobar la conexión con SES* (F-30).

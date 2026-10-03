@@ -10,19 +10,11 @@
 </head>
 <body>
   <header class="app-header">
-    <span class="marca">KAF Rent</span>
+    <span class="marca"><img class="marca-icono" src="<?= datos.icono ?>" alt="">KAF Rent</span>
     <span class="usuario"><?= datos.email ?></span>
   </header>
 
   <main class="contenedor">
-    <nav class="nav-secciones">
-      <button class="btn btn-primario btn-nav activo" data-seccion="inicio">Inicio</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="crear">Crear Reserva</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="gestionar">Gestionar Reserva</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="estadisticas">Estadísticas</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="gastos">Gastos</button>
-      <button class="btn btn-secundario btn-nav" data-seccion="checklists" id="btn-nav-checklists" hidden>Checklists</button>
-    </nav>
 
     <section id="seccion-inicio" class="seccion activa">
       <div class="panel">
@@ -32,20 +24,21 @@
             <thead>
               <tr>
                 <th class="orden" data-clave="espacio" data-tipo="texto">Espacio</th>
-                <th class="orden" data-clave="inicioOrden" data-tipo="num">Fecha Inicio</th>
-                <th class="orden" data-clave="finOrden" data-tipo="num">Fecha Fin</th>
+                <th class="orden" data-clave="refCanal" data-tipo="texto">Código de reserva del canal</th>
                 <th class="orden" data-clave="nombre" data-tipo="texto">Nombre</th>
+                <th class="orden" data-clave="inicioOrden" data-tipo="num">Inicio</th>
+                <th class="orden" data-clave="finOrden" data-tipo="num">Fin</th>
                 <th class="orden" data-clave="neto" data-tipo="num">Importe Neto</th>
               </tr>
             </thead>
             <tbody id="tabla-ultimas">
-              <tr><td colspan="5" class="vacio">Cargando…</td></tr>
+              <tr><td colspan="6" class="vacio">Cargando…</td></tr>
             </tbody>
           </table>
         </div>
-        <p style="margin-top:var(--space-4)">
-          <a class="enlace-acento" id="enlace-calendario" href="#" target="_blank">Ver calendario de ocupación →</a>
-        </p>
+        <div class="form-acciones">
+          <a class="btn btn-secundario" id="enlace-calendario" href="#" target="_blank">Ver calendario</a>
+        </div>
       </div>
 
       <div class="panel">
@@ -74,6 +67,15 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="panel" id="panel-conexion-ses" hidden>
+        <h2>Conexión con SES.Hospedajes</h2>
+        <p class="ayuda-campo">Solo administradores. Comprueba el usuario y la contraseña de SES sin enviar datos de huéspedes.</p>
+        <div class="form-acciones">
+          <button type="button" class="btn btn-secundario" id="btn-probar-ses">Comprobar conexión</button>
+        </div>
+        <p id="resultado-conexion-ses" class="aviso-viajeros" role="status" hidden></p>
       </div>
     </section>
 
@@ -115,16 +117,6 @@
                 <label for="campo-fecha-unica">Fecha <span class="obligatorio">*</span></label>
                 <input type="date" id="campo-fecha-unica">
               </div>
-              <div class="campo-fila">
-                <div class="form-grupo">
-                  <label for="campo-hora-llegada">Hora de llegada</label>
-                  <input type="time" id="campo-hora-llegada">
-                </div>
-                <div class="form-grupo">
-                  <label for="campo-hora-salida">Hora de salida</label>
-                  <input type="time" id="campo-hora-salida">
-                </div>
-              </div>
             </div>
 
             <div id="fechas-rango" class="fechas-modo" hidden>
@@ -136,6 +128,19 @@
                 <div class="form-grupo">
                   <label for="campo-fecha-salida">Fecha de salida <span class="obligatorio">*</span></label>
                   <input type="date" id="campo-fecha-salida">
+                </div>
+              </div>
+            </div>
+
+            <div id="horas-reserva" hidden>
+              <div class="campo-fila">
+                <div class="form-grupo">
+                  <label for="campo-hora-llegada">Hora de llegada <span class="obligatorio">*</span></label>
+                  <input type="time" id="campo-hora-llegada">
+                </div>
+                <div class="form-grupo">
+                  <label for="campo-hora-salida">Hora de salida <span class="obligatorio">*</span></label>
+                  <input type="time" id="campo-hora-salida">
                 </div>
               </div>
             </div>
@@ -230,6 +235,20 @@
           <button type="button" class="btn btn-secundario" id="btn-volver-lista">Cerrar ✕</button>
         </div>
         <p class="ayuda-campo" id="edicion-contexto"></p>
+        <div class="form-acciones" id="bloque-mensaje-huesped" style="justify-content:flex-start" hidden>
+          <button type="button" class="btn btn-secundario" id="btn-mensaje-huesped">Mensaje para el huésped</button>
+        </div>
+
+        <section class="viajeros" id="bloque-viajeros" aria-labelledby="titulo-viajeros" hidden>
+          <h3 id="titulo-viajeros">Registro de viajeros (SES)</h3>
+          <div class="chips" id="viajeros-chips"></div>
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-actualizar-viajeros">↻ Actualizar formularios</button>
+          <p class="aviso-viajeros" id="viajeros-aviso" hidden></p>
+          <div id="viajeros-lista"></div>
+          <button type="button" class="btn btn-primario" id="btn-comunicar-parte" disabled>Comunicar el parte a SES</button>
+          <button type="button" class="btn btn-secundario" id="btn-comprobar-ses" hidden>↻ Comprobar ahora</button>
+          <p class="ayuda-campo" id="viajeros-nota"></p>
+        </section>
 
         <div class="datos-reserva">
           <div><span class="dato-etq">Espacio</span><span id="ed-espacio"></span></div>
@@ -414,9 +433,40 @@
     </section>
   </main>
 
+  <!-- F-29: ventana mientras la app espera al servidor ("Cargando…", "Guardando…", "Enviando a SES…"). -->
+  <div id="ocupado" class="ocupado" hidden role="status" aria-live="polite">
+    <div class="ocupado-caja"><div class="ocupado-rueda" aria-hidden="true"></div><b id="ocupado-texto">Cargando…</b><p>No cierres la app.</p></div>
+  </div>
+
+  <!-- Navegación inferior en dos pisos (F-25, ADR-0008): Reservas abre Gestionar / Crear encima de la barra. -->
+  <nav class="nav-inferior" aria-label="Secciones">
+    <div class="nav-subpiso" id="nav-subpiso-reservas" hidden>
+      <button type="button" class="nav-sub btn-nav" data-seccion="gestionar">Gestionar Reservas</button>
+      <button type="button" class="nav-sub btn-nav" data-seccion="crear">Crear Reservas</button>
+    </div>
+    <div class="nav-piso">
+      <button type="button" class="nav-item btn-nav" data-seccion="inicio">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio
+      </button>
+      <button type="button" class="nav-item" id="btn-nav-reservas" aria-expanded="false" aria-controls="nav-subpiso-reservas">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></svg>Reservas
+      </button>
+      <button type="button" class="nav-item btn-nav" data-seccion="checklists" id="btn-nav-checklists" hidden>
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Checklists
+      </button>
+      <button type="button" class="nav-item btn-nav" data-seccion="gastos">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/></svg>Gastos
+      </button>
+      <button type="button" class="nav-item btn-nav" data-seccion="estadisticas">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg>Estadísticas
+      </button>
+    </div>
+  </nav>
+
   <?!= include('cliente'); ?>
   <?!= include('gestion_interfaz'); ?>
   <?!= include('gastos_interfaz'); ?>
   <?!= include('checklist_interfaz'); ?>
+  <?!= include('ses_interfaz'); ?>
 </body>
 </html>
