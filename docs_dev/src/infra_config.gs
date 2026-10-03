@@ -32,7 +32,7 @@ const horasPorDefecto_ = () => ({
 const obtenerConfigNumero_ = (clave, porDefecto) => Number(obtenerConfig_(clave, porDefecto)) || porDefecto;
 
 // Tamaños máximos de archivo (MB); el valor por defecto coincide con la semilla de Config.
-const tamanoMaxContratoMB_ = () => obtenerConfigNumero_('Tamano_Max_Contrato_MB', 5);
+const tamanoMaxContratoMB_ = () => obtenerConfigNumero_('Tamano_Max_Contrato_MB', 15);
 const tamanoMaxVideoMB_ = () => obtenerConfigNumero_('Tamano_Max_Video_MB', 100);
 
 // Destinatarios de todos los avisos e informes (los tres copropietarios).

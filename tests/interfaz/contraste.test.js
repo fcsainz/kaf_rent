@@ -36,7 +36,7 @@ const COMBINACIONES = [
   ['#FFFFFF', 'c-success', 'mensaje de éxito (F-21)'],
   ['#FFFFFF', 'c-error', 'mensaje de error'],
   ['c-text', 'c-badge-abierta', 'estado Abierta'],
-  ['c-text', 'c-badge-completada', 'estado Completada'],
+  ['c-text', 'c-badge-cerrada', 'estado Cerrada'],
   ['c-text', 'c-badge-cancelada', 'estado Cancelada'],
   ['c-text', 'c-badge-cobro-si', 'cobro ingresado'],
   ['c-text', 'c-badge-cobro-no', 'cobro pendiente'],

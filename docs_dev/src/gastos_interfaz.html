@@ -1,5 +1,5 @@
 <script>
-  // Gastos y resumen fiscal (ADR-0012). Reutiliza $, mostrarMensaje, crearCelda, formatearEuros,
+  // Gastos y resumen fiscal (ADR-0012). Reutiliza $, mostrarMensaje, formatearEuros,
   // fechaLocalISO y leerArchivo del resto de scripts de la página.
 
   let categoriasGasto = [];
@@ -85,43 +85,47 @@
       .calcularResumenFiscal($('rf-ejercicio').value);
   };
 
+  // DI-22: sin tablas anchas en el móvil; cada espacio es un bloque de datos.
+  const datoResumen = (etiqueta, valor) => {
+    const div = document.createElement('div');
+    const e = document.createElement('span');
+    e.className = 'dato-etq';
+    e.textContent = etiqueta;
+    const v = document.createElement('span');
+    v.className = 'dato-valor';
+    v.textContent = valor;
+    div.append(e, v);
+    return div;
+  };
+
+  const bloqueResumen = (titulo, datos) => {
+    const seccion = document.createElement('section');
+    seccion.className = 'ficha-seccion';
+    const h = document.createElement('h3');
+    h.textContent = titulo;
+    const grid = document.createElement('div');
+    grid.className = 'datos-reserva';
+    datos.forEach(([etiqueta, valor]) => grid.appendChild(datoResumen(etiqueta, valor)));
+    seccion.append(h, grid);
+    return seccion;
+  };
+
   const renderResumen = (d) => {
     const cont = $('rf-resultado');
     cont.innerHTML = '';
-
-    const tabla = document.createElement('table');
-    tabla.innerHTML = '<thead><tr><th>Espacio</th><th>Ingresos íntegros</th><th>Gastos deducibles</th><th>Rendimiento neto</th><th>Tercio (33,33%)</th></tr></thead>';
-    const tbody = document.createElement('tbody');
-    d.resumen.forEach((r) => {
-      const tr = document.createElement('tr');
-      [r.espacio, formatearEuros(r.ingresos), formatearEuros(r.gastosDeducibles), formatearEuros(r.rendimiento), formatearEuros(r.tercio)]
-        .forEach((t) => tr.appendChild(crearCelda(t)));
-      tbody.appendChild(tr);
-    });
-    tabla.appendChild(tbody);
-    cont.appendChild(tabla);
+    d.resumen.forEach((r) => cont.appendChild(bloqueResumen(r.espacio, [
+      ['Ingresos íntegros', formatearEuros(r.ingresos)], ['Gastos deducibles', formatearEuros(r.gastosDeducibles)],
+      ['Rendimiento neto', formatearEuros(r.rendimiento)], ['Tercio (33,33 %)', formatearEuros(r.tercio)],
+    ])));
 
     const nota = document.createElement('p');
     nota.className = 'ayuda-campo';
     nota.textContent = `Amortización anual estimada: ${formatearEuros(d.amortizacionAnual)} (3% × Valor_Construccion × Proporcion_Alquilada de Config, repartida entre espacios). `
-      + 'Incluye comisiones de plataforma como gasto deducible. Reparto a tercios entre los 3 copropietarios. Cifras orientativas: confírmalas con el gestor.';
+      + 'Incluye comisiones de plataforma como gasto deducible. Reparto a tercios entre los 3 copropietarios. Cifras orientativas, según la normativa del IRPF de alquileres.';
     cont.appendChild(nota);
 
     if (d.porCategoria.length > 0) {
-      const titulo = document.createElement('h3');
-      titulo.style.marginTop = 'var(--space-5)';
-      titulo.textContent = 'Gastos deducibles por categoría';
-      cont.appendChild(titulo);
-      const tablaCat = document.createElement('table');
-      tablaCat.innerHTML = '<thead><tr><th>Categoría</th><th>Importe</th></tr></thead>';
-      const cuerpo = document.createElement('tbody');
-      d.porCategoria.forEach((c) => {
-        const tr = document.createElement('tr');
-        [c.categoria, formatearEuros(c.importe)].forEach((t) => tr.appendChild(crearCelda(t)));
-        cuerpo.appendChild(tr);
-      });
-      tablaCat.appendChild(cuerpo);
-      cont.appendChild(tablaCat);
+      cont.appendChild(bloqueResumen('Gastos deducibles por categoría', d.porCategoria.map((c) => [c.categoria, formatearEuros(c.importe)])));
     }
   };
 

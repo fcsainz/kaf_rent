@@ -6,18 +6,33 @@ const archivo = (nombre, bytes = 10) => ({ nombre, tipoMime: 'application/pdf', 
 const reservaUno = (e) => e.hoja('Reservas').registros()[0];
 
 test.describe('RF-54..RF-58 · documentos en Drive', () => {
-  test('sube el contrato a Documentos/{Espacio}/{reserva}, lo enlaza y lo marca Firmado', () => {
+  test('F-41 · sube la foto del contrato a Documentos/{Espacio}/{reserva}/Contrato y lo marca Firmado con quién y cuándo', () => {
     const e = crearEntornoConDatos();
     e.llamar('crearReserva', datosReservaPiscina({ canal: 'Directo', comision: '0' }));
     const { ID_Reserva: id } = reservaUno(e);
-    const r = e.llamar('subirContrato', id, archivo('contrato.PDF'));
+    const r = e.llamar('subirContrato', id, archivo('foto.JPG'));
     assert.equal(r.success, true, r.error);
     const res = reservaUno(e);
     assert.equal(res.Contrato_Estado, 'Firmado');
-    assert.equal(res.Contrato_Archivo, r.url);
+    assert.equal(res.Contrato_Firmado_Por, 'ana@test.com');
+    assert.ok(res.Contrato_Fecha instanceof Date);
     const [espacio] = e.carpetas.documentos.carpetas;
     assert.equal(espacio.nombre, 'Piscina / Jardín');
-    assert.match(espacio.carpetas[0].ficheros[0].nombre, /^01-\d\d - contrato - \d{6}\.pdf$/);
+    const [contrato] = espacio.carpetas[0].carpetas;
+    assert.equal(contrato.nombre, 'Contrato');
+    assert.equal(res.Contrato_Archivo, contrato.getUrl());
+    assert.match(contrato.ficheros[0].nombre, /^01-\d\d - contrato - \d{6}-\d{6}\.jpg$/);
+  });
+
+  test('F-41 · las fotos siguientes se añaden a la misma carpeta sin volver a firmar', () => {
+    const e = crearEntornoConDatos();
+    e.llamar('crearReserva', datosReservaPiscina({ canal: 'Directo', comision: '0' }));
+    const { ID_Reserva: id } = reservaUno(e);
+    e.llamar('subirContrato', id, archivo('1.jpg'));
+    e.llamar('subirContrato', id, archivo('2.heic'));
+    const contrato = e.carpetas.documentos.carpetas[0].carpetas[0].carpetas[0];
+    assert.equal(contrato.ficheros.length, 2);
+    assert.equal(e.hoja('Historial_Cambios').registros().filter((h) => h.Campo === 'Estado del contrato').length, 1);
   });
 
   test('rechaza formato no permitido y tamaño excesivo', () => {
@@ -25,13 +40,18 @@ test.describe('RF-54..RF-58 · documentos en Drive', () => {
     e.llamar('crearReserva', datosReservaPiscina({ canal: 'Directo', comision: '0' }));
     const { ID_Reserva: id } = reservaUno(e);
     assert.equal(e.llamar('subirContrato', id, archivo('contrato.docx')).success, false);
-    assert.equal(e.llamar('subirContrato', id, archivo('grande.pdf', 6 * 1024 * 1024)).success, false);
+    assert.equal(e.llamar('subirContrato', id, archivo('grande.jpg', 16 * 1024 * 1024)).success, false, 'DI-10: máximo 15 MB');
+    assert.equal(e.llamar('subirContrato', id, archivo('justo.jpg', 14 * 1024 * 1024)).success, true);
   });
 
-  test('RF-55 · no se sube contrato si lo gestiona el canal', () => {
+  test('Q-10 · también se firma en las de Exterior cuyo canal gestiona el contrato; en la Habitación, no', () => {
     const e = crearEntornoConDatos();
+    e.llamar('crearReserva', datosReservaPiscina());
     e.llamar('crearReserva', datosReservaHabitacion());
-    assert.equal(e.llamar('subirContrato', reservaUno(e).ID_Reserva, archivo('c.pdf')).success, false);
+    const [piscina, habitacion] = e.hoja('Reservas').registros();
+    assert.equal(piscina.Contrato_Estado, 'Gestionado por canal');
+    assert.equal(e.llamar('subirContrato', piscina.ID_Reserva, archivo('c.jpg')).success, true);
+    assert.equal(e.llamar('subirContrato', habitacion.ID_Reserva, archivo('c.jpg')).success, false);
   });
 
   test('sube el vídeo a la carpeta existente del espacio y guarda la URL', () => {

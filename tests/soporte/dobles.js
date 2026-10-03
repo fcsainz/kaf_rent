@@ -141,6 +141,7 @@ class CarpetaFalsa {
   constructor(nombre) { Object.assign(this, { id: nuevoId('C'), nombre, ficheros: [], carpetas: [], papelera: false }); }
   getId() { return this.id; }
   getName() { return this.nombre; }
+  getUrl() { return `https://drive.google.com/drive/folders/${this.id}`; }
   getFoldersByName(n) { return iterador(this.carpetas.filter((c) => c.nombre === n && !c.papelera)); }
   getFolders() { return iterador(this.carpetas.filter((c) => !c.papelera)); }
   getFiles() { return iterador(this.ficheros.slice()); }
@@ -254,7 +255,7 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
         return patron
           .replace('yyyy', d.getFullYear()).replace('yy', p(d.getFullYear() % 100))
           .replace('MM', p(d.getMonth() + 1)).replace('dd', p(d.getDate()))
-          .replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes()));
+          .replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes())).replace('ss', p(d.getSeconds()));
       },
       base64Decode: (s) => [...Buffer.from(s, 'base64')],
       newBlob: (bytes, tipoMime, nombre) => ({ bytes, tipoMime, nombre }),

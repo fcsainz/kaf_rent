@@ -4,7 +4,7 @@
 const CAMPOS_NUMERICOS_RESERVA = ['adultos', 'menores', 'importeAlquiler', 'serviciosPrecio', 'serviciosCoste', 'bruto',
   'comisionPct', 'comision', 'margenServicios', 'neto', 'costeFijoCanal'];
 const CAMPOS_FECHA_RESERVA = ['inicio', 'fin'];
-const CAMPOS_FECHA_OPCIONAL_RESERVA = ['fechaRegistro', 'fechaModificacion'];
+const CAMPOS_FECHA_OPCIONAL_RESERVA = ['fechaRegistro', 'fechaModificacion', 'contratoFecha', 'avisoCheckin', 'avisoCheckout'];
 
 // Normaliza los tipos de una fila leída (celdas vacías, números guardados como texto, etc.).
 const reservaDesdeRegistro_ = (registro) => Object.keys(registro).reduce((reserva, campo) => {
@@ -12,6 +12,7 @@ const reservaDesdeRegistro_ = (registro) => Object.keys(registro).reduce((reserv
   if (CAMPOS_NUMERICOS_RESERVA.includes(campo)) reserva[campo] = numero_(valor);
   else if (CAMPOS_FECHA_RESERVA.includes(campo)) reserva[campo] = aFecha_(valor);
   else if (CAMPOS_FECHA_OPCIONAL_RESERVA.includes(campo)) reserva[campo] = valor === '' ? '' : aFecha_(valor);
+  else if (campo === 'estado') reserva[campo] = normalizarEstadoReserva_(valor);
   else reserva[campo] = texto_(valor);
   return reserva;
 }, {});
@@ -35,11 +36,25 @@ const guardarCampoReserva_ = (tabla, filaSheet, campo, valor) => actualizarCampo
 
 // ---------- Líneas de servicio ----------
 
+const lineaDesdeRegistro_ = (l) => ({
+  nombre: texto_(l.nombre), cantidad: numero_(l.cantidad) || 1, coste: numero_(l.coste), precio: numero_(l.precio),
+  cobroEstado: texto_(l.cobroEstado), cobroForma: texto_(l.cobroForma),
+});
+
 const leerLineasServicio_ = (idReserva) => registrosDe_(HOJA_RESERVA_SERVICIOS)
   .filter((l) => texto_(l.idReserva) === idReserva)
-  .map((l) => ({ nombre: texto_(l.nombre), cantidad: numero_(l.cantidad) || 1, coste: numero_(l.coste), precio: numero_(l.precio) }));
+  .map(lineaDesdeRegistro_);
 
-const lineaARegistro_ = (idReserva) => (l) => ({ idReserva, nombre: l.nombre, cantidad: l.cantidad, coste: l.coste, precio: l.precio });
+// Todas las líneas por reserva, leídas una vez (listados que necesitan las de muchas reservas).
+const leerLineasPorReserva_ = () => registrosDe_(HOJA_RESERVA_SERVICIOS).reduce((mapa, l) => {
+  const id = texto_(l.idReserva);
+  mapa.set(id, [...(mapa.get(id) || []), lineaDesdeRegistro_(l)]);
+  return mapa;
+}, new Map());
+
+const lineaARegistro_ = (idReserva) => (l) => ({
+  idReserva, nombre: l.nombre, cantidad: l.cantidad, coste: l.coste, precio: l.precio, cobroEstado: l.cobroEstado || '', cobroForma: l.cobroForma || '',
+});
 
 const anadirLineasServicio_ = (idReserva, lineas) =>
   anadirRegistros_(leerTabla_(HOJA_RESERVA_SERVICIOS), lineas.map(lineaARegistro_(idReserva)));
@@ -63,3 +78,7 @@ const registrarHistorial_ = (idReserva, diffs, email, ahora) => {
 const leerHistorial_ = (idReserva) => registrosDe_(HOJA_HISTORIAL_CAMBIOS)
   .filter((h) => texto_(h.idReserva) === idReserva)
   .map((h) => ({ fecha: aFecha_(h.fecha), usuario: texto_(h.usuario), campo: texto_(h.campo), anterior: texto_(h.anterior), nuevo: texto_(h.nuevo) }));
+
+// Historial de varias reservas en una sola escritura: [{ idReserva, diffs }].
+const registrarHistorialVarios_ = (cambios, email, ahora) => anadirRegistros_(leerTabla_(HOJA_HISTORIAL_CAMBIOS),
+  cambios.flatMap(({ idReserva, diffs }) => diffs.map((d) => ({ fecha: ahora, usuario: email, idReserva, campo: d.campo, anterior: d.anterior, nuevo: d.nuevo }))));

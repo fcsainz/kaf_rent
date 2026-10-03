@@ -32,10 +32,10 @@
 | HU-01 | US-001 | Acceder con la cuenta de Google | E-01 | P-12 | M | S | S1 | ✅ |
 | HU-02 | US-002 | Acceso solo para cuentas autorizadas | E-01 | P-12 | M | S | S1 | ✅ |
 | HU-03 | US-003 | Identificación automática del autor de cada cambio | E-01 | P-03 | M | XS | S1 | ✅ |
-| HU-04 | US-004 | Inicio con accesos y últimas 5 reservas | E-02 | P-05 | M | M | S2 · **S23** (F-26) | ✅ |
-| HU-05 | US-005 | Navegar entre secciones | E-02 | P-11 | M | XS | S1–S2 · **S23** (F-24, F-25) | ✅ |
+| HU-04 | US-004 | Inicio con accesos y reservas de un vistazo (próximas o últimas) | E-02 | P-05 | M | M | S2 · **S23** (F-26) · **S31** (F-32) | 🔍 |
+| HU-05 | US-005 | Navegar entre secciones | E-02 | P-11 | M | XS | S1–S2 · **S23** (F-24, F-25) · **S31–S32** (F-31, F-33) | 🔍 |
 | HU-06 | US-022 | Buscar reservas por nombre y/o fecha | E-02 | P-01, P-05 | M | M | S2 → S8 ✔ | ✅ |
-| HU-07 | US-026 (parte) | Abrir el calendario de ocupación desde el Inicio | E-02 | P-05 | M | XS | S4 | ✅ |
+| HU-07 | US-026 (parte) | Abrir el calendario de ocupación desde el Inicio | E-02 | P-05 | M | XS | S4 · **S31** (B-27, D-44) | 🔍 |
 | HU-08 | US-006 | Elegir espacio con filtrado en cascada | E-03 | P-11 | M | M | S2 | ✅ |
 | HU-09 | US-007 | Elegir canal con comisión autocompletada | E-03 | P-11 | M | S | S2 | ✅ |
 | HU-10 | US-008 | Fechas en modo Día + Hora | E-03 | P-11 | M | M | S3 · **S22** (F-23) | ✅ |
@@ -49,14 +49,14 @@
 | HU-18 | US-025 | Email de confirmación de reserva | E-04 | P-05 | S | S | S3 | ✅ |
 | HU-19 | US-026 | Evento de ocupación en Google Calendar | E-04 | P-05 | M | L | S4 → S8 ✔ · **S14** (B-14, F-13) · **S22** (B-14 reabierto) · **S13** | 🟡 |
 | HU-20 | US-020 | Aviso de reapertura de canales | E-04 | P-06 | M | S | S4 | ✅ |
-| HU-21 | US-023 | Lista de reservas activas con filtros | E-05 | P-04, P-05 | M | M | S4 | ✅ |
-| HU-22 | *(nueva)* | Ficha "Ver más" de solo lectura | E-05 | P-04, P-07 | S | S | S4 | ✅ |
-| HU-23 | US-015 | Editar una reserva con auditoría | E-05 | P-03, P-04 | M | M | S4 → S8 ✔ | ✅ |
-| HU-24 | US-010 (parte) | Añadir o quitar servicios a una reserva existente | E-05 | P-08 | S | M | S4 → S8 ✔ | ✅ |
+| HU-21 | US-023 | Lista de reservas con filtros, en tarjetas y paginada | E-05 | P-04, P-05 | M | M | S4 · **S32** (F-34–F-36) | 🔍 |
+| HU-22 | *(nueva)* | Ficha de la reserva en pantalla propia | E-05 | P-04, P-07 | S | S | S4 · **S32** (F-42) | 🔍 |
+| HU-23 | US-015 | Editar una reserva con auditoría | E-05 | P-03, P-04 | M | M | S4 → S8 ✔ · **S32** (F-44) | 🔍 |
+| HU-24 | US-010 (parte) | Añadir o quitar servicios a una reserva existente | E-05 | P-08 | S | M | S4 → S8 ✔ · **S32** (F-44) | 🔍 |
 | HU-25 | US-016 | Ciclo de vida automático del estado | E-05 | P-04 | M | M | S4 → S8 ✔ | ✅ |
 | HU-26 | US-018 | Cancelar una reserva | E-05 | P-06 | M | M | S4 · **S27** (ADR-0022) | ✅ |
 | HU-27 | US-019 | Ver el historial de cambios | E-05 | P-03 | S | S | S4 | ✅ |
-| HU-28 | US-017 | Subir el contrato a Drive | E-06 | P-07 | M | L | S4 → S8 ✔ | ✅ |
+| HU-28 | US-017 | Firmar el contrato de Exterior con fotos en Drive | E-06 | P-07 | M | L | S4 → S8 ✔ · **S33** (F-41) | 🔍 |
 | HU-29 | US-029 | Checklists digitales de check-in/check-out (F-14) | E-06 | P-07 | S | L | S4 → **S16** · **S22** (B-18, B-19, TD-02) | ✅ |
 | HU-30 | US-030 | Subir vídeos de entrada/salida a Drive | E-06 | P-07 | S | M | S4 → S8 ✔ | ✅ |
 | HU-31 | US-024 | Estadísticas por espacio | E-07 | P-08 | S | L | S5 | ✅ |
@@ -65,10 +65,13 @@
 | HU-34 | US-028 | Resumen fiscal por ejercicio a tercios | E-08 | P-09 | S | L | S6 | ✅ |
 | HU-35 | *(ADR-0007, ADR-0018)* | Comunicar los viajeros de la Habitación a SES.Hospedajes | E-09 | P-10 | W (Fase 2) | XL | **S26**–S29 | 🟡 |
 | HU-36 | *(ADR-0007)* | Estado del registro de viajeros en la reserva | E-09 | P-10 | W (Fase 2) | M | **S27**–**S28** | 🟡 |
-| HU-37 | *(backlog)* | Recordatorios automáticos de tareas pendientes | E-05 | P-04 | C | L | **S13** | ⏳ |
+| HU-37 | *(backlog)* | Recordatorio automático del cobro pendiente | E-05 | P-04 | S | M | **S34** (F-37) | 🔍 |
 | HU-38 | *(ADR-0005)* | Editar canal y fechas de una reserva (sin cambiar de espacio) | E-05 | P-01, P-04 | C | L | **S13** | ⏳ |
 | HU-39 | *(v2, F-21)* | Avisos que no pasan desapercibidos y envío de incidencias al administrador | E-04 | P-05, P-11 | M | M | **S14** | ✅ |
 | HU-40 | *(v2, F-22)* | Código de reserva del canal (obligatorio en Airbnb) | E-03 | P-11 | M | S | 2026-09-27 | ✅ |
+| HU-41 | *(DD-03, F-38/F-39/F-41)* | Tareas de la reserva desde la barra de Reservas (checklist, identidades, contrato) | E-05 | P-04, P-07 | M | L | **S33** | 🔍 |
+| HU-42 | *(DD-03, F-43)* | Cobro de los servicios extra (plataforma o presencial) | E-05 | P-08 | S | M | **S33** | 🔍 |
+| HU-43 | *(DD-03, F-40)* | Aviso de check-in y check-out sin hacer | E-04 | P-04, P-07 | S | M | **S34** | 🔍 |
 
 ---
 
@@ -140,9 +143,20 @@ Scenario: Modificación de reserva
 
 ## E-02 — Inicio y navegación
 
-### HU-04 — Inicio con accesos y últimas 5 reservas
-**Antes:** US-004 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-07, RF-08, RF-09, RF-10 · **↓ RNF:** RNF-01, RNF-05, RNF-08, RNF-09, RNF-11 · **↓ Sprint:** S2 · **S23** (F-26)
+### HU-04 — Inicio con accesos y reservas de un vistazo (próximas o últimas)
+**Antes:** US-004 · **MoSCoW:** M · **Talla:** M · **Estado:** 🔍 (F-32 implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-07, RF-08, RF-09, RF-10 · **↓ RNF:** RNF-01, RNF-05, RNF-08, RNF-09, RNF-11 · **↓ Sprint:** S2 · **S23** (F-26) · **S31** (F-32)
+
+> **DD-03 (2026-10-03, F-32):** la sección se llama **"Reservas de un vistazo"** y un selector cambia entre las **5 próximas** por fecha de entrada (por defecto; incluye la que está en curso, sin canceladas) y las **5 últimas registradas**. Se muestran en **tarjetas** sin scroll lateral, ordenables con "Ordenar por", que abren la ficha al tocarlas (DI-22).
+
+```gherkin
+Scenario: Próximas o últimas registradas (F-32)
+  Given hay reservas futuras y pasadas
+  When abro el Inicio
+  Then veo las 5 siguientes por fecha de entrada, sin canceladas
+  When elijo "5 últimas registradas"
+  Then veo las 5 últimas que se registraron
+```
 
 Como copropietario, quiero que al entrar la app me muestre los accesos principales y las últimas reservas para orientarme de un vistazo.
 
@@ -166,7 +180,23 @@ Scenario: Sin reservas
 
 ### HU-05 — Navegar entre secciones
 **Antes:** US-005 · **MoSCoW:** M · **Talla:** XS · **Estado:** ✅  
-**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-07, RF-13 · **↓ RNF:** RNF-08, RNF-11 · **↓ Sprint:** S1–S2 · **S23** (F-24, F-25)
+**↑ Problema:** P-11 · **↑ JTBD:** JTBD-11 · **↓ RF:** RF-07, RF-13 · **↓ RNF:** RNF-08, RNF-11, RNF-12 · **↓ Sprint:** S1–S2 · **S23** (F-24, F-25) · **S31–S32** (F-31, F-33)
+
+> **DD-03 (2026-10-03):** **Admin** (icono de persona, solo rol Admin) abre un segundo piso con *Checklists* y *Conexión SES* (F-31). Al entrar en Gestionar Reservas, la barra general se cambia por la **barra de Reservas**: ← Inicio · Checklist · Identidades · Contrato · Extras (F-33).
+
+```gherkin
+Scenario: Menú Admin (F-31)
+  Given soy Admin
+  When pulso "Admin"
+  Then aparece un segundo piso con "Checklists" y "Conexión SES"
+  And quien no es Admin no ve el botón
+
+Scenario: Barra de Reservas (F-33)
+  When entro en Gestionar Reservas
+  Then la barra muestra "Inicio", "Checklist", "Identidades", "Contrato" y "Extras"
+  When pulso "Inicio"
+  Then vuelvo al Inicio con la barra general
+```
 
 Como copropietario, quiero botones claros para ir a cada sección y volver al Inicio para no perderme.
 
@@ -197,7 +227,9 @@ Scenario: Volver al Inicio
 
 ### HU-06 — Buscar reservas por nombre y/o fecha
 **Antes:** US-022 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-01, P-05 · **↑ JTBD:** JTBD-01, JTBD-05 · **↓ RF:** RF-10, RF-11 · **↓ RNF:** RNF-01, RNF-05, RNF-09 · **↓ Sprint:** S2 → S8 ✔
+**↑ Problema:** P-01, P-05 · **↑ JTBD:** JTBD-01, JTBD-05 · **↓ RF:** RF-10, RF-11 · **↓ RNF:** RNF-01, RNF-05, RNF-09, RNF-11 · **↓ Sprint:** S2 → S8 ✔ · **S31** (DI-22)
+
+> **DI-22 (2026-10-03):** los resultados se muestran en tarjetas (sin scroll lateral en el móvil) que abren la ficha al tocarlas.
 
 Como copropietario, quiero buscar reservas por nombre y/o fecha desde el Inicio para comprobar la disponibilidad antes de registrar una nueva.
 
@@ -221,7 +253,9 @@ Scenario: Sin resultados
 
 ### HU-07 — Abrir el calendario de ocupación desde el Inicio
 **Antes:** US-026 (parte) · **MoSCoW:** M · **Talla:** XS · **Estado:** ✅  
-**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-12 · **↓ RNF:** *sin RNF directo* · **↓ Sprint:** S4
+**↑ Problema:** P-05 · **↑ JTBD:** JTBD-05 · **↓ RF:** RF-12 · **↓ RNF:** *sin RNF directo* · **↓ Sprint:** S4 · **S31** (B-27, D-44)
+
+> **D-44 (2026-10-03):** en Android "Ver calendario" abre la app de Google Calendar (se vuelve a KAF Rent con Atrás); en el resto, otra pestaña.
 
 Como copropietario, quiero un enlace al calendario de ocupación desde el Inicio para ver de un vistazo qué días están ocupados.
 
@@ -582,9 +616,22 @@ Scenario: Sin administrador configurado
 
 ## E-05 — Gestionar reserva
 
-### HU-21 — Lista de reservas activas con filtros
-**Antes:** US-023 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-04, P-05 · **↑ JTBD:** JTBD-04, JTBD-05 · **↓ RF:** RF-42, RF-43 · **↓ RNF:** RNF-05, RNF-08, RNF-11 · **↓ Sprint:** S4
+### HU-21 — Lista de reservas con filtros, en tarjetas y paginada
+**Antes:** US-023 · **MoSCoW:** M · **Talla:** M · **Estado:** 🔍 (DD-03 implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-04, P-05 · **↑ JTBD:** JTBD-04, JTBD-05 · **↓ RF:** RF-42, RF-43 · **↓ RNF:** RNF-05, RNF-08, RNF-11, RNF-24 · **↓ Sprint:** S4 · **S32** (F-34, F-35, F-36)
+
+> **DD-03 (2026-10-03):** filtros Nombre, Espacio (Interior/Exterior), Estado (sin canceladas por defecto · Abierta · Cerrada · Cancelada) y Cobro (Ingresada/No ingresada), más *Próxima semana* y *Próximo mes*; todos actúan al momento (sin botón *Filtrar*). Cada reserva es una **tarjeta** sin scroll lateral (ID · Nombre, Espacio y fechas, Estado y Cobro) que se toca para abrirla; **5 por página**. Orden: primero las que no han terminado, de la más cercana a la más lejana; después las pasadas, de la más reciente a la más antigua (Q-16).
+
+```gherkin
+Scenario: Filtros al momento y canceladas aparte (F-34)
+  When cambio cualquier filtro
+  Then la lista se actualiza sin pulsar ningún botón
+  And las canceladas solo aparecen al elegir Estado = "Cancelada"
+
+Scenario: Tarjetas paginadas (F-36)
+  Given hay 7 reservas que cumplen los filtros
+  Then veo 5 tarjetas y "Página 1 de 2", sin desplazarme en horizontal en el móvil
+```
 
 Como copropietario, quiero ver las reservas que siguen siendo modificables y filtrarlas para encontrar rápido la que busco.
 
@@ -605,9 +652,11 @@ Scenario: Búsqueda por nombre
   Then solo ve las reservas cuyo nombre lo contiene
 ```
 
-### HU-22 — Ficha "Ver más" de solo lectura
-**Antes:** *(nueva; ADR-0008, nivel 2)* · **MoSCoW:** S · **Talla:** S · **Estado:** ✅  
-**↑ Problema:** P-04, P-07 · **↑ JTBD:** JTBD-04, JTBD-07 · **↓ RF:** RF-44 · **↓ RNF:** RNF-26 · **↓ Sprint:** S4
+### HU-22 — Ficha de la reserva en pantalla propia
+**Antes:** *(nueva; ADR-0008, nivel 2)* · **MoSCoW:** S · **Talla:** S · **Estado:** 🔍 (DD-03 implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-04, P-07 · **↑ JTBD:** JTBD-04, JTBD-07 · **↓ RF:** RF-44 · **↓ RNF:** RNF-11, RNF-26 · **↓ Sprint:** S4 · **S32** (F-42)
+
+> **DD-03 (2026-10-03, F-42):** ya no hay "Ver más": la ficha se abre al tocar la reserva, en su propia pantalla, y es la misma para consultar y para modificar. Secciones: *Datos reserva*, *Datos del cliente*, *Checklist* (IN/OUT con fecha y responsable), *Documentación* (Interior: identidades y SES; Exterior: contrato), *Resumen económico*, *Servicios extra* ("NA (No aplica)" si no hay), *Notas* e *Historial de cambios*. *Mensaje para el huésped* solo en Interior.
 
 Como copropietario, quiero consultar todos los datos de una reserva sin riesgo de modificarlos para revisarla con tranquilidad.
 
@@ -619,7 +668,18 @@ Scenario: Ver más
 
 ### HU-23 — Editar una reserva con auditoría
 **Antes:** US-015 · **MoSCoW:** M · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-03, P-04 · **↑ JTBD:** JTBD-03, JTBD-04 · **↓ RF:** RF-06, RF-45, RF-46, RF-47, RF-48 · **↓ RNF:** RNF-14, RNF-22, RNF-24 · **↓ Sprint:** S4 → S8 ✔
+**↑ Problema:** P-03, P-04 · **↑ JTBD:** JTBD-03, JTBD-04 · **↓ RF:** RF-06, RF-45, RF-46, RF-47, RF-48, RF-97 · **↓ RNF:** RNF-09, RNF-14, RNF-22, RNF-24 · **↓ Sprint:** S4 → S8 ✔ · **S32** (F-44)
+
+> **DD-03 (2026-10-03, F-44):** "Modificar" pone la ficha en edición en la misma pantalla; *Guardar cambios* arriba y abajo guarda a la vez datos y servicios; al salir con cambios sin guardar se pregunta *Seguir editando / Descartar / Guardar*.
+
+```gherkin
+Scenario: Salir con cambios sin guardar (F-44)
+  Given estoy modificando una reserva y he cambiado las notas
+  When pulso "← Volver" o un botón de la barra
+  Then se me pregunta si sigo editando, descarto o guardo
+  When elijo "Guardar"
+  Then se guardan los cambios y sigo a donde iba
+```
 
 Como copropietario, quiero editar los datos de gestión de una reserva y que cada cambio quede registrado para corregir errores con trazabilidad.
 
@@ -650,7 +710,9 @@ Scenario: Reserva cancelada
 
 ### HU-24 — Añadir o quitar servicios a una reserva existente
 **Antes:** US-010 (escenario 4) · **MoSCoW:** S · **Talla:** M · **Estado:** ✅  
-**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-49 · **↓ RNF:** RNF-14, RNF-15 · **↓ Sprint:** S4 → S8 ✔
+**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-49 · **↓ RNF:** RNF-14, RNF-15 · **↓ Sprint:** S4 → S8 ✔ · **S32** (F-44)
+
+> **DD-03 (2026-10-03):** los servicios se editan en la sección *Servicios extra* de la ficha y se guardan con el mismo *Guardar cambios* (ya no hay "Guardar servicios"). Su cobro se registra en la función *Extras* (HU-42).
 
 Como copropietario, quiero modificar los servicios extra de una reserva ya creada para reflejar lo que el huésped contrata después.
 
@@ -734,17 +796,26 @@ Scenario: Sin cambios
   Then se muestra "Sin cambios registrados"
 ```
 
-### HU-37 — Recordatorios automáticos de tareas pendientes
-**Antes:** *(backlog v0.5, "Could")* · **MoSCoW:** C · **Talla:** L · **Estado:** ⏳ (pendiente de diseño, arc42 §11)  
-**↑ Problema:** P-04 · **↑ JTBD:** JTBD-04 · **↓ RF:** RF-79 · **↓ RNF:** RNF-05 · **↓ Sprint:** **S13**
+### HU-37 — Recordatorio automático del cobro pendiente
+**Antes:** *(backlog v0.5, "Could")* · **MoSCoW:** S · **Talla:** M · **Estado:** 🔍 (F-37 implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-04 · **↑ JTBD:** JTBD-04 · **↓ RF:** RF-79, RF-101 · **↓ RNF:** RNF-05, RNF-10, RNF-16, RNF-20 · **↓ Sprint:** **S34** (F-37)
 
-Como copropietario, quiero recibir recordatorios de cobros, contratos o revisiones pendientes para no dejar reservas abiertas por olvido.
+Como copropietario, quiero que la app me pregunte si una reserva ya se ha ingresado para no dejarla abierta por olvido.
+
+> **Alcance (2026-10-03, Q-08; sustituye la parte de cobro de D-24):** a los **10 días de la salida** sin "Ingresado" y después cada 10 días, email a los roles Admin y Gestión con el botón *Sí, se ha ingresado*, que abre la app y pide confirmación. Los contratos y las revisiones pendientes los cubren HU-41 y HU-43.
 
 ```gherkin
 Scenario: Cobro pendiente tras la estancia
-  Given una reserva "Abierta" con Estado_Cobro = "No ingresado" cuya salida fue hace más de N días (Config)
-  When se ejecuta la tarea programada
-  Then los tres reciben un recordatorio con la referencia y lo que falta
+  Given una reserva no cancelada con Estado_Cobro = "No ingresado" cuya salida fue hace 10 días (Config.Dias_Aviso_Ingreso)
+  When se ejecuta el aviso diario (9:00)
+  Then Admin y Gestión reciben un email con la referencia, la estancia y el neto esperado
+  And se repite a los 20, 30… días hasta que se marque como ingresada
+
+Scenario: Marcarla desde el email
+  When pulso "Sí, se ha ingresado" en el email
+  Then la app abre la ficha y me pide confirmar
+  When confirmo
+  Then la reserva queda "Ingresado", con auditoría, y se recalcula su estado
 ```
 
 ### HU-38 — Editar canal y fechas de una reserva
@@ -768,13 +839,82 @@ Scenario: Check-in ya empezado
   Then fechas y canal se muestran de solo lectura
 ```
 
+### HU-41 — Tareas de la reserva desde la barra de Reservas
+**Antes:** *(DD-03; F-38, F-39, F-41)* · **MoSCoW:** M · **Talla:** L · **Estado:** 🔍 (implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-04, P-07, P-10 · **↑ JTBD:** JTBD-04, JTBD-07 · **↓ RF:** RF-98 · **↓ RNF:** RNF-08, RNF-11, RNF-12 · **↓ Sprint:** **S33**
+
+Como copropietario, quiero ir directo a la tarea que toca (check-in, check-out, identidades o contrato) y que la app me proponga la reserva más cercana para no tener que buscarla en la lista.
+
+```gherkin
+Scenario: Checklist con IN u OUT (F-38)
+  When pulso "Checklist" en la barra de Reservas
+  Then elijo "IN · Check-in" u "OUT · Check-out"
+  And la app me propone la reserva más cercana a hoy con esa checklist pendiente
+  And puedo buscar otra por espacio y nombre o elegirla entre las 5 siguientes
+
+Scenario: Validar identidades solo en Interior (F-39)
+  When pulso "Identidades"
+  Then solo se ofrecen reservas de la Habitación
+  And tengo a mano el "Mensaje para el huésped"
+
+Scenario: Contrato solo en Exterior (F-41)
+  When pulso "Contrato"
+  Then solo se ofrecen reservas de Exterior y la foto del contrato lo marca firmado
+```
+
+### HU-42 — Cobro de los servicios extra (plataforma o presencial)
+**Antes:** *(DD-03, F-43)* · **MoSCoW:** S · **Talla:** M · **Estado:** 🔍 (implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-98, RF-99 · **↓ RNF:** RNF-14, RNF-15, RNF-22, RNF-24 · **↓ Sprint:** **S33**
+
+Como copropietario, quiero registrar el cobro de cada servicio extra (vía plataforma o presencial), añadir los que pidan durante la estancia y quitar los que rechacen, para que el neto refleje lo que de verdad se cobró.
+
+> **DI-11 (resuelta por el usuario, 2026-10-03):** nadie marca nada al crear la reserva: todo servicio nace *Pendiente*; al cobrarlo en *Extras* la app pregunta si fue **vía plataforma o presencial**. En *Extras* también se añaden servicios.
+
+```gherkin
+Scenario: Cobrar un servicio (Q-14, DI-11)
+  Given una reserva con un servicio "Pendiente" de cobro
+  When en "Extras" pulso "Cobrar"
+  Then la app pregunta si se cobró vía plataforma o presencial
+  When elijo una
+  Then queda "Cobrado" con esa forma, con auditoría, y la reserva deja de proponerse en "Extras"
+
+Scenario: Añadir un servicio durante la estancia
+  When en "Extras" elijo un servicio del catálogo del espacio y sus unidades y pulso "Añadir servicio"
+  Then se añade "Pendiente" de cobro y se recalculan los importes sin tocar la comisión
+
+Scenario: El cliente lo rechaza
+  When pulso "Quitar" y confirmo
+  Then el servicio sale de la reserva y se recalculan los importes
+```
+
+### HU-43 — Aviso de check-in y check-out sin hacer
+**Antes:** *(DD-03, F-40)* · **MoSCoW:** S · **Talla:** M · **Estado:** 🔍 (implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-04, P-07 · **↑ JTBD:** JTBD-04, JTBD-07 · **↓ RF:** RF-100, RF-101 · **↓ RNF:** RNF-05, RNF-16 · **↓ Sprint:** **S34**
+
+Como copropietario, quiero un aviso antes de que lleguen los huéspedes y después de que se vayan si la checklist no está hecha para no olvidarla.
+
+> **D-43 (2026-10-03):** solo por email (llega al móvil como notificación de Gmail). Una notificación push propia de la app no es posible en Apps Script.
+
+```gherkin
+Scenario: Check-in sin hacer
+  Given faltan 4 h o menos (Config.Horas_Aviso_Checkin) para la llegada y el check-in no está hecho
+  When se ejecuta el aviso (cada 15 min)
+  Then Admin y Gestión reciben un email con el botón "Hacer el check-in", una sola vez y antes de la hora de llegada
+
+Scenario: Check-out sin hacer (DI-07)
+  Given ha llegado la hora de salida y el check-out no está hecho
+  Then reciben el aviso una sola vez, en las 24 h siguientes a la salida; después ya no se avisa
+```
+
 ---
 
 ## E-06 — Documentos y evidencias
 
-### HU-28 — Subir el contrato a Drive
-**Antes:** US-017 · **MoSCoW:** M · **Talla:** L · **Estado:** ✅  
-**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-54, RF-55, RF-58 · **↓ RNF:** RNF-07, RNF-08, RNF-36 · **↓ Sprint:** S4 → S8 ✔
+### HU-28 — Firmar el contrato de Exterior con fotos en Drive
+**Antes:** US-017 · **MoSCoW:** M · **Talla:** L · **Estado:** 🔍 (F-41 implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-07 · **↑ JTBD:** JTBD-07 · **↓ RF:** RF-54, RF-55, RF-58, RF-102 · **↓ RNF:** RNF-07, RNF-08, RNF-35, RNF-36 · **↓ Sprint:** S4 → S8 ✔ · **S33** (F-41)
+
+> **DD-03 (2026-10-03, F-41, Q-10, Q-11):** el contrato se firma en papel y se sube en **fotos** desde la función *Contrato* de la barra de Reservas, en **todas** las reservas de Exterior; la primera foto lo marca *Firmado* con fecha y responsable. Las fotos se guardan en la carpeta `Contrato` de la reserva y se borran a los **5 años** de la salida ([ADR-0023](../solution/adr/0023-fotos-del-contrato-y-retencion.md)).
 
 Como copropietario, quiero subir el contrato firmado desde la reserva para tenerlo vinculado y guardado en Drive.
 

@@ -6,3 +6,4 @@ Un documento de diseño por funcionalidad grande, escrito antes de programarla (
 |---|---|---|
 | [DD-01](DD-01-checklists-digitales.md) | Checklists digitales de check-in y check-out (F-14) | Implementado (S16) |
 | [DD-02](DD-02-comunicacion-ses-hospedajes.md) | Comunicación de viajeros a SES.Hospedajes (Fase 2) | Aprobado (D-34); en S26–S29 |
+| [DD-03](DD-03-reservas-navegacion-listado-ficha.md) | Reservas: navegación, listado, ficha y funciones de gestión (F-31 a F-45, B-27) | Aprobado e implementado (2026-10-03); pendiente de implementar en producción |

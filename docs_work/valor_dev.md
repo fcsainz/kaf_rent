@@ -1,15 +1,24 @@
 # Valor de KAF Rent a precio de mercado
 
-**Versión:** 1.0 · **Fecha:** 2026-10-02 · **Método:** comparables de mercado (decisión del usuario, 2026-10-02)
-**Pregunta que responde:** ¿cuánto costaría cubrir lo que hace KAF Rent con las herramientas que se venden hoy?
+**Versión:** 1.2 · **Fecha:** 2026-10-03 · **Método:** comparables de mercado (decisión del usuario, 2026-10-02) + coste de reposición y análisis con amortización (decisión del usuario, 2026-10-03)
+**Preguntas que responde:**
+1. ¿Cuánto costaría cubrir lo que hace KAF Rent con las herramientas que se venden hoy? (secciones 1–3: **valor de uso**, en cuotas anuales)
+2. ¿Cuánto costaría encargar la app entera a precio de mercado? (sección 4: **valor de reposición**)
+3. ¿Compensa una cosa frente a la otra, amortizando el desarrollo? (sección 5)
 
 **Cómo se ha calculado:**
 - Para cada función se busca la herramienta comercial más parecida y se calcula su cuota anual para nuestro caso: dos espacios (Piscina / Jardín y Habitación Interior) y tres copropietarios.
 - Precios públicos consultados el 2026-10-02 (fuentes al final), sin IVA. Los precios en dólares se pasan a euros a 0,92 € por dólar (cambio aproximado, no verificado).
-- No se valora el coste de desarrollarlo (método de reposición, descartado por el usuario), solo lo que el mercado cobra por algo equivalente.
+- El coste de desarrollarlo (reposición) se calcula aparte en la sección 4, con tarifas de mercado consultadas el 2026-10-03; el usuario lo pidió el 2026-10-03 tras descartarlo el 2026-10-02.
 - **Límite del método:** que una herramienta "cubra" una función no significa que encaje igual. La columna *Cobertura* indica cuánto se parece.
 
-**Corte temporal:** "hasta ayer" es todo lo que está en el repositorio hasta el commit `v2.4` (c89ab4e). "Hoy" son los cambios de la sesión del 2026-10-02, aún sin commit.
+**Corte temporal:** "hasta ayer" es todo lo que está en el repositorio hasta el commit `v2.4` (c89ab4e). La sección 2 son los cambios de la sesión del 2026-10-02 (commit `v3 SES`) y la 2 bis, los de la sesión del 2026-10-03.
+
+> **Revisión 1.1 (2026-10-03).** La versión 1.0 se quedaba corta por dos huecos de método, no por los precios:
+> 1. **Faltaba la Piscina por horas.** Smoobu y Lodgify venden noches; para una piscina por horas haría falta además una agenda de reservas por horas (SimplyBook.me). Se suma.
+> 2. **Faltaban las cuentas de los copropietarios.** Smoobu incluye una cuenta; cada cuenta más con permiso de escritura cuesta desde 12 €/mes. Con tres copropietarios son dos más. Se suma.
+>
+> Con eso, la cifra sube un ≈ 45 %. Sigue siendo modesta porque el software para pequeños propietarios es barato; el valor que el mercado no cobra está en el encaje (sección 1, al final).
 
 ---
 
@@ -29,9 +38,11 @@ Los datos viven en su propio Google Sheet y se reparten a tercios para el IRPF.
 | Igual, alternativa | **Lodgify** Professional | ≈ 42 $/mes por propiedad | **≈ 930 €** | Igual que Smoobu |
 | Checklists de entrada y salida con fotos | **Breezeway** Host Essentials | 1.ª propiedad gratis; 19,99 $/mes por unidad | **≈ 220 €** (1 unidad de pago) | Alta (más completo: tareas de limpieza y mantenimiento) |
 | Gastos, resumen fiscal y documentos | **Rentger** | Gratis hasta 9 inmuebles | **0 €** | Media: pensado para alquiler de larga duración; sin reparto a tercios ni amortización como la nuestra (no verificado) |
-| Copias, roles, incidencias, varias cuentas | Incluido en los anteriores (Smoobu cobra más por el plan con varias cuentas: Teams Pro+ desde 55 €/mes) | — | 0 € (o más, si se necesita el plan de equipo) | Media |
+| Reservas por horas de la Piscina / Jardín *(revisión 1.1)* | **SimplyBook.me** Basic (agenda de reservas por horas, 100 reservas al mes) | 11,90 €/mes pagando al año; 13,90 € al mes | **≈ 145–170 €** | Alta para reservar por horas; sin canales ni comisiones como los nuestros |
+| Tres copropietarios con acceso *(revisión 1.1)* | **Smoobu**: cuentas adicionales con permiso de escritura | desde 12 €/mes cada una | **≈ 260–290 €** (2 cuentas más; con o sin el 10 % anual) | Alta |
+| Copias, roles, incidencias | Incluido en los anteriores | — | 0 € | Media |
 
-**Valor de mercado hasta ayer: ≈ 730–1.150 € al año** en cuotas que no se pagan (PMS + operaciones).
+**Valor de mercado hasta ayer: ≈ 1.135–1.610 € al año** en cuotas que no se pagan (PMS, reservas por horas, cuentas y operaciones). *(Versión 1.0: 730–1.150 €.)*
 
 **Lo que el mercado no da, y es el valor real de la idea:**
 - **Un solo sitio para dos negocios distintos.** Ninguna de las herramientas consultadas está pensada para alquilar una piscina por horas junto a una habitación por noches. Con el mercado haría falta combinar 2 o 3 herramientas, con 2 o 3 accesos y datos duplicados.
@@ -63,13 +74,33 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 
 ---
 
+## 2 bis. Lo hecho el 2026-10-03 (DD-03, S31–S34; pendiente de validar e implementar)
+
+| Bloque | Qué se ha hecho |
+|---|---|
+| Navegación | Menú Admin, barra propia de Reservas, Inicio con próximas o últimas, calendario que se abre en la app del móvil |
+| Gestionar | Lista en tarjetas sin scroll lateral, filtros al momento, paginación; ficha en pantalla propia para consultar y modificar, con aviso de cambios sin guardar |
+| Tareas de la reserva | Checklist (IN/OUT), validar identidades, firma del contrato con fotos (borrado a los 5 años) y cobro de servicios aparte, cada una con la reserva propuesta |
+| Avisos | Email de cobro pendiente cada 10 días con "Sí, se ha ingresado" desde el propio email; avisos de check-in y check-out sin hacer |
+| Datos | Puesta al día de check-in/out pasados, códigos del canal desde el Form y "Completada" → "Cerrada" |
+| Tamaño | ≈ 8.000 líneas de código y ≈ 4.700 de tests (349 unitarios y 59 E2E), 1 ADR nuevo (23), 103 requisitos funcionales trazados |
+
+| Función nueva | Comparable de mercado | Coste anual para KAF | Cobertura |
+|---|---|---|---|
+| Recordatorios de cobro y de check-in/out, tareas por reserva | Incluido en Smoobu (mensajes automáticos) y Breezeway (tareas), ya contados | 0 € adicional | Media: no preguntan "¿se ha ingresado?" ni marcan desde el email |
+| Fotos del contrato con borrado automático | Sin comparable consultado (los PMS guardan documentos sin política de borrado) | Sin cifra | — |
+| Cobro de servicios aparte | Incluido en los PMS (extras de la reserva) | 0 € adicional | Media |
+
+**Valor de mercado de lo del 2026-10-03: ≈ 0 € al año más.** Es trabajo de **usabilidad y encaje**, no de funciones nuevas que el mercado cobre aparte. Su valor está en el uso diario: una reserva se abre en 3 toques sin desplazarse de lado en el móvil (90 % del uso), y la app recuerda lo que antes dependía de la memoria.
+
 ## 3. Suma y lo que vendrá
 
 | Bloque | Valor de mercado anual |
 |---|---|
-| Idea y trabajo hasta ayer | 730–1.150 € |
-| Hoy | 20–60 € |
-| **Total actual** | **≈ 750–1.210 € al año** (≈ 3.750–6.050 € en 5 años, a precios de hoy) |
+| Idea y trabajo hasta v2.4 (revisión 1.1) | 1.135–1.610 € |
+| 2026-10-02: SES.Hospedajes | 20–60 € |
+| 2026-10-03: DD-03 | 0 € (usabilidad y encaje) |
+| **Total actual** | **≈ 1.155–1.670 € al año** (≈ 5.775–8.350 € en 5 años, a precios de hoy). *Versión 1.0: 750–1.210 €.* |
 
 **Lo que vendrá** (sprints pendientes en [PROXIMOS_PASOS](PROXIMOS_PASOS.md)):
 
@@ -79,20 +110,89 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 | S18 | Informe de gestión: ocupación y métricas por zona | Incluido en los PMS | 0 € adicional |
 | S17 | Registro de gastos más rápido | Rentger (gratis) | 0 € |
 | S21 | Informe del IRPF por copropietario, con casillas | Sin comparable consultado: es trabajo de gestoría | Sin cifra (no buscado) |
-| S24, S13 | Vídeos grandes, recordatorios, edición de reservas | Incluido en PMS y herramientas de operaciones | 0 € adicional |
+| S24, S13 | Vídeos grandes, edición de reservas, reconciliación de Calendar | Incluido en PMS y herramientas de operaciones | 0 € adicional |
 
-**Total con lo que vendrá: ≈ 1.060–1.520 € al año** (≈ 5.300–7.600 € en 5 años), más el informe del IRPF, que no tiene precio comparable.
+**Total con lo que vendrá: ≈ 1.465–1.980 € al año** (≈ 7.325–9.900 € en 5 años), más el informe del IRPF, que no tiene precio comparable.
 
 **Conclusión:**
-- A precio de mercado, KAF Rent sustituye ≈ 1.000–1.500 € al año de suscripciones. No es una cifra grande, porque el software para pequeños propietarios es barato.
+- A precio de mercado, KAF Rent sustituye ≈ 1.150–1.700 € al año de suscripciones (≈ 1.450–2.000 € con lo que vendrá). No es una cifra grande, porque el software para pequeños propietarios es barato.
 - Su valor diferencial no está en el precio sino en el **encaje**: un solo sitio para dos alquileres muy distintos, pensado para tres copropietarios, con la obligación de SES automatizada, sin comisiones y con los datos en casa.
 - Ese encaje ninguna herramienta consultada lo ofrece, y combinarlas costaría tiempo, accesos y datos duplicados.
 
 ---
 
-## Fuentes (consultadas el 2026-10-02)
-- Smoobu: [precios oficiales](https://www.smoobu.com/en/pricing/) · [explicación de planes](https://support.smoobu.com/hc/en-us/articles/360003170680-How-much-does-Smoobu-cost-Plans-and-pricing-explained) · [precios dinámicos](https://www.smoobu.com/en/smoobu-dynamic-pricing/)
+## 4. Cuánto costaría encargar la app entera (valor de reposición)
+
+**Pregunta:** si hubiera que encargar hoy a un profesional una app como KAF Rent, con su documentación y sus tests, ¿cuánto costaría?
+
+**Método (estimación por módulos, contrastada con el tamaño real):**
+1. Horas por módulo para un perfil con experiencia, incluyendo análisis, diseño, código, tests y documentación (tabla de abajo).
+2. Contraste con el tamaño del repositorio: ≈ 8.000 líneas de código, ≈ 4.700 de tests (349 unitarios y 59 E2E) y ≈ 4.900 de documentación (43 HU, 103 RF, 38 RNF, arc42, 23 ADR, 3 design docs). Las horas resultantes salen a ≈ 10–15 líneas de código y test por hora, un ritmo normal en un proyecto pequeño, documentado y con tests (orden de magnitud, no medido).
+3. Tarifas de mercado en España en 2026, sin IVA (fuentes al final).
+
+| Módulo | Horas |
+|---|---|
+| Descubrimiento, requisitos y arquitectura (problema y JTBD, 43 HU, 103 RF, 38 RNF, arc42, 23 ADR, 3 design docs) | 80–120 |
+| Base: Apps Script en capas, esquema del Sheet, autorización y roles, `Config`, registro de errores | 60–90 |
+| Crear reserva: catálogos en cascada, importes, solapes, Calendar, avisos de canales | 60–90 |
+| Gestionar: listado, filtros, ficha, edición auditada, cancelación, historial, servicios y cobros | 70–100 |
+| Documentos y vídeos en Drive, contrato en fotos, retención | 30–45 |
+| Checklists digitales con editor para Admin | 50–70 |
+| Estadísticas, informes con comparativa y plantilla de emails (20 maquetas) | 50–70 |
+| Gastos y resumen fiscal a tercios con amortización | 30–45 |
+| SES.Hospedajes: Form con script propio, XML de reserva y parte, reintentos, anulación, validación presencial, catálogos oficiales | 120–180 |
+| Avisos automáticos, triggers, copias abuelo-padre-hijo y purgas | 40–60 |
+| Interfaz móvil, sistema de diseño y accesibilidad | 50–80 |
+| Tests y calidad: dobles de Google, servidor E2E, 349 + 59 tests, integración continua, lint | 100–150 |
+| Gestión del proyecto, despliegues y soporte a la prueba con usuarios (≈ 10 %) | 80–120 |
+| **Total** | **≈ 820–1.220 h** (central: ≈ 1.000 h) |
+
+| Quién lo hace | Tarifa (2026) | Coste (820–1.220 h) | Escenario central (1.000 h) |
+|---|---|---|---|
+| Freelance de nivel medio | 35–55 €/h | 28.700–67.100 € | ≈ 45.000 € (45 €/h) |
+| Freelance sénior | 55–90 €/h | 45.100–109.800 € | ≈ 70.000 € (70 €/h) |
+| Empresa de desarrollo | 55–95 €/h | 45.100–115.900 € | ≈ 75.000 € (75 €/h) |
+
+**Valor de reposición de KAF Rent: ≈ 45.000–75.000 €** (escenario central; ≈ 60.000 € como cifra de referencia), sin IVA.
+**Mantenimiento si fuera un encargo:** ≈ 15–20 % del desarrollo al año (regla habitual del sector, no verificada con fuentes): ≈ 9.000–12.000 € al año sobre 60.000 €.
+
+---
+
+## 5. Análisis: el desarrollo amortizado frente a las cuotas del mercado
+
+**Amortización del desarrollo.** Un programa informático se amortiza, a efectos fiscales, con un coeficiente máximo del 33 % anual, es decir, en 3 años como mínimo (tabla de coeficientes de la Ley 27/2014 del Impuesto sobre Sociedades, aplicable también a los rendimientos de actividades en el IRPF). Como vida útil razonable se toman 3 y 5 años. No es asesoramiento fiscal: solo sirve para repartir el coste en años y compararlo.
+
+| Sobre 60.000 € de desarrollo | Amortización anual | + Mantenimiento (15 %) | Coste anual de tenerla | Frente a las cuotas del mercado (≈ 1.155–1.670 €/año) |
+|---|---|---|---|---|
+| Vida útil 3 años | 20.000 € | 9.000 € | **≈ 29.000 €** | ≈ 17–25 veces más cara |
+| Vida útil 5 años | 12.000 € | 9.000 € | **≈ 21.000 €** | ≈ 13–18 veces más cara |
+
+**Periodo de recuperación** (lo que tarda el ahorro en cuotas en pagar el desarrollo):
+- Con lo que hace hoy (≈ 1.410 €/año, punto medio): 60.000 / 1.410 ≈ **43 años**.
+- Con lo que vendrá (≈ 1.720 €/año): ≈ **35 años**.
+- Para recuperarse en 5 años, las cuotas sustituidas tendrían que valer ≈ 12.000 € al año, unas 8 veces más de lo que valen.
+
+**Qué significa:**
+- **Como compra, no compensaría.** Encargar KAF Rent a precio de mercado equivale a unos 40 años de las suscripciones equivalentes. Ningún pequeño propietario lo haría solo por ahorrarse cuotas.
+- **Como desarrollo propio, sí.** El coste en dinero ha sido ≈ 0 € (Google y las herramientas son gratuitas): el trabajo ha sido propio, no pagado a un tercero. Por eso el ahorro de ≈ 1.150–1.700 € al año es neto desde el primer año.
+- **Lo que el mercado no vende sigue fuera de las dos cifras:** un solo sitio para la Piscina por horas y la Habitación por noches, SES automatizado, reparto a tercios, sin comisiones y con los datos propios (sección 1). Con herramientas comerciales habría que combinar 3 o 4 y aun así no encajarían.
+- **Para qué sirve el valor de reposición:** dice cuánto vale el trabajo hecho (≈ 60.000 € a precio de mercado) y cuánto costaría rehacerlo si se perdiera. Por eso importan las copias, los tests y la documentación: protegen ese valor.
+
+| Cifra | Qué mide | Valor |
+|---|---|---|
+| Valor de uso | Cuotas anuales que no se pagan | ≈ 1.155–1.670 €/año (≈ 1.465–1.980 € con lo que vendrá) |
+| Valor de reposición | Lo que costaría encargarla hoy | ≈ 45.000–75.000 € (referencia: 60.000 €) |
+| Coste anual si se hubiera encargado | Amortización + mantenimiento | ≈ 21.000–29.000 €/año |
+| Coste real en dinero | Lo pagado | ≈ 0 € (trabajo propio) |
+
+---
+
+## Fuentes (consultadas el 2026-10-02; SimplyBook.me, las cuentas de Smoobu y las tarifas de desarrollo, el 2026-10-03)
+- Smoobu: [precios oficiales](https://www.smoobu.com/en/pricing/) (preguntas frecuentes: cuentas adicionales con escritura desde 12 €/mes) · [explicación de planes](https://support.smoobu.com/hc/en-us/articles/360003170680-How-much-does-Smoobu-cost-Plans-and-pricing-explained) · [precios dinámicos](https://www.smoobu.com/en/smoobu-dynamic-pricing/)
 - Lodgify: [análisis de precios 2026](https://comparatifchannelmanager.fr/en/lodgify-pricing/) · [comisiones del plan Starter](https://www.roommaster.com/blog/lodgify-pricing)
 - Breezeway: [precios oficiales](https://www.breezeway.io/breezeway-pricing)
 - Rentger: [precios oficiales](https://www.rentger.com/precios)
 - Chekin y Partee: [comparativa de apps de registro de viajeros 2026](https://bookcheckin.com/blog/mejores-apps-registro-viajeros-ses-2026) · [Partee](https://partee.es/) · [comparativa Chekin, Partee y Gotocheck](https://gotocheck.pro/blog/comparativa-chekin-partee-gotocheck-2026.html)
+- SimplyBook.me: [precios oficiales](https://simplybook.me/en/pricing) (Basic: 11,90 €/mes pagando al año, 13,90 € al mes; 100 reservas al mes)
+- Tarifas de desarrollo en España (2026): [barómetro de tarifas de Malt, fullstack](https://www.malt.es/t/barometro-tarifas/tech/desarrollador-backend/desarrollador-fullstack) · [tarifa por hora fullstack](https://tarifaautonomo.com/blog/tarifa-hora-fullstack-espana) · [sueldo y tarifas freelance](https://www.udit.es/sueldo-de-desarrollador-web-full-stack-en-espana-2026-junior-mid-senior-freelance-y-ciudades/) · [cuánto cobra una empresa de software](https://yeeply.com/cuanto-cuesta/cuanto-cobra-empresa-desarrollo-software-espana-2026/) · [cuánto cuesta un software a medida](https://www.internetwebsolutions.es/blog/cuanto-cuesta-desarrollar-un-software-a-medida-en-2026/611)
+- Amortización de programas informáticos: tabla de coeficientes del art. 12 de la Ley 27/2014 (coeficiente máximo del 33 %; no verificado contra el texto vigente en esta sesión)

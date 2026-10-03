@@ -113,13 +113,13 @@ test.describe('F-14 · cargar, guardar y confirmar la checklist', () => {
     assert.equal(e.llamar('confirmarChecklist', id, 'Check-out').success, false);
     const data = e.llamar('cargarChecklist', id, 'Check-out').data;
     e.llamar('guardarChecklist', id, 'Check-out', todosResueltos(data), '');
-    const d = e.llamar('obtenerReserva', id).data;
+    const d = e.llamar('obtenerFichaReserva', id).data;
     e.llamar('actualizarReserva', id, { ...d, comisionPct: d.comisionPct, cobro: 'Ingresado' });
     const r = e.llamar('confirmarChecklist', id, 'Check-out');
     assert.equal(r.success, true, r.error);
     const reserva = e.hoja('Reservas').registros()[0];
     assert.equal(reserva.Checkout_Revisado, 'Hecho');
-    assert.equal(reserva.Estado_Reserva, 'Completada');
+    assert.equal(reserva.Estado_Reserva, 'Cerrada');
     assert.ok(e.hoja('Historial_Cambios').registros().some((h) => h.Campo === 'Check-out revisado' && h.Valor_Nuevo === 'Hecho'));
   });
 

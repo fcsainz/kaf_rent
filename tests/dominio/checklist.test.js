@@ -95,5 +95,5 @@ test.describe('F-14 · días hasta la siguiente reserva del mismo espacio', () =
 test.describe('F-14 · regla de cierre', () => {
   const estado = (r) => fn('calcularEstadoReserva_')({ estado: 'Abierta', incidencias: 'Sin incidentes', ...r });
   test('cobrada pero sin check-out hecho sigue Abierta', () => assert.equal(estado({ cobro: 'Ingresado', checkout: 'Pendiente' }), 'Abierta'));
-  test('cobrada y con check-out hecho pasa a Completada', () => assert.equal(estado({ cobro: 'Ingresado', checkout: 'Hecho' }), 'Completada'));
+  test('cobrada y con check-out hecho pasa a Cerrada', () => assert.equal(estado({ cobro: 'Ingresado', checkout: 'Hecho' }), 'Cerrada'));
 });

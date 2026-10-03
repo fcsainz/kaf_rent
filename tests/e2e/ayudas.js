@@ -19,14 +19,23 @@ const datosHabitacion = (cambios = {}) => ({
   ...cambios,
 });
 
-// Navega con la barra inferior (F-25): Gestionar y Crear están en el segundo piso, que abre "Reservas".
-const SUBSECCIONES_RESERVAS = ['Gestionar Reservas', 'Crear Reservas'];
+// Navega con la barra inferior (F-25, F-31, F-33): Gestionar y Crear están en el segundo piso de "Reservas";
+// Checklists y Conexión SES, en el de "Admin". Desde la barra de Reservas se vuelve antes con "Inicio".
+const SUBSECCIONES = { 'Gestionar Reservas': 'Reservas', 'Crear Reservas': 'Reservas', Checklists: 'Admin', 'Conexión SES': 'Admin' };
 const irA = async (page, seccion) => {
-  const boton = page.getByRole('button', { name: seccion, exact: true });
-  if (SUBSECCIONES_RESERVAS.includes(seccion) && !(await boton.isVisible())) {
-    await page.getByRole('button', { name: 'Reservas', exact: true }).click();
+  if (await page.locator('#nav-reservas').isVisible()) await page.locator('#btn-nav-volver-inicio').click();
+  const boton = page.locator('.nav-inferior').getByRole('button', { name: seccion, exact: true });
+  if (SUBSECCIONES[seccion] && !(await boton.isVisible())) {
+    await page.locator('#nav-general').getByRole('button', { name: SUBSECCIONES[seccion], exact: true }).click();
   }
   await boton.click();
+};
+
+// Abre la ficha de una reserva desde Gestionar tocando su tarjeta (F-36, F-42).
+const abrirFicha = async (page, nombre) => {
+  await irA(page, 'Gestionar Reservas');
+  await page.locator('#lista-gestion .tarjeta-reserva', { hasText: nombre }).click();
+  await expect(page.locator('#ficha-titulo')).toContainText('Reserva');
 };
 
 // Rellena el formulario de Crear Reserva para la Habitación (modo Rango_Dias).
@@ -54,4 +63,4 @@ const resolverChecklist = async (request, id, momento) => {
 };
 const idInterno = async (request) => (await prueba(request, '/__test/hoja?nombre=Reservas'))[0].ID_Reserva;
 
-module.exports = { irA, isoDentroDe, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, resolverChecklist, idInterno };
+module.exports = { abrirFicha, irA, isoDentroDe, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, resolverChecklist, idInterno };

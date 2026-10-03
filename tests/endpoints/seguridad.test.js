@@ -6,9 +6,10 @@ const { crearEntornoConDatos, ficherosGs, leerFuente } = require('../soporte/gas
 
 // Endpoints que usa la interfaz.
 const ENDPOINTS = [
-  'cargarEspaciosFormulario', 'cargarOpcionesEspacio', 'crearReserva', 'cargarUltimasReservas', 'buscarReservas',
-  'listarReservasActivas', 'obtenerReserva', 'actualizarReserva', 'cargarServiciosReserva', 'actualizarServiciosReserva',
-  'cancelarReserva', 'obtenerHistorial', 'subirContrato', 'subirVideo', 'obtenerEnlaceCalendario',
+  'cargarEspaciosFormulario', 'cargarOpcionesEspacio', 'crearReserva', 'cargarReservasVistazo', 'buscarReservas',
+  'listarReservasGestion', 'obtenerFichaReserva', 'actualizarReserva', 'marcarIngresado', 'buscarReservasPara',
+  'cargarServiciosCobro', 'registrarCobroServicio', 'anadirServicioReserva',
+  'cancelarReserva', 'subirContrato', 'subirVideo', 'obtenerEnlaceCalendario',
   'cargarEstadisticas', 'recalcularEstadisticas', 'cargarCategoriasGasto', 'registrarGasto', 'calcularResumenFiscal',
   'notificarIncidencia', 'cargarChecklist', 'guardarChecklist', 'confirmarChecklist', 'subirFotoDesperfecto',
   'cargarCatalogoChecklist', 'guardarPuntoChecklist', 'obtenerPerfil', 'mensajeHuesped',
@@ -16,7 +17,8 @@ const ENDPOINTS = [
 ];
 // Puntos de entrada de Google (web, plantillas, menú, triggers) y utilidades de editor, todas protegidas.
 const ENTRADAS_SISTEMA = ['doGet', 'include', 'onOpen', 'tareasNocturnas', 'informesProgramados', 'instalarTriggers', 'inicializarBaseDeDatos', 'sincronizarReservasCalendario', 'corregirHorasReservas',
-  'alEnviarFormularioViajeros', 'procesarComunicacionesSES', 'actualizarCatalogosSES', 'comprobarConexionSES'];
+  'alEnviarFormularioViajeros', 'procesarComunicacionesSES', 'actualizarCatalogosSES', 'comprobarConexionSES',
+  'avisosDeCobro', 'avisosDeChecklist', 'ponerAlDiaReservas'];
 
 const funcionesGlobales = () => ficherosGs().flatMap((f) => {
   const fuente = leerFuente(f);
@@ -49,8 +51,11 @@ test('RNF-20 · un usuario autorizado no puede lanzar tareas del sistema desde l
   e.llamar('procesarComunicacionesSES');
   e.llamar('actualizarCatalogosSES');
   e.llamar('comprobarConexionSES');
+  e.llamar('avisosDeCobro', { triggerUid: 'inventado' });
+  e.llamar('avisosDeChecklist', { triggerUid: 'inventado' });
+  e.llamar('ponerAlDiaReservas');
   assert.ok(e.hoja('Logs').registros().some((l) => l.Email === 'x'), 'no purga');
-  assert.equal(e.hoja('Logs').registros().filter((l) => l.Tipo === 'SISTEMA_DENEGADO').length, 10, 'cada intento queda registrado');
+  assert.equal(e.hoja('Logs').registros().filter((l) => l.Tipo === 'SISTEMA_DENEGADO').length, 13, 'cada intento queda registrado');
   assert.equal(e.disparadores.length, 0, 'no instala triggers');
   assert.equal(e.correos.length, 0, 'no envía informes');
 });
@@ -67,7 +72,7 @@ test('ADR-0017 · con USER_ACCESSING (efectivo = quien navega) un usuario autori
 test('las tareas del sistema sí se ejecutan desde un trigger real del proyecto', () => {
   const e = crearEntornoConDatos({ usuarioActivo: '' });
   e.comoPropietario(() => e.llamar('instalarTriggers'));
-  assert.equal(e.disparadores.length, 3, 'sin Sheet_Viajeros_Id no hay activador del Form');
+  assert.equal(e.disparadores.length, 5, 'sin Sheet_Viajeros_Id no hay activador del Form');
   e.hoja('Logs').appendRow([new Date(2000, 0, 1), 'ACCESO', 'x', '']);
   const uid = e.disparadores.find((t) => t.funcion === 'tareasNocturnas').getUniqueId();
   e.llamar('tareasNocturnas', { triggerUid: uid });
@@ -80,6 +85,15 @@ test('doGet muestra Inicio a autorizados y acceso denegado al resto, registránd
   const no = crearEntornoConDatos({ usuarioActivo: 'intruso@test.com' });
   assert.equal(no.llamar('doGet').vista, 'acceso-denegado');
   assert.ok(no.hoja('Logs').registros().some((l) => l.Tipo === 'ACCESO_DENEGADO' && l.Email === 'intruso@test.com'));
+});
+
+test('F-37/F-40 · doGet abre una acción del email solo si es conocida y el ID tiene formato válido', () => {
+  const datos = (parametros, usuario) => crearEntornoConDatos(usuario ? { usuarioActivo: usuario } : {}).llamar('doGet', { parameter: parametros }).datos;
+  assert.deepEqual([datos({ accion: 'ingreso', id: '2026-015' }).accion, datos({ accion: 'ingreso', id: '2026-015' }).idAccion], ['ingreso', '2026-015']);
+  assert.equal(datos({ accion: 'checkout', id: '2026-015' }).accion, 'checkout');
+  assert.deepEqual([datos({ accion: 'borrar', id: '2026-015' }).accion, datos({ accion: 'ingreso', id: '"><script>' }).idAccion], ['', '']);
+  assert.equal(datos({ accion: 'ingreso', id: '2026-015' }, 'intruso@test.com').accion, '', 'sin acceso no hay acción');
+  assert.equal(crearEntornoConDatos().llamar('doGet').datos.accion, '', 'sin parámetros, el Inicio');
 });
 
 test('D-23 · doGet pone el icono de Config y, si la URL no vale, abre la app igualmente y lo registra', () => {

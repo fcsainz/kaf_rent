@@ -1,5 +1,5 @@
   <script>
-    // Registro de viajeros en SES dentro de Gestionar → una reserva de la Habitación (F-28, DD-02 §3.1).
+    // Registro de viajeros en SES en la función Validar identidades de la barra de Reservas (F-28, F-39, DD-02 §3.1).
     // Validar en persona a cada huésped y comunicar el parte. Los datos se pintan siempre con textContent (RNF-26).
 
     const ESTADO_SES_VISIBLE = {
@@ -45,13 +45,14 @@
       $('btn-comunicar-parte').disabled = true;
     };
 
-    const cargarRegistroViajeros = (d) => {
-      $('bloque-viajeros').hidden = !d.registroViajeros;
-      if (!d.registroViajeros) return;
+    const cargarRegistroViajeros = (id) => {
+      $('viajeros-lista').innerHTML = '';
+      $('viajeros-chips').innerHTML = '';
+      $('viajeros-aviso').hidden = true;
       servidor('Cargando los huéspedes…')
         .withSuccessHandler((res) => (res.success ? pintarRegistroViajeros(res.data) : avisoEnBloque(res.error)))
         .withFailureHandler(() => avisoEnBloque('No se pudieron cargar los huéspedes. Pulsa «Actualizar formularios».'))
-        .cargarViajeros(reservaActualId);
+        .cargarViajeros(id);
     };
 
     const tarjetaHuesped = (h, parteEnCurso) => {
@@ -66,7 +67,7 @@
       tarjeta.append(filaDato('Nacionalidad', h.nacionalidad), filaDato('Domicilio', h.domicilio));
       if (h.validado) {
         tarjeta.append(nuevo('p', 'validado-por', `✓ Validado por ${h.validado.por} · ${h.validado.fecha}`));
-        if (!parteEnCurso) tarjeta.append(botonPequeno('Deshacer', () => llamarRegistro('Deshaciendo la validación…', 'deshacerValidacionViajero', reservaActualId, h.fila)));
+        if (!parteEnCurso) tarjeta.append(botonPequeno('Deshacer', () => llamarRegistro('Deshaciendo la validación…', 'deshacerValidacionViajero', reservaTrabajoId, h.fila)));
         return tarjeta;
       }
       return completarTarjetaSinValidar(tarjeta, h);
@@ -101,7 +102,7 @@
       validar.type = 'button';
       validar.addEventListener('click', () => {
         if (selector && !selector.value) { mostrarMensaje('Elige el municipio del huésped antes de validarlo.', 'aviso'); return; }
-        llamarRegistro('Validando al huésped…', 'validarViajero', reservaActualId, h.fila, selector ? selector.value : '');
+        llamarRegistro('Validando al huésped…', 'validarViajero', reservaTrabajoId, h.fila, selector ? selector.value : '');
       });
       tarjeta.append(validar);
       return tarjeta;
@@ -142,17 +143,17 @@
     const comunicarParteUI = () => {
       const n = $('viajeros-nota').dataset.personas;
       confirmarAccion(`Se enviará a SES.Hospedajes el parte de ${n} huésped(es) de esta reserva. ¿Continuar?`,
-        () => llamarRegistro('Enviando el parte a SES…', 'comunicarParte', reservaActualId));
+        () => llamarRegistro('Enviando el parte a SES…', 'comunicarParte', reservaTrabajoId));
     };
 
     const inicializarRegistroViajeros = () => {
       if (!$('bloque-viajeros')) return;
-      $('btn-actualizar-viajeros').addEventListener('click', () => llamarRegistro('Leyendo los formularios…', 'cargarViajeros', reservaActualId));
+      $('btn-actualizar-viajeros').addEventListener('click', () => llamarRegistro('Leyendo los formularios…', 'cargarViajeros', reservaTrabajoId));
       $('btn-comunicar-parte').addEventListener('click', comunicarParteUI);
-      $('btn-comprobar-ses').addEventListener('click', () => llamarRegistro('Comprobando en SES…', 'comprobarSES', reservaActualId));
+      $('btn-comprobar-ses').addEventListener('click', () => llamarRegistro('Comprobando en SES…', 'comprobarSES', reservaTrabajoId));
     };
 
-    // Comprobar la conexión con SES (F-30): el panel solo se muestra a Admin; el servidor vuelve a comprobarlo.
+    // Comprobar la conexión con SES (F-30): está en el menú Admin (F-31); el servidor vuelve a comprobar el rol.
     const pintarConexionSES = (diagnostico) => {
       const resultado = $('resultado-conexion-ses');
       resultado.hidden = false;
@@ -163,11 +164,6 @@
     };
 
     const inicializarConexionSES = () => {
-      if (!$('panel-conexion-ses')) return;
-      google.script.run
-        .withSuccessHandler((res) => { $('panel-conexion-ses').hidden = !(res.success && res.data.esAdmin); })
-        .withFailureHandler(() => { $('panel-conexion-ses').hidden = true; })
-        .obtenerPerfil();
       $('btn-probar-ses').addEventListener('click', () => servidor('Comprobando la conexión con SES…')
         .withSuccessHandler((res) => (res.success ? pintarConexionSES(res.data) : mostrarMensaje(res.error, 'error')))
         .withFailureHandler(() => mostrarMensaje('No se pudo comprobar la conexión con SES. Inténtalo de nuevo.', 'error'))

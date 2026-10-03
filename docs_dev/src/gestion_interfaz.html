@@ -1,354 +1,422 @@
   <script>
-    // Gestionar Reserva, Estadísticas y enlace de calendario. Reutiliza $, mostrarMensaje, crearCelda, filaVacia,
-    // formatearEuros y fechaLocalISO de cliente.html (mismo ámbito global de la página).
+    // Gestionar Reservas (DD-03): listado en tarjetas, ficha en pantalla propia (consultar y modificar), funciones de la
+    // barra de Reservas, Estadísticas y enlace al calendario. Reutiliza $, servidor, mostrarMensaje, mostrarExito,
+    // crearDialogo, confirmarAccion, formatearEuros, crearTarjetaReserva, navegar y guardiaNavegacion
+    // de cliente.html (mismo ámbito global de la página). Los datos se pintan siempre con textContent (RNF-26).
 
-    let reservaActualId = null;
-    let refCanalObligatoria = false;
-    let avisoCancelacionSES = '';
-    let mensajeHuespedListo = null; // { texto, whatsapp } preparado al abrir la ficha (F-27)
+    const ESTADO_COBRO_INGRESADO = 'Ingresado';
+    const ESPERA_FILTRO_NOMBRE_MS = 400;
+    const nuevoEl = (etiqueta, clase, texto) => {
+      const el = document.createElement(etiqueta);
+      if (clase) el.className = clase;
+      if (texto !== undefined && texto !== null) el.textContent = texto;
+      return el;
+    };
+    const boton = (texto, clase, alPulsar) => {
+      const b = nuevoEl('button', 'btn ' + clase, texto);
+      b.type = 'button';
+      b.addEventListener('click', alPulsar);
+      return b;
+    };
+    const conEspera = (funcion, ms) => {
+      let temporizador = null;
+      return () => { clearTimeout(temporizador); temporizador = setTimeout(funcion, ms); };
+    };
 
-    // ----- Lista de reservas activas (HU-21) -----
-    const filtroGestion = () => ({
-      nombre: $('filtro-nombre').value.trim(),
-      desde: $('filtro-desde').value,
-      hasta: $('filtro-hasta').value,
+    // ----- Espacios (filtros Interior / Exterior) -----
+    let espaciosGestion = [];
+    const rellenarSelectEspacios = (select) => espaciosGestion.forEach((e) => {
+      const opcion = nuevoEl('option', '', e.nombreCorto);
+      opcion.value = e.nombre;
+      select.appendChild(opcion);
     });
 
-    // Texto siempre como texto, nunca como HTML (RNF-26).
-    const mensajeEnTabla = (texto) => {
-      const tbody = $('tabla-gestion');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      tbody.appendChild(filaVacia(texto, 11));
+    // ----- Tarjeta de reserva (F-36): sin scroll lateral; se toca para abrirla -----
+    const etiquetaEstado = (estado) => nuevoEl('span', 'estado-badge estado-' + String(estado).toLowerCase(), estado);
+    const etiquetaCobro = (cobro) => nuevoEl('span', 'estado-badge ' + (cobro === ESTADO_COBRO_INGRESADO ? 'cobro-ingresado' : 'cobro-no'),
+      cobro === ESTADO_COBRO_INGRESADO ? 'Ingresada' : 'No ingresada');
+
+    const crearTarjeta = (r, alPulsar) => crearTarjetaReserva({
+      titulo: `${r.ref} · ${r.nombre}`,
+      lineas: [`${r.espacio} · ${r.inicioTexto} → ${r.finTexto}`],
+      etiquetas: [etiquetaEstado(r.estado), etiquetaCobro(r.cobro)],
+      alPulsar: () => alPulsar(r),
+    });
+
+    // ----- Listado de Gestionar (F-34, F-36) -----
+    const estadoLista = { pagina: 1, rango: '' };
+
+    const filtroGestion = () => ({
+      nombre: $('filtro-nombre').value.trim(), espacio: $('filtro-espacio').value, estado: $('filtro-estado').value,
+      cobro: $('filtro-cobro').value, rango: estadoLista.rango, pagina: estadoLista.pagina,
+    });
+
+    const mensajeEnLista = (texto) => {
+      const lista = $('lista-gestion');
+      lista.innerHTML = '';
+      lista.appendChild(nuevoEl('li', 'vacio', texto));
+      $('paginacion-gestion').hidden = true;
+      $('gestion-total').textContent = '';
+    };
+
+    const renderListaGestion = ({ elementos, pagina, paginas, total }) => {
+      if (total === 0) { mensajeEnLista('No hay reservas con estos filtros.'); return; }
+      const lista = $('lista-gestion');
+      lista.innerHTML = '';
+      elementos.forEach((r) => lista.appendChild(crearTarjeta(r, (x) => abrirFicha(x.id))));
+      estadoLista.pagina = pagina;
+      $('gestion-total').textContent = `${total} ${total === 1 ? 'reserva' : 'reservas'}`;
+      $('paginacion-gestion').hidden = paginas <= 1;
+      $('pagina-actual').textContent = `Página ${pagina} de ${paginas}`;
+      $('btn-pagina-anterior').disabled = pagina <= 1;
+      $('btn-pagina-siguiente').disabled = pagina >= paginas;
     };
 
     const cargarListaGestion = () => {
       servidor('Cargando las reservas…')
-        .withSuccessHandler((res) => {
-          try {
-            if (!res.success) { mensajeEnTabla(res.error); return; }
-            renderListaGestion(res.data);
-          } catch (e) {
-            mensajeEnTabla('No se pudo mostrar la lista. Recarga la página e inténtalo de nuevo.');
-          }
-        })
-        .withFailureHandler(() => mensajeEnTabla('No se pudieron cargar las reservas. Inténtalo de nuevo.'))
-        .listarReservasActivas(filtroGestion());
+        .withSuccessHandler((res) => (res.success ? renderListaGestion(res.data) : mensajeEnLista(res.error)))
+        .withFailureHandler(() => mensajeEnLista('No se pudieron cargar las reservas. Inténtalo de nuevo.'))
+        .listarReservasGestion(filtroGestion());
     };
 
-    const celdaEstado = (estado) => {
-      const td = document.createElement('td');
-      const badge = document.createElement('span');
-      badge.className = 'estado-badge estado-' + String(estado).toLowerCase();
-      badge.textContent = estado;
-      td.appendChild(badge);
-      return td;
+    const recargarDesdePrimera = () => { estadoLista.pagina = 1; cargarListaGestion(); };
+
+    // Próxima semana / Próximo mes se marcan y desmarcan; filtran al momento (F-34).
+    const alternarRango = (rango) => {
+      estadoLista.rango = estadoLista.rango === rango ? '' : rango;
+      document.querySelectorAll('.chips-filtro .btn-chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.rango === estadoLista.rango)));
+      recargarDesdePrimera();
     };
 
-    const celdaCobro = (cobro) => {
-      const td = document.createElement('td');
-      const badge = document.createElement('span');
-      badge.className = 'estado-badge ' + (cobro === 'Ingresado' ? 'cobro-ingresado' : 'cobro-no');
-      badge.textContent = cobro;
-      td.appendChild(badge);
-      return td;
-    };
+    // ----- Ficha de la reserva (F-42, F-44) -----
+    let fichaActual = null;
+    let fichaModo = 'ver'; // 'ver' | 'editar'
+    let fichaSucia = false;
+    let mensajeHuespedListo = null; // { texto, whatsapp } preparado al abrir (F-27)
 
-    // ----- Detalle: "Ver más" (ficha solo lectura) y "Modificar" (formulario), a ancho completo bajo la tabla -----
-    let detalleId = null;
-    let detalleModo = null;   // 'ver' | 'editar'
-
-    // Devuelve el panel de edición a su sitio (oculto) para que no lo destruya el vaciado del área de detalle.
-    const devolverPanel = () => {
-      const panel = $('panel-edicion');
-      if (!panel) return;
-      panel.hidden = true;
-      $('seccion-gestionar').appendChild(panel);
-    };
-
-    const cerrarDetalle = () => {
-      devolverPanel();
-      const cont = $('detalle-gestion');
-      if (cont) cont.innerHTML = '';
-      detalleId = null;
-      detalleModo = null;
-    };
-
-    // Tier 1 — campos de la fila. "Ver más"/"Modificar" abren el detalle a ancho completo (fuera de la tabla).
-    const renderListaGestion = (reservas) => {
-      cerrarDetalle();
-      const tbody = $('tabla-gestion');
-      tbody.innerHTML = '';
-      if (reservas.length === 0) { tbody.appendChild(filaVacia('No hay reservas modificables con esos filtros.', 11)); return; }
-      reservas.forEach((r) => {
-        const tr = document.createElement('tr');
-        const tdAcciones = document.createElement('td');
-        tdAcciones.className = 'acciones-fila';
-        const btnVer = document.createElement('button');
-        btnVer.className = 'btn btn-secundario btn-pequeno';
-        btnVer.textContent = 'Ver más';
-        const btnMod = document.createElement('button');
-        btnMod.className = 'btn btn-primario btn-pequeno';
-        btnMod.textContent = 'Modificar';
-        tdAcciones.append(btnVer, btnMod);
-        tr.appendChild(tdAcciones);
-        tr.appendChild(celdaEstado(r.estado));
-        const personas = r.adultos + r.menores;
-        [r.ref, r.canal, r.inicioTexto, r.finTexto, personas, r.checkin, r.checkout, r.nombre].forEach((t) => tr.appendChild(crearCelda(t)));
-        tr.appendChild(celdaCobro(r.cobro));
-        tbody.appendChild(tr);
-
-        btnVer.addEventListener('click', () => verMas(r.id));
-        btnMod.addEventListener('click', () => modificar(r.id));
-      });
-    };
-
-    const verMas = (id) => {
-      const cont = $('detalle-gestion');
-      if (!cont) { mostrarMensaje('Recarga la página e inténtalo de nuevo.', 'error'); return; }
-      if (detalleId === id && detalleModo === 'ver') { cerrarDetalle(); return; }
-      cerrarDetalle();
-      detalleId = id;
-      detalleModo = 'ver';
-      const panel = document.createElement('div');
-      panel.className = 'panel';
-      panel.textContent = 'Cargando…';
-      cont.appendChild(panel);
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      servidor('Cargando la reserva…')
-        .withSuccessHandler((res) => {
-          panel.innerHTML = '';
-          if (!res.success) { panel.textContent = res.error; return; }
-          try { panel.appendChild(construirFicha(res.data)); }
-          catch (e) { panel.textContent = 'No se pudo mostrar la ficha. Recarga la página e inténtalo de nuevo.'; }
-        })
-        .withFailureHandler(() => { panel.textContent = 'No se pudo cargar el detalle.'; })
-        .obtenerReserva(id);
-    };
-
-    const modificar = (id) => {
-      const cont = $('detalle-gestion');
-      if (!cont) { mostrarMensaje('Recarga la página e inténtalo de nuevo.', 'error'); return; }
-      if (detalleId === id && detalleModo === 'editar') { cerrarDetalle(); return; }
-      cerrarDetalle();
-      detalleId = id;
-      detalleModo = 'editar';
-      const panel = $('panel-edicion');
-      cont.appendChild(panel);
-      panel.hidden = false;
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      reservaActualId = id;
-      inicializarServiciosEdicion(id);
+    const abrirFicha = (id, { modo = 'ver', alCargar } = {}) => {
       servidor('Cargando la reserva…')
         .withSuccessHandler((res) => {
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-          rellenarEdicion(res.data);
-          cargarHistorial(id);
-          cargarChecklistsReserva(id);
+          fichaActual = res.data;
+          fichaModo = modo === 'editar' && res.data.modificable ? 'editar' : 'ver';
+          fichaSucia = false;
+          renderFicha();
+          navegar('ficha', { forzar: true });
+          if (alCargar) alCargar(res.data);
         })
-        .withFailureHandler(() => mostrarMensaje('No se pudo abrir la reserva.', 'error'))
-        .obtenerReserva(id);
+        .withFailureHandler(() => mostrarMensaje('No se pudo abrir la reserva. Inténtalo de nuevo.', 'error'))
+        .obtenerFichaReserva(id);
     };
 
-    const datoFicha = (etiqueta, valor) => {
-      const div = document.createElement('div');
-      const e = document.createElement('span');
-      e.className = 'dato-etq';
-      e.textContent = etiqueta;
-      const v = document.createElement('span');
-      v.textContent = valor;
-      div.append(e, v);
+    const valorOGuion = (v) => (v === '' || v === null || v === undefined ? '—' : String(v));
+
+    const dato = (etiqueta, valor) => {
+      const div = nuevoEl('div');
+      div.append(nuevoEl('span', 'dato-etq', etiqueta), nuevoEl('span', 'dato-valor', valorOGuion(valor)));
       return div;
     };
 
-    const valorEnlace = (url, texto) => {
-      if (url) {
-        const a = document.createElement('a');
-        a.className = 'enlace-acento';
-        a.href = url;
-        a.target = '_blank';
-        a.textContent = texto;
-        return a;
-      }
-      const s = document.createElement('span');
-      s.textContent = texto || '—';
-      return s;
-    };
-
-    const enlaceFicha = (etiqueta, url, texto) => {
-      const div = document.createElement('div');
-      const e = document.createElement('span');
-      e.className = 'dato-etq';
-      e.textContent = etiqueta;
-      div.append(e, valorEnlace(url, texto));
+    const enlaceDato = (etiqueta, url, texto) => {
+      const div = nuevoEl('div');
+      div.appendChild(nuevoEl('span', 'dato-etq', etiqueta));
+      if (!url) { div.appendChild(nuevoEl('span', 'dato-valor', texto)); return div; }
+      const a = nuevoEl('a', 'enlace-acento', texto);
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      div.appendChild(a);
       return div;
     };
 
-    const bloqueFicha = (titulo, nodos) => {
-      const wrap = document.createElement('div');
-      const h = document.createElement('h3');
-      h.style.fontSize = '0.95rem';
-      h.style.margin = 'var(--space-4) 0 var(--space-2)';
-      h.textContent = titulo;
-      const grid = document.createElement('div');
-      grid.className = 'datos-reserva';
-      grid.style.marginBottom = '0';
-      nodos.forEach((n) => grid.appendChild(n));
-      wrap.append(h, grid);
+    // Campo editable: etiqueta asociada al control (CLAUDE.md §6.5).
+    const campoEditable = (etiqueta, control) => {
+      const div = nuevoEl('div', 'campo-ficha');
+      const label = nuevoEl('label', 'dato-etq', etiqueta);
+      label.htmlFor = control.id;
+      div.append(label, control);
+      return div;
+    };
+
+    const entrada = (id, tipo, valor, atributos = {}) => {
+      const input = nuevoEl(tipo === 'textarea' ? 'textarea' : 'input');
+      if (tipo !== 'textarea') input.type = tipo;
+      input.id = id;
+      input.value = valor === undefined || valor === null ? '' : valor;
+      Object.entries(atributos).forEach(([k, v]) => input.setAttribute(k, v));
+      return input;
+    };
+
+    const selector = (id, opciones, valor) => {
+      const sel = nuevoEl('select');
+      sel.id = id;
+      // Cada opción es un valor o { valor, texto } cuando lo que se ve no coincide con lo que se guarda.
+      opciones.map((o) => (typeof o === 'string' ? { valor: o, texto: o === '' ? '—' : o } : o)).forEach(({ valor: v, texto }) => {
+        const opcion = nuevoEl('option', '', texto);
+        opcion.value = v;
+        sel.appendChild(opcion);
+      });
+      sel.value = valor;
+      return sel;
+    };
+
+    const seccionFicha = (titulo, hijos, clase = 'datos-reserva') => {
+      const wrap = nuevoEl('section', 'ficha-seccion');
+      wrap.appendChild(nuevoEl('h3', '', titulo));
+      const grid = nuevoEl('div', clase);
+      hijos.filter(Boolean).forEach((n) => grid.appendChild(n));
+      wrap.appendChild(grid);
       return wrap;
     };
 
-    // "Ver más": Bloque 2 Resumen económico · Bloque 3 Documentos (contrato + vídeos) · Bloque 4 Resto de datos.
-    const construirFicha = (d) => {
-      const cont = document.createElement('div');
+    const editando = () => fichaModo === 'editar';
+    // En consulta, el dato; al modificar, el control (misma pantalla, F-42).
+    const datoOCampo = (etiqueta, valor, crearControl) => (editando() ? campoEditable(etiqueta, crearControl()) : dato(etiqueta, valor));
 
-      cont.appendChild(bloqueFicha('Resumen económico', [
-        datoFicha('Importe alquiler', formatearEuros(d.importeAlquiler)),
-        datoFicha('Importe bruto', formatearEuros(d.bruto)),
-        datoFicha('Comisión', formatearEuros(d.comisionImporte)),
-        datoFicha('Coste servicios', formatearEuros(d.serviciosCoste)),
-        datoFicha('Margen servicios', formatearEuros(d.margen)),
-        datoFicha('Importe neto', formatearEuros(d.neto)),
-      ]));
+    const seccionDatosReserva = (d) => seccionFicha('Datos reserva', [
+      dato('Id', d.ref), dato('Espacio', d.espacio),
+      datoOCampo('Nombre', d.nombre, () => entrada('ed-nombre', 'text', d.nombre)),
+      dato('Canal', d.canal), dato('Entrada', d.inicioTexto), dato('Salida', d.finTexto),
+      datoOCampo('Código de reserva del canal', d.refCanal, () => entrada('ed-ref-canal', 'text', d.refCanal, { maxlength: '40', autocapitalize: 'characters' })),
+      dato('Estado', d.estado),
+      datoOCampo('Cobro', d.cobro === ESTADO_COBRO_INGRESADO ? 'Ingresada' : 'No ingresada', () => selector('ed-cobro', [{ valor: 'No ingresado', texto: 'No ingresada' }, { valor: 'Ingresado', texto: 'Ingresada' }], d.cobro)),
+      dato('Total PAX', d.totalPersonas),
+      datoOCampo('Adultos', d.adultos, () => entrada('ed-adultos', 'number', d.adultos, { min: '1', step: '1', inputmode: 'numeric' })),
+      datoOCampo('Menores', d.menores, () => entrada('ed-menores', 'number', d.menores, { min: '0', step: '1', inputmode: 'numeric' })),
+      ...camposIncidencias(d),
+    ]);
 
-      const contrato = enlaceFicha('Contrato', d.contratoArchivo, d.contratoArchivo ? 'Ver contrato' : (d.contratoEstado || 'No subido'));
-      const videoIn = enlaceFicha('Vídeo check-in', d.videoInUrl, d.videoInUrl ? 'Ver vídeo' : 'No subido');
-      const videoOut = enlaceFicha('Vídeo check-out', d.videoOutUrl, d.videoOutUrl ? 'Ver vídeo' : 'No subido');
-      cont.appendChild(bloqueFicha('Documentos', [contrato, videoIn, videoOut]));
+    const OPCIONES_INCIDENCIA = { incidenteComunicado: ['', 'Sí', 'No'], compensacion: ['', 'No recibida', 'Recibida'], incidenciaResuelta: ['', 'Sí', 'No'] };
 
-      cont.appendChild(bloqueFicha('Resto de datos', [
-        datoFicha('Espacio', d.espacio),
-        datoFicha('Código de reserva del canal', d.refCanal || '—'),
-        datoFicha('Nombre', d.nombre),
-        datoFicha('Adultos', d.adultos),
-        datoFicha('Menores', d.menores),
-        datoFicha('Teléfono', d.telefono || '—'),
-        datoFicha('Email', d.email || '—'),
-        datoFicha('Servicios extra', d.serviciosExtra || '—'),
-        datoFicha('Registro viajeros', d.registroViajeros || '—'),
-        datoFicha('Incidencias', d.incidencias),
-        datoFicha('Incidente comunicado', d.incidenteComunicado || '—'),
-        datoFicha('Compensación', d.compensacion || '—'),
-        datoFicha('Incidencia resuelta', d.incidenciaResuelta || '—'),
-        datoFicha('Notas', d.notas || '—'),
-      ]));
-
-      const audit = document.createElement('p');
-      audit.className = 'ayuda-campo';
-      audit.textContent = `Registrada por ${d.registradoPor || '—'}${d.fechaRegistro ? ' el ' + d.fechaRegistro : ''}`
-        + (d.modificadoPor ? ` · Últ. modificación ${d.modificadoPor}${d.fechaModificacion ? ' el ' + d.fechaModificacion : ''}` : '');
-      cont.appendChild(audit);
-      return cont;
+    const camposIncidencias = (d) => {
+      if (!editando()) {
+        const conDetalle = d.incidencias === 'Con incidentes';
+        return [dato('Incidencias', d.incidencias), conDetalle && dato('Incidente comunicado', d.incidenteComunicado),
+          conDetalle && dato('Compensación', d.compensacion), conDetalle && dato('Incidencia resuelta', d.incidenciaResuelta)];
+      }
+      const principal = campoEditable('Incidencias', selector('ed-incidencias', ['Sin incidentes', 'Con incidentes'], d.incidencias));
+      const detalle = [
+        campoEditable('Incidente comunicado', selector('ed-incidente-com', OPCIONES_INCIDENCIA.incidenteComunicado, d.incidenteComunicado)),
+        campoEditable('Compensación de daños', selector('ed-compensacion', OPCIONES_INCIDENCIA.compensacion, d.compensacion)),
+        campoEditable('Incidencia resuelta', selector('ed-incid-resuelta', OPCIONES_INCIDENCIA.incidenciaResuelta, d.incidenciaResuelta)),
+      ];
+      detalle.forEach((n) => n.classList.add('detalle-incidencia'));
+      return [principal, ...detalle];
     };
 
-    const refrescarEdicion = () => {
-      if (!reservaActualId) return;
-      servidor('Cargando la reserva…')
-        .withSuccessHandler((res) => { if (res.success) rellenarEdicion(res.data); })
-        .withFailureHandler(() => {})
-        .obtenerReserva(reservaActualId);
+    const seccionCliente = (d) => seccionFicha('Datos del cliente', [
+      datoOCampo('Teléfono', d.telefono, () => entrada('ed-telefono', 'tel', d.telefono, { inputmode: 'numeric', placeholder: '9 dígitos' })),
+      datoOCampo('Email', d.email, () => entrada('ed-email', 'email', d.email)),
+    ]);
+
+    const textoChecklist = (c) => (c.estado === 'Hecho'
+      ? ['Hecho', c.fecha, c.usuario].filter(Boolean).join(' · ')
+      : 'Pendiente');
+
+    const seccionChecklist = (d) => seccionFicha('Checklist', [dato('IN · Check-in', textoChecklist(d.checklists.checkin)), dato('OUT · Check-out', textoChecklist(d.checklists.checkout))]);
+
+    // D-45: lo comunicado a mano solo consta en el Form; se dice de dónde sale.
+    const textoIdentidad = (i) => {
+      if (i.completa) return `Sí (${i.validados} de ${i.personas})`;
+      if (i.sesManual) return 'Sí (parte comunicado a mano)';
+      return `No (${i.validados} de ${i.personas})`;
+    };
+    const textoSES = (i) => {
+      if (i.sesComunicado) return `Sí · ${i.sesCodigo || 'sin código'}${i.sesManual ? ' (a mano)' : ''}`;
+      if (i.formNoDisponible) return 'No disponible: no se pudo leer el Form de viajeros';
+      return i.sesEstado ? `No · ${i.sesEstado}` : 'No';
+    };
+    const textoContrato = (d) => (d.contratoEstado === 'Firmado'
+      ? ['Sí', d.contratoFecha, d.contratoFirmadoPor].filter(Boolean).join(' · ')
+      : `No (${d.contratoEstado || 'Pendiente'})`);
+
+    const seccionDocumentacion = (d) => seccionFicha('Documentación', [
+      ...(d.esInterior
+        ? [dato('Validación de identidad', textoIdentidad(d.identidades)), dato('SES', textoSES(d.identidades))]
+        // DI-18: el contrato solo pasa a Firmado subiendo la foto en la función Contrato; aquí no se edita.
+        : [dato('Contrato firmado', textoContrato(d)),
+        d.contratoArchivo ? enlaceDato('Fotos del contrato', d.contratoArchivo, 'Ver fotos') : null]),
+      enlaceDato('Vídeo IN', d.videoInUrl, d.videoInUrl ? 'Ver vídeo' : 'No subido'),
+      enlaceDato('Vídeo OUT', d.videoOutUrl, d.videoOutUrl ? 'Ver vídeo' : 'No subido'),
+    ]);
+
+    const seccionEconomica = (d) => seccionFicha('Resumen económico', [
+      datoOCampo('Importe alquiler', formatearEuros(d.importeAlquiler), () => entrada('ed-importe', 'number', d.importeAlquiler, { min: '0', step: '0.01', inputmode: 'decimal' })),
+      editando() ? campoEditable('% Comisión', entrada('ed-comision', 'number', d.comisionPct, { min: '0', max: '100', step: '0.01', inputmode: 'decimal' })) : null,
+      dato('Importe bruto', formatearEuros(d.bruto)), dato('Comisión', formatearEuros(d.comisionImporte)),
+      dato('Coste servicios', formatearEuros(d.serviciosCoste)), dato('Margen servicios', formatearEuros(d.margen)),
+      dato('Importe neto', formatearEuros(d.neto)),
+    ]);
+
+    // F-43: Pendiente hasta que se cobra en Extras; entonces, con su forma (plataforma o presencial).
+    const textoCobroLinea = (l) => `Cobro: ${[l.cobroEstado || 'Cobrado', l.cobroForma].filter(Boolean).join(', ')}`;
+
+    const seccionServicios = (d) => {
+      const { catalogo, lineas } = d.servicios;
+      if (editando()) {
+        if (catalogo.length === 0) return seccionFicha('Servicios extra', [nuevoEl('p', 'ayuda-campo', 'NA (No aplica): este espacio no tiene servicios en el catálogo.')], 'lista-servicios');
+        return seccionFicha('Servicios extra', catalogo.map((s, i) => itemServicioEdicion(s, i, lineas.find((l) => l.nombre === s.nombre))), 'lista-servicios');
+      }
+      if (lineas.length === 0) return seccionFicha('Servicios extra', [nuevoEl('p', 'dato-valor', 'NA (No aplica)')], 'lista-servicios');
+      return seccionFicha('Servicios extra', lineas.map((l) => nuevoEl('p', 'servicio-linea',
+        `${l.nombre} x${l.cantidad} · ${formatearEuros(l.cantidad * l.precio)} · ${textoCobroLinea(l)}`)), 'lista-servicios');
     };
 
-    const fijarRango = (dias) => {
-      const hoy = new Date();
-      const fin = new Date();
-      fin.setDate(hoy.getDate() + dias);
-      $('filtro-desde').value = fechaLocalISO(hoy);
-      $('filtro-hasta').value = fechaLocalISO(fin);
-      cargarListaGestion();
+    const itemServicioEdicion = (servicio, indice, actual) => {
+      const item = nuevoEl('div', 'servicio-item');
+      const check = entrada('ed-srv-' + indice, 'checkbox', servicio.nombre);
+      check.checked = Boolean(actual);
+      const etiqueta = nuevoEl('label', 'servicio-nombre', `${servicio.nombre} · ${formatearEuros(servicio.precioUnitario)}/ud`);
+      etiqueta.htmlFor = check.id;
+      const cantidad = entrada('ed-srv-cant-' + indice, 'number', actual ? actual.cantidad : 1, { min: '1', step: '1', 'aria-label': 'Cantidad de ' + servicio.nombre });
+      cantidad.className = 'servicio-cantidad';
+      const mostrar = () => { cantidad.hidden = !check.checked; };
+      check.addEventListener('change', mostrar);
+      mostrar();
+      item.append(check, etiqueta, cantidad);
+      return item;
     };
 
-    // ----- Edición de una reserva (HU-23/25) -----
-    const rellenarEdicion = (d) => {
-      $('edicion-titulo').textContent = `Reserva ${d.ref} — ${d.espacio}`;
-      $('edicion-contexto').textContent = `Estado: ${d.estado}`
+    const seccionNotas = (d) => seccionFicha('Notas', [editando()
+      ? campoEditable('Notas', entrada('ed-notas', 'textarea', d.notas, { rows: '3' }))
+      : nuevoEl('p', 'dato-valor texto-notas', valorOGuion(d.notas))], 'bloque-notas');
+
+    // Historial en lista (sin tabla ancha en el móvil).
+    const seccionHistorial = (d) => {
+      if (d.historial.length === 0) return seccionFicha('Historial de cambios', [nuevoEl('p', 'ayuda-campo', 'Sin cambios registrados.')], 'lista-historial');
+      return seccionFicha('Historial de cambios', d.historial.map((c) => {
+        const item = nuevoEl('div', 'historial-item');
+        item.append(nuevoEl('span', 'historial-cuando', `${c.fecha} · ${c.usuario}`),
+          nuevoEl('span', 'historial-que', `${c.campo}: ${valorOGuion(c.anterior)} → ${valorOGuion(c.nuevo)}`));
+        return item;
+      }), 'lista-historial');
+    };
+
+    const textoAuditoria = (d) => `Registrada por ${d.registradoPor || '—'}${d.fechaRegistro ? ' el ' + d.fechaRegistro : ''}`
+      + (d.modificadoPor ? ` · Última modificación por ${d.modificadoPor}${d.fechaModificacion ? ' el ' + d.fechaModificacion : ''}` : '');
+
+    const accionesFicha = (d) => {
+      const arriba = $('ficha-acciones-arriba');
+      const abajo = $('ficha-acciones-abajo');
+      arriba.innerHTML = '';
+      abajo.innerHTML = '';
+      if (editando()) {
+        arriba.append(boton('Descartar cambios', 'btn-secundario', descartarEdicion), boton('Guardar cambios', 'btn-primario btn-guardar-ficha', () => guardarFicha()));
+        abajo.append(boton('Cancelar reserva', 'btn-secundario', cancelarReservaUI), boton('Guardar cambios', 'btn-primario btn-guardar-ficha', () => guardarFicha()));
+        return;
+      }
+      if (d.esInterior && d.modificable) arriba.appendChild(boton('Mensaje para el huésped', 'btn-secundario', enviarMensajeHuespedUI));
+      if (d.modificable) arriba.appendChild(boton('Modificar', 'btn-primario', () => { fichaModo = 'editar'; renderFicha(); }));
+    };
+
+    const renderFicha = () => {
+      const d = fichaActual;
+      $('ficha-titulo').textContent = `Reserva ${d.ref} — ${d.espacio}`;
+      $('ficha-contexto').textContent = `${editando() ? 'Modificando · ' : ''}Estado: ${d.estado}`
         + (d.pendientes && d.pendientes.length ? ` · Falta: ${d.pendientes.join(', ')}` : '');
-      $('ed-espacio').textContent = d.espacio;
-      $('ed-canal').textContent = d.canal;
-      $('ed-inicio').textContent = d.inicioTexto;
-      $('ed-fin').textContent = d.finTexto;
-      $('ed-servicios').textContent = d.serviciosExtra || '—';
-      $('ed-viajeros').textContent = d.registroViajeros || '—';
-      $('ed-bruto').textContent = formatearEuros(d.bruto);
-      $('ed-comision-imp').textContent = formatearEuros(d.comisionImporte);
-      $('ed-coste-serv').textContent = formatearEuros(d.serviciosCoste);
-      $('ed-margen').textContent = formatearEuros(d.margen);
-      $('ed-neto').textContent = formatearEuros(d.neto);
-      $('ed-auditoria').textContent = `Registrada por ${d.registradoPor || '—'}${d.fechaRegistro ? ' el ' + d.fechaRegistro : ''}`
-        + (d.modificadoPor ? ` · Última modificación por ${d.modificadoPor}${d.fechaModificacion ? ' el ' + d.fechaModificacion : ''}` : '');
-      $('ed-nombre').value = d.nombre;
-      $('ed-telefono').value = d.telefono;
-      $('ed-email').value = d.email;
-      $('ed-adultos').value = d.adultos;
-      $('ed-menores').value = d.menores;
-      $('ed-importe').value = d.importeAlquiler;
-      $('ed-comision').value = d.comisionPct;
-      $('ed-cobro').value = d.cobro;
-      $('ed-contrato').value = d.contratoEstado;
-      $('ed-incidencias').value = d.incidencias;
-      $('ed-incidente-com').value = d.incidenteComunicado;
-      $('ed-compensacion').value = d.compensacion;
-      $('ed-incid-resuelta').value = d.incidenciaResuelta;
-      $('ed-checkin').value = d.checkin;
-      $('ed-checkout').value = d.checkout;
-      $('ed-notas').value = d.notas;
-      $('ed-ref-canal').value = d.refCanal || '';
-      refCanalObligatoria = Boolean(d.refCanalObligatoria);
-      avisoCancelacionSES = d.avisoCancelacionSES || '';
-      prepararMensajeHuesped(d);
-      cargarRegistroViajeros(d);
-      limpiarErroresEdicion();
-      toggleIncidencia();
-      pintarEnlaceContrato(d.contratoArchivo);
-      // Si el contrato lo gestiona el canal no hay nada que subir (RF-55).
-      $('bloque-subir-contrato').hidden = d.contratoEstado === 'Gestionado por canal';
+      const cont = $('ficha-contenido');
+      cont.innerHTML = '';
+      [seccionDatosReserva, seccionCliente, seccionChecklist, seccionDocumentacion, seccionEconomica, seccionServicios, seccionNotas, seccionHistorial]
+        .forEach((seccion) => cont.appendChild(seccion(d)));
+      cont.appendChild(nuevoEl('p', 'ayuda-campo', textoAuditoria(d)));
+      accionesFicha(d);
+      if (editando()) prepararEdicion();
+      if (d.esInterior && d.modificable) prepararMensajeHuesped(d.id);
     };
 
-    const toggleIncidencia = () => {
-      $('bloque-incidencia').hidden = $('ed-incidencias').value !== 'Con incidentes';
+    const prepararEdicion = () => {
+      const incidencias = $('ed-incidencias');
+      const alternarDetalle = () => document.querySelectorAll('.detalle-incidencia').forEach((n) => { n.hidden = incidencias.value !== 'Con incidentes'; });
+      incidencias.addEventListener('change', alternarDetalle);
+      alternarDetalle();
+      $('ed-nombre').focus();
     };
 
-    const pintarEnlaceContrato = (url) => {
-      const p = $('ed-contrato-enlace');
-      p.innerHTML = '';
-      if (!url) { p.textContent = 'Aún no hay contrato subido.'; return; }
-      const a = document.createElement('a');
-      a.className = 'enlace-acento';
-      a.href = url;
-      a.target = '_blank';
-      a.textContent = 'Ver contrato subido →';
-      p.appendChild(a);
+    const descartarEdicion = () => {
+      const volverAConsulta = () => { fichaSucia = false; fichaModo = 'ver'; renderFicha(); };
+      if (!fichaSucia) { volverAConsulta(); return; }
+      confirmarAccion('¿Descartas los cambios que has hecho en esta reserva?', volverAConsulta);
     };
 
-    const recogerCambios = () => ({
-      nombre: $('ed-nombre').value.trim(),
-      telefono: $('ed-telefono').value.trim(),
-      email: $('ed-email').value.trim(),
-      adultos: $('ed-adultos').value,
-      menores: $('ed-menores').value,
-      importeAlquiler: $('ed-importe').value,
-      comisionPct: $('ed-comision').value,
-      cobro: $('ed-cobro').value,
-      contratoEstado: $('ed-contrato').value,
-      incidencias: $('ed-incidencias').value,
-      incidenteComunicado: $('ed-incidente-com').value,
-      compensacion: $('ed-compensacion').value,
-      incidenciaResuelta: $('ed-incid-resuelta').value,
-      checkin: $('ed-checkin').value,
-      checkout: $('ed-checkout').value,
-      notas: $('ed-notas').value,
-      refCanal: $('ed-ref-canal').value.trim(),
+    const valorDe = (id, porDefecto) => ($(id) ? $(id).value : porDefecto);
+
+    const serviciosEditados = () => [...document.querySelectorAll('#ficha-contenido .servicio-item')]
+      .filter((item) => item.querySelector('input[type="checkbox"]').checked)
+      .map((item) => ({ nombre: item.querySelector('input[type="checkbox"]').value, cantidad: item.querySelector('.servicio-cantidad').value }));
+
+    const recogerCambios = (d) => ({
+      nombre: valorDe('ed-nombre', d.nombre).trim(), telefono: valorDe('ed-telefono', d.telefono).trim(), email: valorDe('ed-email', d.email).trim(),
+      adultos: valorDe('ed-adultos', d.adultos), menores: valorDe('ed-menores', d.menores),
+      importeAlquiler: valorDe('ed-importe', d.importeAlquiler), comisionPct: valorDe('ed-comision', d.comisionPct),
+      cobro: valorDe('ed-cobro', d.cobro), contratoEstado: d.contratoEstado,
+      incidencias: valorDe('ed-incidencias', d.incidencias), incidenteComunicado: valorDe('ed-incidente-com', d.incidenteComunicado),
+      compensacion: valorDe('ed-compensacion', d.compensacion), incidenciaResuelta: valorDe('ed-incid-resuelta', d.incidenciaResuelta),
+      checkin: d.checkin, checkout: d.checkout, notas: valorDe('ed-notas', d.notas), refCanal: valorDe('ed-ref-canal', d.refCanal).trim(),
+      servicios: d.servicios.catalogo.length > 0 ? serviciosEditados() : undefined,
     });
 
-    // F-27: se prepara al abrir la ficha para que el botón abra WhatsApp o copie al instante (el móvil bloquea
-    // abrir ventanas o copiar si se hace después de esperar al servidor).
-    const prepararMensajeHuesped = (d) => {
+    const limpiarErroresFicha = () => {
+      document.querySelectorAll('#ficha-contenido .invalido').forEach((el) => el.classList.remove('invalido'));
+      document.querySelectorAll('#ficha-contenido .error-campo').forEach((el) => el.remove());
+    };
+
+    // B-21: la misma regla que el servidor (RF-88), para avisar sin esperar a guardar.
+    const validarFicha = (d) => (d.refCanalObligatoria && !valorDe('ed-ref-canal', '').trim()
+      ? [{ campo: 'ed-ref-canal', mensaje: 'Indica el código de reserva del canal.' }]
+      : []);
+
+    // F-44: un único guardado para datos y servicios; `despues` continúa una navegación pendiente.
+    const guardarFicha = (despues) => {
+      const d = fichaActual;
+      limpiarErroresFicha();
+      const errores = validarFicha(d);
+      if (errores.length > 0) {
+        errores.forEach((err) => marcarError(err.campo, err.mensaje));
+        $(errores[0].campo).focus();
+        return;
+      }
+      document.querySelectorAll('.btn-guardar-ficha').forEach((b) => { b.disabled = true; });
+      servidor('Guardando los cambios…')
+        .withSuccessHandler((res) => {
+          document.querySelectorAll('.btn-guardar-ficha').forEach((b) => { b.disabled = false; });
+          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+          fichaSucia = false;
+          mostrarMensaje('Cambios guardados.', 'exito');
+          if (despues) despues();
+          else abrirFicha(d.id);
+        })
+        .withFailureHandler(() => {
+          document.querySelectorAll('.btn-guardar-ficha').forEach((b) => { b.disabled = false; });
+          mostrarMensaje('No se pudieron guardar los cambios.', 'error');
+        })
+        .actualizarReserva(d.id, recogerCambios(d));
+    };
+
+    // F-44: al salir de la ficha con cambios sin guardar, se pregunta si guardarlos o descartarlos.
+    const guardiaFicha = (seccion, continuar) => {
+      const enFicha = $('seccion-ficha').classList.contains('activa');
+      if (!enFicha || !editando() || !fichaSucia || seccion === 'ficha') return false;
+      crearDialogo({
+        titulo: 'Cambios sin guardar', tipo: 'aviso',
+        texto: 'Has cambiado datos de esta reserva y aún no los has guardado. ¿Qué quieres hacer?',
+        botones: [
+          { texto: 'Seguir editando', clase: 'btn-secundario' },
+          { texto: 'Descartar', clase: 'btn-secundario', alPulsar: () => { fichaSucia = false; fichaModo = 'ver'; continuar(); } },
+          { texto: 'Guardar', clase: 'btn-primario', alPulsar: () => guardarFicha(continuar) },
+        ],
+      });
+      return true;
+    };
+
+    // ----- Mensaje para el huésped (F-27): en la ficha de Interior y en Validar identidades -----
+    // Se prepara al abrir para que el botón abra WhatsApp o copie al instante (el móvil bloquea abrir ventanas
+    // o copiar si se hace después de esperar al servidor).
+    let idMensajePreparado = null;
+    const prepararMensajeHuesped = (id) => {
       mensajeHuespedListo = null;
-      $('bloque-mensaje-huesped').hidden = !d.registroViajeros;
-      if (!d.registroViajeros) return;
-      const id = reservaActualId;
+      idMensajePreparado = id;
       google.script.run
-        .withSuccessHandler((res) => { if (id === reservaActualId) mensajeHuespedListo = res; })
+        .withSuccessHandler((res) => { if (id === idMensajePreparado) mensajeHuespedListo = res; })
         .withFailureHandler(() => { mensajeHuespedListo = { success: false, error: 'No se pudo preparar el mensaje para el huésped.' }; })
         .mensajeHuesped(id);
     };
@@ -367,58 +435,36 @@
       copiarMensajeHuesped(texto);
     };
 
-    const limpiarErroresEdicion = () => {
-      document.querySelectorAll('#form-edicion .invalido').forEach((el) => el.classList.remove('invalido'));
-      document.querySelectorAll('#form-edicion .error-campo').forEach((el) => el.remove());
-    };
-
-    // B-21: la misma regla que el servidor (RF-88), para avisar sin esperar a guardar.
-    const validarEdicion = () => (refCanalObligatoria && !$('ed-ref-canal').value.trim()
-      ? [{ campo: 'ed-ref-canal', mensaje: 'Indica el código de reserva del canal.' }]
-      : []);
-
-    const guardarCambios = (evento) => {
-      evento.preventDefault();
-      if (!reservaActualId) return;
-      limpiarErroresEdicion();
-      const errores = validarEdicion();
-      if (errores.length > 0) {
-        errores.forEach((err) => marcarError(err.campo, err.mensaje));
-        $(errores[0].campo).focus();
-        return;
-      }
-      const boton = $('btn-guardar-cambios');
-      boton.disabled = true;
-      servidor('Guardando los cambios…')
-        .withSuccessHandler((res) => {
-          boton.disabled = false;
-          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-          mostrarMensaje('Cambios guardados.', 'exito');
-          volverALista();
-        })
-        .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudieron guardar los cambios.', 'error'); })
-        .actualizarReserva(reservaActualId, recogerCambios());
-    };
-
-    const volverALista = () => {
-      reservaActualId = null;
-      cargarListaGestion();
-    };
-
     // ----- Cancelación con confirmación (HU-26) -----
     const cancelarReservaUI = () => {
-      if (!reservaActualId) return;
-      const texto = ['¿Confirmas la cancelación de esta reserva? Esta acción no se puede deshacer y avisará de reabrir canales.', avisoCancelacionSES]
+      const d = fichaActual;
+      const texto = ['¿Confirmas la cancelación de esta reserva? Esta acción no se puede deshacer y avisará de reabrir canales.', d.avisoCancelacionSES]
         .filter(Boolean).join(' ');
       confirmarAccion(texto, () => {
         servidor('Cancelando la reserva…')
           .withSuccessHandler((res) => {
             if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+            fichaSucia = false;
             mostrarMensaje('Reserva cancelada.', 'exito');
-            volverALista();
+            abrirFicha(d.id);
           })
           .withFailureHandler(() => mostrarMensaje('No se pudo cancelar la reserva.', 'error'))
-          .cancelarReserva(reservaActualId);
+          .cancelarReserva(d.id);
+      });
+    };
+
+    // F-37: el email de cobro abre la ficha y pide confirmación antes de marcarla como ingresada.
+    const confirmarIngresoUI = (d) => {
+      if (d.cobro === ESTADO_COBRO_INGRESADO) { mostrarMensaje(`La reserva ${d.ref} ya consta como ingresada.`, 'exito'); return; }
+      confirmarAccion(`¿Confirmas que la reserva ${d.ref} de ${d.nombre} (${formatearEuros(d.neto)} netos) ya se ha ingresado?`, () => {
+        servidor('Guardando…')
+          .withSuccessHandler((res) => {
+            if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+            mostrarMensaje('Reserva marcada como ingresada.', 'exito');
+            abrirFicha(d.id);
+          })
+          .withFailureHandler(() => mostrarMensaje('No se pudo marcar como ingresada. Inténtalo de nuevo.', 'error'))
+          .marcarIngresado(d.id);
       });
     };
 
@@ -439,119 +485,234 @@
       lector.readAsDataURL(fichero);
     };
 
-    const subirContratoUI = () => {
-      if (!reservaActualId) return;
-      leerArchivo($('ed-archivo-contrato'), (archivo) => {
-        const boton = $('btn-subir-contrato');
-        boton.disabled = true;
-        servidor('Subiendo el contrato…')
-          .withSuccessHandler((res) => {
-            boton.disabled = false;
-            if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-            mostrarMensaje('Contrato subido.', 'exito');
-            refrescarEdicion();
-          })
-          .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudo subir el contrato.', 'error'); })
-          .subirContrato(reservaActualId, archivo);
-      });
+    // ----- Funciones de la barra de Reservas (F-38, F-39, F-41, F-43; DD-03 §3.5) -----
+    const FUNCIONES_UI = {
+      checklist: { titulo: 'Checklist', conEspacio: true },
+      identidades: { titulo: 'Validar identidades', conEspacio: false },
+      contrato: { titulo: 'Firma de contrato', conEspacio: false },
+      extras: { titulo: 'Cobro de servicios extra', conEspacio: true },
+    };
+    const TEXTO_MOMENTO = { checkin: 'Check-in', checkout: 'Check-out' };
+    let funcionActual = null;
+    let momentoActual = null;
+    let reservaTrabajoId = null;
+    let tarjetasFuncion = new Map();
+
+    // Clave que entiende el servidor: el momento en la checklist; el nombre de la función en las demás.
+    const claveFuncion = () => (funcionActual === 'checklist' ? momentoActual : funcionActual);
+
+    const marcarFuncionEnBarra = () => document.querySelectorAll('.btn-funcion').forEach((b) => {
+      if (b.dataset.funcion === funcionActual) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+
+    const prepararFuncion = (funcion, momento) => {
+      funcionActual = funcion;
+      momentoActual = momento || null;
+      reservaTrabajoId = null;
+      $('funcion-titulo').textContent = FUNCIONES_UI[funcion].titulo;
+      $('funcion-momento').hidden = funcion !== 'checklist';
+      document.querySelectorAll('.btn-segmento').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.momento === momentoActual)));
+      $('grupo-funcion-espacio').hidden = !FUNCIONES_UI[funcion].conEspacio;
+      $('funcion-espacio').value = '';
+      $('funcion-nombre').value = '';
+      $('funcion-trabajo').hidden = true;
+      $('funcion-selector').hidden = !claveFuncion();
+      marcarFuncionEnBarra();
+      if (claveFuncion()) cargarOpcionesFuncion();
     };
 
-    // ----- Edición de servicios extra en reservas existentes (HU-24) -----
-    // Carga el catálogo del espacio y los servicios actuales de la reserva.
-    const inicializarServiciosEdicion = (id) => {
-      const lista = $('ed-lista-servicios');
-      lista.innerHTML = '<p class="ayuda-campo">Cargando servicios…</p>';
-      servidor('Cargando los servicios…')
-        .withSuccessHandler((res) => {
-          lista.innerHTML = '';
-          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-          renderServiciosEdicion(res.data.catalogo, res.data.actuales);
-        })
-        .withFailureHandler(() => { lista.innerHTML = ''; mostrarMensaje('No se pudieron cargar los servicios.', 'error'); })
-        .cargarServiciosReserva(id);
+    // Respeta la guardia de la ficha: si hay cambios sin guardar, se pregunta antes de cambiar de pantalla.
+    const abrirFuncion = (funcion, { momento, id } = {}) => {
+      const seguir = () => {
+        prepararFuncion(funcion, momento);
+        navegar('funcion', { forzar: true });
+        if (id) abrirTrabajo(id);
+      };
+      if (guardiaNavegacion && guardiaNavegacion('funcion', seguir)) return;
+      seguir();
     };
 
-    const renderServiciosEdicion = (catalogo, actuales) => {
-      const lista = $('ed-lista-servicios');
-      lista.innerHTML = '';
-      const sinServicios = $('ed-servicios-sin');
-      if (catalogo.length === 0) {
-        if (sinServicios) sinServicios.hidden = false;
-        return;
+    const elegirMomento = (momento) => {
+      momentoActual = momento;
+      document.querySelectorAll('.btn-segmento').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.momento === momento)));
+      $('funcion-trabajo').hidden = true;
+      $('funcion-selector').hidden = false;
+      cargarOpcionesFuncion();
+    };
+
+    const textoOpcion = (r) => `${r.ref} · ${r.nombre} · ${r.espacio} · ${r.inicioTexto}`;
+
+    const pintarOpcionesFuncion = ({ propuesta, opciones }) => {
+      tarjetasFuncion = new Map([propuesta, ...opciones].filter(Boolean).map((r) => [r.id, r]));
+      const caja = $('funcion-propuesta');
+      caja.innerHTML = '';
+      if (propuesta) {
+        caja.appendChild(nuevoEl('p', 'dato-etq', 'Propuesta: la más cercana a hoy'));
+        const lista = nuevoEl('ul', 'lista-tarjetas');
+        lista.appendChild(crearTarjeta(propuesta, (r) => abrirTrabajo(r.id)));
+        caja.appendChild(lista);
+      } else {
+        caja.appendChild(nuevoEl('p', 'ayuda-campo', 'No hay ninguna reserva pendiente que proponer. Puedes buscar otra abajo.'));
       }
-      if (sinServicios) sinServicios.hidden = true;
-      const actualesMap = actuales.reduce((m, a) => { m[a.nombre] = a.cantidad; return m; }, {});
-      catalogo.forEach((servicio, indice) => lista.appendChild(crearItemServicioEdicion(servicio, indice, actualesMap[servicio.nombre])));
+      const sel = $('funcion-opciones');
+      sel.innerHTML = '';
+      const vacia = nuevoEl('option', '', opciones.length ? 'Elige una reserva…' : 'Ninguna reserva con esos filtros');
+      vacia.value = '';
+      sel.appendChild(vacia);
+      opciones.forEach((r) => { const o = nuevoEl('option', '', textoOpcion(r)); o.value = r.id; sel.appendChild(o); });
+      $('btn-funcion-abrir').disabled = true;
     };
 
-    const crearItemServicioEdicion = (servicio, indice, cantidadActual) => {
-      const item = document.createElement('div');
-      item.className = 'servicio-item';
-      const idCheck = 'ed-srv-' + indice;
-
-      const check = document.createElement('input');
-      check.type = 'checkbox';
-      check.id = idCheck;
-      check.value = servicio.nombre;
-      check.checked = cantidadActual != null;
-
-      const etiqueta = document.createElement('label');
-      etiqueta.setAttribute('for', idCheck);
-      etiqueta.className = 'servicio-nombre';
-      etiqueta.textContent = servicio.nombre + ' · ' + formatearEuros(servicio.precioUnitario) + '/ud';
-
-      const cantidad = document.createElement('input');
-      cantidad.type = 'number';
-      cantidad.className = 'servicio-cantidad';
-      cantidad.min = '1';
-      cantidad.step = '1';
-      cantidad.value = cantidadActual || '1';
-      cantidad.hidden = !check.checked;
-      cantidad.setAttribute('aria-label', 'Cantidad de ' + servicio.nombre);
-
-      check.addEventListener('change', () => { cantidad.hidden = !check.checked; });
-      item.append(check, etiqueta, cantidad);
-      return item;
+    const cargarOpcionesFuncion = () => {
+      servidor('Buscando reservas…')
+        .withSuccessHandler((res) => (res.success ? pintarOpcionesFuncion(res.data) : mostrarMensaje(res.error, 'error')))
+        .withFailureHandler(() => mostrarMensaje('No se pudieron buscar las reservas. Inténtalo de nuevo.', 'error'))
+        .buscarReservasPara(claveFuncion(), { espacio: $('funcion-espacio').value, nombre: $('funcion-nombre').value.trim() });
     };
 
-    const guardarServiciosEdicion = () => {
-      if (!reservaActualId) return;
-      const boton = $('btn-guardar-servicios');
-      boton.disabled = true;
-      const servicios = [];
-      document.querySelectorAll('#ed-lista-servicios .servicio-item').forEach((item) => {
-        const check = item.querySelector('input[type="checkbox"]');
-        if (!check.checked) return;
-        servicios.push({ nombre: check.value, cantidad: item.querySelector('.servicio-cantidad').value });
-      });
-      servidor('Guardando los servicios…')
+    const mostrarTrabajo = (funcion) => document.querySelectorAll('.trabajo').forEach((t) => { t.hidden = t.id !== 'trabajo-' + funcion; });
+
+    const tituloTrabajo = (r) => {
+      $('funcion-reserva-titulo').textContent = `${r.ref} · ${r.nombre}`;
+      $('funcion-reserva-detalle').textContent = `${r.espacio} · ${r.inicioTexto} → ${r.finTexto}`;
+    };
+
+    // Abre la reserva elegida en el área de trabajo de la función.
+    const abrirTrabajo = (id) => {
+      reservaTrabajoId = id;
+      $('funcion-selector').hidden = true;
+      $('funcion-trabajo').hidden = false;
+      mostrarTrabajo(funcionActual);
+      const tarjeta = tarjetasFuncion.get(id);
+      if (tarjeta) tituloTrabajo(tarjeta);
+      else $('funcion-reserva-titulo').textContent = 'Cargando…';
+      cargarTrabajo(id, Boolean(tarjeta));
+    };
+
+    const cargarTrabajo = (id, conTitulo) => {
+      if (funcionActual === 'checklist') abrirChecklistEn($('trabajo-checklist'), id, TEXTO_MOMENTO[momentoActual]);
+      if (funcionActual === 'identidades') { prepararMensajeHuesped(id); $('bloque-mensaje-huesped').hidden = false; cargarRegistroViajeros(id); }
+      if (funcionActual === 'extras') cargarExtras(id);
+      if (funcionActual === 'contrato' || !conTitulo) cargarDatosTrabajo(id);
+    };
+
+    // Título (si se llegó por enlace) y estado del contrato, desde la ficha.
+    const cargarDatosTrabajo = (id) => servidor('Cargando la reserva…')
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        const d = res.data;
+        tituloTrabajo({ ref: d.ref, nombre: d.nombre, espacio: d.espacio, inicioTexto: d.inicioTexto, finTexto: d.finTexto });
+        if (funcionActual === 'contrato') pintarContrato(d);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudo cargar la reserva.', 'error'))
+      .obtenerFichaReserva(id);
+
+    const refrescarTrabajo = () => { if (reservaTrabajoId) abrirTrabajo(reservaTrabajoId); };
+
+    const volverASelector = () => {
+      reservaTrabajoId = null;
+      $('funcion-trabajo').hidden = true;
+      $('funcion-selector').hidden = !claveFuncion();
+      if (claveFuncion()) cargarOpcionesFuncion();
+    };
+
+    // ----- Firma de contrato (F-41) -----
+    const pintarContrato = (d) => {
+      const estado = $('contrato-estado');
+      const firmado = d.contratoEstado === 'Firmado';
+      estado.className = `aviso-viajeros ${firmado ? 'ok' : 'av'}`;
+      estado.textContent = firmado
+        ? `✓ Contrato firmado${d.contratoFecha ? ' el ' + d.contratoFecha : ''}${d.contratoFirmadoPor ? ' · ' + d.contratoFirmadoPor : ''}. Puedes añadir más fotos.`
+        : 'Contrato sin firmar. Sube la foto del contrato firmado para registrarlo.';
+      const enlace = $('contrato-enlace');
+      enlace.innerHTML = '';
+      if (!d.contratoArchivo) return;
+      const a = nuevoEl('a', 'enlace-acento', 'Ver las fotos del contrato →');
+      a.href = d.contratoArchivo;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      enlace.appendChild(a);
+    };
+
+    const subirContratoUI = () => leerArchivo($('contrato-archivo'), (archivo) => {
+      const b = $('btn-subir-contrato');
+      b.disabled = true;
+      servidor('Subiendo la foto del contrato…')
         .withSuccessHandler((res) => {
-          boton.disabled = false;
+          b.disabled = false;
           if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
-          mostrarMensaje('Servicios actualizados.', 'exito');
-          refrescarEdicion();
+          $('contrato-archivo').value = '';
+          mostrarMensaje('Foto del contrato subida.', 'exito');
+          cargarDatosTrabajo(reservaTrabajoId);
         })
-        .withFailureHandler(() => { boton.disabled = false; mostrarMensaje('No se pudieron guardar los servicios.', 'error'); })
-        .actualizarServiciosReserva(reservaActualId, servicios);
+        .withFailureHandler(() => { b.disabled = false; mostrarMensaje('No se pudo subir la foto. Inténtalo de nuevo.', 'error'); })
+        .subirContrato(reservaTrabajoId, archivo);
+    });
+
+    // ----- Cobro de servicios extra (F-43): cobrar (vía plataforma o presencial), quitar o añadir -----
+    const llamarExtras = (texto, exito, metodo, ...args) => servidor(texto)
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        mostrarMensaje(exito, 'exito');
+        cargarExtras(reservaTrabajoId);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudo guardar. Inténtalo de nuevo.', 'error'))[metodo](reservaTrabajoId, ...args);
+
+    // Al cobrar se pregunta cómo: vía plataforma (con la reserva del canal) o presencial (en mano).
+    const preguntarFormaCobro = (l) => crearDialogo({
+      titulo: 'Registrar el cobro',
+      texto: `¿Cómo se ha cobrado «${l.nombre}» (${formatearEuros(l.importe)})?`,
+      botones: [
+        { texto: 'Cancelar', clase: 'btn-secundario' },
+        { texto: 'Vía plataforma', clase: 'btn-primario', alPulsar: () => llamarExtras('Guardando el cobro…', 'Cobro registrado: vía plataforma.', 'registrarCobroServicio', l.nombre, 'cobrado', 'Plataforma') },
+        { texto: 'Presencial', clase: 'btn-primario', alPulsar: () => llamarExtras('Guardando el cobro…', 'Cobro registrado: presencial.', 'registrarCobroServicio', l.nombre, 'cobrado', 'Presencial') },
+      ],
+    });
+
+    const itemExtra = (l) => {
+      const li = nuevoEl('li', 'extra-item');
+      const cobrado = l.estado === 'Cobrado';
+      li.append(nuevoEl('span', 'extra-nombre', `${l.nombre} x${l.cantidad} · ${formatearEuros(l.importe)}`),
+        nuevoEl('span', 'estado-badge ' + (cobrado ? 'cobro-ingresado' : 'cobro-no'), cobrado ? ['Cobrado', l.forma].filter(Boolean).join(' · ') : 'Pendiente'));
+      if (!cobrado) {
+        const acciones = nuevoEl('div', 'extra-acciones');
+        acciones.append(
+          boton('Quitar', 'btn-secundario btn-pequeno', () => confirmarAccion(`¿Quitas «${l.nombre}» de la reserva? Los importes se recalculan.`,
+            () => llamarExtras('Quitando el servicio…', 'Servicio quitado de la reserva.', 'registrarCobroServicio', l.nombre, 'quitar', ''))),
+          boton('Cobrar', 'btn-primario btn-pequeno', () => preguntarFormaCobro(l)));
+        li.appendChild(acciones);
+      }
+      return li;
     };
 
-    // ----- Historial (HU-27) -----
-    const cargarHistorial = (id) => {
-      servidor('Cargando el historial…')
-        .withSuccessHandler((res) => renderHistorial(res.success ? res.data : []))
-        .withFailureHandler(() => renderHistorial([]))
-        .obtenerHistorial(id);
+    const pintarCatalogoExtras = (catalogo) => {
+      const sel = $('extras-servicio');
+      sel.innerHTML = '';
+      const vacia = nuevoEl('option', '', catalogo.length ? 'Elige un servicio…' : 'Este espacio no tiene servicios');
+      vacia.value = '';
+      sel.appendChild(vacia);
+      catalogo.forEach((x) => { const o = nuevoEl('option', '', `${x.nombre} · ${formatearEuros(x.precioUnitario)}/ud`); o.value = x.nombre; sel.appendChild(o); });
+      $('extras-cantidad').value = '1';
+      $('btn-extras-anadir').disabled = true;
     };
 
-    const renderHistorial = (cambios) => {
-      const tbody = $('tabla-historial');
-      tbody.innerHTML = '';
-      if (cambios.length === 0) { tbody.appendChild(filaVacia('Sin cambios registrados.')); return; }
-      cambios.forEach((c) => {
-        const tr = document.createElement('tr');
-        [c.fecha, c.usuario, c.campo, c.anterior, c.nuevo].forEach((t) => tr.appendChild(crearCelda(t)));
-        tbody.appendChild(tr);
-      });
+    const cargarExtras = (id) => servidor('Cargando los servicios…')
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        const lista = $('extras-lista');
+        lista.innerHTML = '';
+        if (res.data.lineas.length === 0) lista.appendChild(nuevoEl('li', 'vacio', 'Esta reserva aún no tiene servicios extra.'));
+        res.data.lineas.forEach((l) => lista.appendChild(itemExtra(l)));
+        pintarCatalogoExtras(res.data.catalogo);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar los servicios.', 'error'))
+      .cargarServiciosCobro(id);
+
+    const anadirExtraUI = () => {
+      const nombre = $('extras-servicio').value;
+      if (!nombre) return;
+      llamarExtras('Añadiendo el servicio…', 'Servicio añadido: queda pendiente de cobro.', 'anadirServicioReserva', nombre, $('extras-cantidad').value);
     };
 
     // ----- Estadísticas (HU-31) -----
@@ -560,39 +721,29 @@
         .withSuccessHandler((res) => { if (res.success) renderEstadisticas(res.data); })
         .withFailureHandler(() => {})
         .cargarEstadisticas();
-
       const btnRecalcular = $('btn-recalcular-stats');
       if (btnRecalcular) btnRecalcular.addEventListener('click', forzarRecalculoEstadisticas);
-
     };
 
+    const restaurarBotonStats = (b) => { b.disabled = false; b.textContent = 'Recalcular ahora'; };
+
     const forzarRecalculoEstadisticas = () => {
-      const boton = $('btn-recalcular-stats');
-      boton.disabled = true;
-      boton.textContent = 'Calculando…';
+      const b = $('btn-recalcular-stats');
+      b.disabled = true;
+      b.textContent = 'Calculando…';
       servidor('Recalculando las estadísticas…')
         .withSuccessHandler((resRecalculo) => {
-          if (resRecalculo && !resRecalculo.success) {
-            boton.disabled = false;
-            boton.textContent = 'Recalcular ahora';
-            mostrarMensaje(resRecalculo.error, 'error');
-            return;
-          }
+          if (resRecalculo && !resRecalculo.success) { restaurarBotonStats(b); mostrarMensaje(resRecalculo.error, 'error'); return; }
           servidor('Cargando las estadísticas…')
             .withSuccessHandler((res) => {
-              boton.disabled = false;
-              boton.textContent = 'Recalcular ahora';
+              restaurarBotonStats(b);
               if (res.success) renderEstadisticas(res.data);
               mostrarMensaje('Estadísticas actualizadas.', 'exito');
             })
-            .withFailureHandler(() => { boton.disabled = false; boton.textContent = 'Recalcular ahora'; })
+            .withFailureHandler(() => restaurarBotonStats(b))
             .cargarEstadisticas();
         })
-        .withFailureHandler(() => {
-          boton.disabled = false;
-          boton.textContent = 'Recalcular ahora';
-          mostrarMensaje('No se pudieron recalcular las estadísticas.', 'error');
-        })
+        .withFailureHandler(() => { restaurarBotonStats(b); mostrarMensaje('No se pudieron recalcular las estadísticas.', 'error'); })
         .recalcularEstadisticas();
     };
 
@@ -600,58 +751,95 @@
       const cont = $('stats-zonas');
       cont.innerHTML = '';
       if (!data || data.length === 0) {
-        cont.innerHTML = '<p class="ayuda-campo">Aún no hay estadísticas calculadas. Se generan de madrugada automáticamente; para verlas ya, pulsa «Recalcular ahora».</p>';
+        cont.appendChild(nuevoEl('p', 'ayuda-campo', 'Aún no hay estadísticas calculadas. Se generan de madrugada automáticamente; para verlas ya, pulsa «Recalcular ahora».'));
         return;
       }
       data.forEach((z) => {
-        const card = document.createElement('div');
-        card.className = 'stat-card';
-        const h = document.createElement('h3');
-        h.textContent = z.zona;
-        const num = document.createElement('div');
-        num.className = 'stat-num';
-        num.textContent = z.totalReservas;
-        const lbl = document.createElement('div');
-        lbl.className = 'stat-label';
-        lbl.textContent = 'reservas este año';
-        const netos = document.createElement('div');
-        netos.className = 'stat-num';
-        netos.textContent = formatearEuros(z.ingresosNetos);
-        const lblN = document.createElement('div');
-        lblN.className = 'stat-label';
-        lblN.textContent = 'ingresos netos';
-        card.append(h, num, lbl, netos, lblN);
+        const card = nuevoEl('div', 'stat-card');
+        card.append(nuevoEl('h3', '', z.zona), nuevoEl('div', 'stat-num', z.totalReservas), nuevoEl('div', 'stat-label', 'reservas este año'),
+          nuevoEl('div', 'stat-num', formatearEuros(z.ingresosNetos)), nuevoEl('div', 'stat-label', 'ingresos netos'));
         cont.appendChild(card);
       });
       if (data[0]) $('stats-actualizado').textContent = 'Última actualización: ' + data[0].actualizado;
     };
 
-    // ----- Enlace al calendario de ocupación (ADR-0010) -----
+    // ----- Enlace al calendario de ocupación (ADR-0010, D-44 B) -----
+    // En Android abre la app de Google Calendar (se vuelve a KAF Rent con Atrás); si no está, el navegador.
+    // En el resto, otra pestaña.
     const CALENDARIO_POR_DEFECTO = 'https://calendar.google.com/calendar/u/0/r';
+    const PAQUETE_CALENDAR_ANDROID = 'com.google.android.calendar';
+    // Comillas simples a propósito: al servir la página, Apps Script quita como comentario lo que sigue a "//"
+    // dentro de las cadenas con comillas invertidas, y el script entero dejaba de cargar (B-28).
+    const enlaceCalendario = (url) => {
+      if (!/Android/i.test(navigator.userAgent)) return url;
+      const sinProtocolo = url.split('://').pop();
+      return 'intent://' + sinProtocolo + '#Intent;scheme=https;package=' + PAQUETE_CALENDAR_ANDROID
+        + ';S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+    };
+
     const inicializarCalendario = () => {
+      const fijar = (url) => { $('enlace-calendario').href = enlaceCalendario(url || CALENDARIO_POR_DEFECTO); };
       google.script.run
-        .withSuccessHandler((res) => {
-          $('enlace-calendario').href = (res.success && res.url) ? res.url : CALENDARIO_POR_DEFECTO;
-        })
-        .withFailureHandler(() => { $('enlace-calendario').href = CALENDARIO_POR_DEFECTO; })
+        .withSuccessHandler((res) => fijar(res.success ? res.url : ''))
+        .withFailureHandler(() => fijar(''))
         .obtenerEnlaceCalendario();
     };
 
+    // ----- Arranque -----
+    const inicializarEspacios = () => {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res.success) return;
+          espaciosGestion = res.data;
+          rellenarSelectEspacios($('filtro-espacio'));
+          rellenarSelectEspacios($('funcion-espacio'));
+        })
+        .withFailureHandler(() => {})
+        .cargarEspaciosFormulario();
+    };
+
+    // F-37/F-40: un enlace de email abre la app en una acción concreta (doGet ya validó acción e ID).
+    const ejecutarAccionInicial = () => {
+      const { accion, idAccion } = document.body.dataset;
+      if (!accion || !idAccion) return;
+      if (accion === 'ingreso') abrirFicha(idAccion, { alCargar: confirmarIngresoUI });
+      if (accion === 'ficha') abrirFicha(idAccion);
+      if (accion === 'checkin' || accion === 'checkout') abrirFuncion('checklist', { momento: accion, id: idAccion });
+    };
+
     const inicializarGestion = () => {
-      $('btn-filtrar').addEventListener('click', cargarListaGestion);
-      $('btn-rapido-semana').addEventListener('click', () => fijarRango(7));
-      $('btn-rapido-mes').addEventListener('click', () => fijarRango(30));
-      $('btn-volver-lista').addEventListener('click', volverALista);
-      $('form-edicion').addEventListener('submit', guardarCambios);
-      $('btn-cancelar-reserva').addEventListener('click', cancelarReservaUI);
+      const recargarPorNombre = conEspera(recargarDesdePrimera, ESPERA_FILTRO_NOMBRE_MS);
+      $('filtro-nombre').addEventListener('input', recargarPorNombre);
+      ['filtro-espacio', 'filtro-estado', 'filtro-cobro'].forEach((id) => $(id).addEventListener('change', recargarDesdePrimera));
+      document.querySelectorAll('.chips-filtro .btn-chip').forEach((b) => b.addEventListener('click', () => alternarRango(b.dataset.rango)));
+      $('btn-pagina-anterior').addEventListener('click', () => { estadoLista.pagina -= 1; cargarListaGestion(); });
+      $('btn-pagina-siguiente').addEventListener('click', () => { estadoLista.pagina += 1; cargarListaGestion(); });
+      document.querySelector('[data-seccion="gestionar"]').addEventListener('click', cargarListaGestion);
+      $('btn-ficha-volver').addEventListener('click', () => navegar('gestionar'));
+      $('btn-funcion-volver').addEventListener('click', () => { navegar('gestionar'); cargarListaGestion(); });
+      document.querySelectorAll('.btn-funcion').forEach((b) => b.addEventListener('click', () => abrirFuncion(b.dataset.funcion)));
+      document.querySelectorAll('.btn-segmento').forEach((b) => b.addEventListener('click', () => elegirMomento(b.dataset.momento)));
+      $('funcion-espacio').addEventListener('change', cargarOpcionesFuncion);
+      $('funcion-nombre').addEventListener('input', conEspera(cargarOpcionesFuncion, ESPERA_FILTRO_NOMBRE_MS));
+      $('funcion-opciones').addEventListener('change', () => { $('btn-funcion-abrir').disabled = !$('funcion-opciones').value; });
+      $('btn-funcion-abrir').addEventListener('click', () => abrirTrabajo($('funcion-opciones').value));
+      $('btn-funcion-cambiar').addEventListener('click', volverASelector);
       $('btn-mensaje-huesped').addEventListener('click', enviarMensajeHuespedUI);
-      $('ed-incidencias').addEventListener('change', toggleIncidencia);
       $('btn-subir-contrato').addEventListener('click', subirContratoUI);
-      $('btn-guardar-servicios').addEventListener('click', guardarServiciosEdicion);
+      $('extras-servicio').addEventListener('change', () => { $('btn-extras-anadir').disabled = !$('extras-servicio').value; });
+      $('btn-extras-anadir').addEventListener('click', anadirExtraUI);
+      const marcarSucia = () => { if (editando()) fichaSucia = true; };
+      $('ficha-contenido').addEventListener('input', marcarSucia);
+      $('ficha-contenido').addEventListener('change', marcarSucia);
+      guardiaNavegacion = guardiaFicha;
+      window.addEventListener('beforeunload', (evento) => { if (editando() && fichaSucia) evento.preventDefault(); });
       cargarListaGestion();
     };
 
+    inicializarEspacios();
     inicializarGestion();
     inicializarEstadisticas();
     inicializarCalendario();
+    // Tras cargar todos los scripts: la checklist y el registro de viajeros se definen en ficheros posteriores.
+    window.addEventListener('load', ejecutarAccionInicial);
   </script>

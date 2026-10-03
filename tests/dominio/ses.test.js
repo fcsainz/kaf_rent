@@ -354,3 +354,13 @@ test.describe('F-27 · mensaje de WhatsApp para el huésped', () => {
     assert.equal(w('', 'x'), '');
   });
 });
+
+test.describe('D-45 · parte comunicado a mano (casilla del Form)', () => {
+  const { crearEntorno } = require('../soporte/gas');
+  const p = (respuestas) => JSON.parse(JSON.stringify(crearEntorno().fn('parteComunicadoEnForm_')(respuestas)));
+  test('basta una respuesta marcada; se toma su código; "TRUE" de la hoja cuenta como marcada', () => {
+    assert.deepEqual(p([{ comunicado: '' }, { comunicado: 'TRUE', codigoComunicacion: 'ABC' }]), { comunicado: true, codigo: 'ABC' });
+    assert.deepEqual(p([{ comunicado: 'FALSE' }]), { comunicado: false, codigo: '' });
+    assert.deepEqual(p([]), { comunicado: false, codigo: '' });
+  });
+});

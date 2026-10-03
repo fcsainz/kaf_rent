@@ -26,6 +26,7 @@ Formato **[MADR 4.0](https://adr.github.io/madr/)** (Markdown Architectural Deci
 | [0020](0020-una-fila-por-checklist.md) | Registro de checklists con una fila por checklist | accepted | 2026-10-02 |
 | [0021](0021-script-propio-del-form-de-viajeros.md) | Script propio ligado al Form de viajeros, sin credenciales de SES | accepted | 2026-10-02 |
 | [0022](0022-anulacion-en-ses-al-cancelar.md) | Al cancelar una reserva ya comunicada, se anula en SES tras confirmarlo | accepted | 2026-10-02 |
+| [0023](0023-fotos-del-contrato-y-retencion.md) | El contrato de Exterior se guarda en fotos y se borra a los 5 años de la salida | accepted | 2026-10-03 |
 
 ## Reglas
 

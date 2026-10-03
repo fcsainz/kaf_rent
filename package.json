@@ -10,9 +10,10 @@
     "test:cobertura": "TZ=Europe/Madrid node --test --experimental-test-coverage \"tests/**/*.test.js\"",
     "test:e2e": "TZ=Europe/Madrid playwright test",
     "lint": "eslint \"docs_dev/src/**/*.gs\" \"docs_dev/src_form_checkin/**/*.gs\"",
-    "push": "npm test && npm run lint && clasp --user familia push",
+    "push": "npm test && npm run lint && clasp --user familia push --force",
     "deploy": "clasp --user familia deploy -i \"$KAF_RENT_ID_IMPLEMENTACION\" -d",
-    "push:form": "npm test && npm run lint && cd docs_dev/src_form_checkin && clasp --user familia push --force"
+    "push:form": "npm test && npm run lint && cd docs_dev/src_form_checkin && clasp --user familia push --force",
+    "demo": "TZ=Europe/Madrid DEMO=1 PUERTO_E2E=4180 node tests/e2e/servidor.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

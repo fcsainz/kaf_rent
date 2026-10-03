@@ -225,7 +225,7 @@ test.describe('ADR-0022 · cancelar una reserva ya comunicada', () => {
 
   test('la ficha trae el aviso para la confirmación de cancelar', () => {
     const e = comunicadaRH();
-    assert.match(e.llamar('obtenerReserva', idReserva(e)).data.avisoCancelacionSES, /comunicada a SES.Hospedajes \(código COM-77\).*se anulará también en SES/);
+    assert.match(e.llamar('obtenerFichaReserva', idReserva(e)).data.avisoCancelacionSES, /comunicada a SES.Hospedajes \(código COM-77\).*se anulará también en SES/);
   });
 
   test('al cancelar se programa la anulación; al confirmarla SES, la original queda Anulada y se anota en el Form', () => {
@@ -323,7 +323,7 @@ test.describe('ADR-0022 · solo la Habitación tiene comunicaciones que anular',
     const e = entornoSES();
     e.llamar('crearReserva', datosReservaPiscina());
     const piscina = e.hoja('Reservas').registros().find((r) => r.Espacio === 'Piscina / Jardín').ID_Reserva;
-    assert.equal(e.llamar('obtenerReserva', piscina).data.avisoCancelacionSES, '');
+    assert.equal(e.llamar('obtenerFichaReserva', piscina).data.avisoCancelacionSES, '');
     e.llamar('cancelarReserva', piscina);
     assert.equal(e.comunicaciones().length, 0);
   });

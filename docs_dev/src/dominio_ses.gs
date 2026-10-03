@@ -19,7 +19,7 @@ const PREGUNTAS_FORM_VIAJEROS = {
   numeroDocumento: ['Número de documento (DNI o NIE)'], soporte: ['Número de soporte'], pasaporte: ['Número de pasaporte'],
   parentesco: ['¿Cuál es su relación con el adulto responsable que rellena este formulario en su nombre?'],
   responsable: ['Nombre y Apellidos responsable del menor'],
-  telefono: ['Teléfono Móvil'], correo: ['Email'], comunicado: ['Comunicados'],
+  telefono: ['Teléfono Móvil'], correo: ['Email'], comunicado: ['Comunicados'], codigoComunicacion: ['Código de comunicación'],
 };
 const SUFIJO_MENOR = 'Menor';
 
@@ -58,6 +58,7 @@ const respuestaDesdeFila_ = (fila, columnas, numeroFila) => {
     numeroDocumento: textoDe('numeroDocumento') || textoDe('pasaporte'), soporte: textoDe('soporte'),
     parentesco: esAdulto ? '' : texto_(valor('parentesco')), responsable: esAdulto ? '' : texto_(valor('responsable')),
     telefono: texto_(valor('telefono')), correo: texto_(valor('correo')), comunicado: texto_(valor('comunicado')),
+    codigoComunicacion: texto_(valor('codigoComunicacion')),
   };
 };
 
@@ -624,6 +625,13 @@ const estadoSESDeReserva_ = (comunicaciones) => {
   const ultima = (tipo) => comunicaciones.filter((c) => c.tipo === tipo).slice(-1)[0] || null;
   const resumen = (c) => (c ? { estado: c.estado, codigo: c.codigo || '', error: c.error || '' } : null);
   return { reserva: resumen(ultima(TIPO_COMUNICACION_SES.RESERVA)), parte: resumen(ultima(TIPO_COMUNICACION_SES.PARTE)) };
+};
+
+// D-45: un parte comunicado a mano solo consta en el Sheet del Form (casilla "Comunicados" y su código).
+// Basta con una respuesta de la reserva marcada como comunicada.
+const parteComunicadoEnForm_ = (respuestasCasadas) => {
+  const comunicada = respuestasCasadas.find((r) => esVerdadero_(r.comunicado));
+  return comunicada ? { comunicado: true, codigo: texto_(comunicada.codigoComunicacion) } : { comunicado: false, codigo: '' };
 };
 
 // Un parte enviado o comunicado no se vuelve a comunicar desde la app (si falla, se avisa y se decide).

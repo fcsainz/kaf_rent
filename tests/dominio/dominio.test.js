@@ -102,7 +102,7 @@ test.describe('RF-23, RF-27, RF-49 · servicios e importes', () => {
   const catalogo = [{ nombre: 'Hielo', costeUnitario: 1, precioUnitario: 3 }];
   test('las líneas usan el catálogo y descartan cantidades no válidas o servicios desconocidos', () => {
     const lineas = fn('resolverLineasServicio_')([{ nombre: 'Hielo', cantidad: '2', precio: 0 }, { nombre: 'X', cantidad: 1 }, { nombre: 'Hielo', cantidad: '0' }], catalogo);
-    assert.deepEqual(plano(lineas), [{ nombre: 'Hielo', cantidad: 2, coste: 1, precio: 3 }]);
+    assert.deepEqual(plano(lineas), [{ nombre: 'Hielo', cantidad: 2, coste: 1, precio: 3, cobroEstado: 'Pendiente', cobroForma: '' }]);
     assert.deepEqual(plano(fn('resolverLineasServicio_')(null, catalogo)), []);
   });
   test('fórmula única de importes', () => {
@@ -146,8 +146,8 @@ test.describe('RF-29, RF-31 · solapamiento e identificadores', () => {
 
 test.describe('RF-50, RF-51 · ciclo de vida (cierre = cobro + check-out hecho, F-14)', () => {
   const casos = [
-    ['Ingresado', 'Hecho', 'Sin incidentes', '', 'Completada', []],
-    ['Ingresado', 'Hecho', 'Con incidentes', 'Sí', 'Completada', []],
+    ['Ingresado', 'Hecho', 'Sin incidentes', '', 'Cerrada', []],
+    ['Ingresado', 'Hecho', 'Con incidentes', 'Sí', 'Cerrada', []],
     ['Ingresado', 'Pendiente', 'Sin incidentes', '', 'Abierta', ['Check-out sin hacer']],
     ['Ingresado', 'Hecho', 'Con incidentes', 'No', 'Abierta', ['Incidencia sin resolver']],
     ['No ingresado', 'Hecho', 'Sin incidentes', '', 'Abierta', ['Pendiente de cobro']],
@@ -181,7 +181,7 @@ test.describe('RF-45..RF-48 · aplicar cambios', () => {
     const r = reservaBase();
     const { reserva, diffs } = fn('aplicarCambios_')(r, cambiosDe(r, { importeAlquiler: '400', cobro: 'Ingresado', checkout: 'Hecho' }), 'luis@x', HOY);
     assert.equal(reserva.bruto, 420);
-    assert.equal(reserva.estado, 'Completada');
+    assert.equal(reserva.estado, 'Cerrada');
     assert.equal(reserva.modificadoPor, 'luis@x');
     assert.deepEqual(plano(diffs).map((x) => x.campo), ['Importe del alquiler', 'Estado de cobro', 'Check-out revisado', 'Estado de la reserva']);
   });

@@ -43,7 +43,7 @@ Al retomar el trabajo, **antes de nada**, Claude:
 │   └── solution/           # CÓMO: arc42.md (+ C4), adr/ (MADR), design-docs/ (uno por funcionalidad grande), design-system.md
 └── docs_work/              # Carpeta de trabajo, fuera del núcleo (docs_dev): material que entra y sale según su utilidad, más lo permanente
     ├── PROXIMOS_PASOS.md   # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
-    ├── valor_dev.md        # Valoración del proyecto a precio de mercado (comparables)
+    ├── valor_dev.md        # Valoración del proyecto: valor de uso (comparables), valor de reposición y amortización
     ├── docs_mejoras/       # Registro de mejoras de cada sesión (mejoras_AAAA-MM-DD.md, §5.1)
     ├── emails_propuesta/   # Maquetas aprobadas del rediseño de emails (D-35, S28): referencia para implementarlo
     ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
@@ -290,7 +290,7 @@ Un fichero por capa y módulo (`<capa>_<módulo>.gs`), tal como describe [arc42 
 | [design-system.md](docs_dev/solution/design-system.md) | Tokens de diseño |
 | [CHANGELOG.md](CHANGELOG.md) | Keep a Changelog + SemVer |
 | [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md) | Scrum para un desarrollador único (§2.4) |
-| [valor_dev.md](docs_work/valor_dev.md) | Valoración por **comparables de mercado**: cada función frente a la herramienta comercial más parecida y su cuota anual, con fuentes y fecha de consulta (decisión del usuario, 2026-10-02). Se actualiza cuando cambie mucho el alcance |
+| [valor_dev.md](docs_work/valor_dev.md) | Valoración del desarrollo con el método de §5.7 (decisiones del usuario, 2026-10-02 y 2026-10-03). Se actualiza al cierre de cada sesión que cambie el alcance |
 | [docs_mejoras/mejoras_AAAA-MM-DD.md](docs_work/docs_mejoras/) | Registro de sesión: un fichero por sesión (fecha ISO 8601), una tabla resumen y un apartado por punto con origen, diagnóstico, propuesta, decisión, lo hecho y adónde se traslada. Estados: Propuesto → Pendiente de decisión → Aprobado → Hecho → Trasladado (a PROXIMOS_PASOS, CHANGELOG, discovery, código y tests). Se conserva tras el cierre como histórico (decisión del usuario, 2026-10-02) |
 
 Cada documento de discovery lleva una cabecera con `Versión`, `Fecha`, `Estado` y `Framework`.
@@ -334,7 +334,7 @@ Además, `docs_work/docs_ses/`, `docs_work/doc_hacienda/` y `docs_work/doc_check
 | Implementar o cambiar código | Estado y columna *Implementación* del RF; HU; arc42 (bloques, datos, `Config`) si cambia |
 | Decisión de diseño | ADR nuevo o *Revisión* del existente → arc42 §4/§9 |
 | Riesgo nuevo | arc42 §11.1 |
-| Cierre de sesión | CHANGELOG `[Unreleased]` + PROXIMOS_PASOS (§2.2) |
+| Cierre de sesión | CHANGELOG `[Unreleased]` + PROXIMOS_PASOS (§2.2) + valor_dev si cambió el alcance (§5.7) |
 
 ### 5.5 ADR (MADR 4.0)
 - Plantilla: [docs_dev/solution/adr/plantilla-madr.md](docs_dev/solution/adr/plantilla-madr.md). Front matter `status`, `date`, `decision-makers`, `consulted`, `informed`; secciones Contexto, Factores, Opciones, Resultado (Consecuencias, Confirmación), Pros y contras, Más información (trazabilidad y cuestiones abiertas).
@@ -343,6 +343,14 @@ Además, `docs_work/docs_ses/`, `docs_work/doc_hacienda/` y `docs_work/doc_check
 
 ### 5.6 arc42
 Documento vivo del sistema. Se actualiza cuando cambia el modelo de datos, un módulo, un flujo, el despliegue, un concepto transversal, un riesgo o la deuda técnica.
+
+### 5.7 Valoración del desarrollo ([valor_dev.md](docs_work/valor_dev.md))
+Método acordado con el usuario (2026-10-02 y 2026-10-03); copia concretada de la plantilla del CLAUDE.md global:
+1. **Valor de uso (comparables de mercado):** cada función frente a la herramienta comercial más parecida y su cuota anual para el caso real (unidades, usuarios, modalidad), con cobertura, fuentes y fecha de consulta. Se cuentan también los huecos que obliguen a combinar herramientas (p. ej. reservas por horas, cuentas por usuario).
+2. **Valor de reposición:** horas por módulo (análisis, diseño, código, tests, documentación y gestión), contrastadas con el tamaño real del repositorio (líneas de código, de tests y de documentación), por tarifas de mercado vigentes (freelance medio y sénior, empresa), sin IVA y con fuentes.
+3. **Análisis con amortización:** el coste de reposición amortizado (vida útil de 3 y 5 años; coeficiente fiscal de referencia para programas informáticos) más el mantenimiento anual, frente al valor de uso; periodo de recuperación y conclusión (compra frente a desarrollo propio).
+4. **Corte temporal:** lo acumulado hasta el último commit y lo de cada sesión por separado; al cierre de sesión se añade lo nuevo.
+5. Toda cifra lleva su fuente y fecha; lo no verificado se marca como tal.
 
 ---
 
@@ -390,7 +398,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 **Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
 
-> **Estado actual (v2):** unitarios del dominio, tests de los 35 endpoints y de las entradas del sistema, del script del Form de viajeros, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm run lint`, `npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). ESLint sobre los `.gs` desde S9 (T-07). Pendiente: integración contra Google (T-04, PROXIMOS_PASOS S19).
+> **Estado actual (v2):** unitarios del dominio, tests de los 37 endpoints y de las entradas del sistema, del script del Form de viajeros, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm run lint`, `npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). ESLint sobre los `.gs` desde S9 (T-07). Pendiente: integración contra Google (T-04, PROXIMOS_PASOS S19).
 
 ### 7.1 Pirámide y dónde se ejecuta cada nivel
 

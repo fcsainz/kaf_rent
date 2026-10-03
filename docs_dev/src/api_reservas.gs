@@ -1,6 +1,6 @@
-// Capa: API — crear reservas (HU-08..HU-19) y lecturas del Inicio: últimas reservas y buscador (HU-04, HU-06).
+// Capa: API — crear reservas (HU-08..HU-19) y lecturas del Inicio: reservas de un vistazo y buscador (HU-04, HU-06).
 
-const NUM_ULTIMAS_RESERVAS = 5;
+const NUM_RESERVAS_VISTAZO = 5;
 // B-14: el fallo de Calendar no bloquea la reserva (RNF-16), pero no puede quedar oculto al usuario.
 const AVISO_SIN_EVENTO_CALENDARIO = 'La reserva se ha guardado, pero no se pudo crear su evento en el calendario. Avisa al administrador para que lo revise.';
 
@@ -86,6 +86,7 @@ const notificarIncidencia = (id) => ejecutarEndpoint_('notificarIncidencia', { i
 // Proyección ligera para las tablas; incluye claves numéricas para ordenar fechas en el cliente.
 const proyeccionListado_ = (r) => ({
   id: referenciaMostrada_(r.id),
+  idReserva: r.id, // para abrir la ficha al tocar la tarjeta (DI-22)
   espacio: r.espacio,
   inicioTexto: formatearFechaHora_(r.inicio),
   inicioOrden: r.inicio.getTime(),
@@ -97,6 +98,7 @@ const proyeccionListado_ = (r) => ({
 
 // F-26: "Últimas reservas" con el nombre corto del espacio, el código del canal y fechas cortas.
 const proyeccionUltimas_ = (nombresCortos) => (r) => ({
+  idReserva: r.id, ref: referenciaMostrada_(r.id), // para abrir la ficha al tocar la tarjeta (DI-22)
   espacio: nombresCortos.get(r.espacio) || r.espacio,
   refCanal: r.refCanal,
   nombre: r.nombre,
@@ -107,16 +109,27 @@ const proyeccionUltimas_ = (nombresCortos) => (r) => ({
   neto: r.neto,
 });
 
-const cargarUltimasReservas = () => ejecutarEndpoint_('cargarUltimasReservas', {}, () => {
+const MODO_VISTAZO = { PROXIMAS: 'proximas', ULTIMAS: 'ultimas' };
+
+// Las 5 últimas registradas: por Fecha_Registro y, a igualdad, la que está más abajo en el Sheet (la última añadida).
+const ultimasRegistradas_ = (entradas) => {
   const ordenRegistro = (r, i) => (esFechaValida_(r.fechaRegistro) ? r.fechaRegistro.getTime() : i);
+  return entradas
+    .map((e, i) => ({ reserva: e.reserva, orden: ordenRegistro(e.reserva, i), fila: i }))
+    .sort((a, b) => b.orden - a.orden || b.fila - a.fila)
+    .slice(0, NUM_RESERVAS_VISTAZO)
+    .map((x) => x.reserva);
+};
+
+// F-32: "Reservas de un vistazo" del Inicio: las 5 próximas (por defecto) o las 5 últimas registradas.
+const cargarReservasVistazo = (modo) => ejecutarEndpoint_('cargarReservasVistazo', { modo }, () => {
+  const { entradas } = leerReservas_();
+  const reservas = modo === MODO_VISTAZO.ULTIMAS
+    ? ultimasRegistradas_(entradas)
+    : proximasReservas_(entradas.map((e) => e.reserva), new Date(), NUM_RESERVAS_VISTAZO);
   const nombresCortos = new Map(obtenerEspacios_({ soloActivos: false }).map((e) => [e.nombre, e.nombreCorto]));
-  const ultimas = leerReservas_().entradas
-    .map((e, i) => ({ reserva: e.reserva, orden: ordenRegistro(e.reserva, i) }))
-    .sort((a, b) => b.orden - a.orden)
-    .slice(0, NUM_ULTIMAS_RESERVAS)
-    .map((x) => proyeccionUltimas_(nombresCortos)(x.reserva));
-  return { success: true, data: ultimas };
-}, { errorUsuario: 'No se pudieron cargar las últimas reservas.' });
+  return { success: true, data: reservas.map(proyeccionUltimas_(nombresCortos)) };
+}, { errorUsuario: 'No se pudieron cargar las reservas.' });
 
 // Reservas no canceladas que coinciden por nombre y/o que ocupan la fecha indicada (RF-11, B-02).
 const buscarReservas = (filtro) => ejecutarEndpoint_('buscarReservas', {}, () => {

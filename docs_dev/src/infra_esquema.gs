@@ -36,8 +36,14 @@ const CAMPOS_RESERVA = {
   calendarEventId: 'Calendar_Event_Id', notas: 'Notas', registradoPor: 'Registrado_Por', fechaRegistro: 'Fecha_Registro',
   modificadoPor: 'Modificado_Por', fechaModificacion: 'Fecha_Última_Modificación', videoInUrl: 'Video_In_Url',
   videoOutUrl: 'Video_Out_Url', costeFijoCanal: 'Coste_Canal_Fijo', refCanal: 'Ref_Canal',
+  // DD-03: firma del contrato (F-41) y avisos de check-in/check-out ya enviados (F-40).
+  contratoFirmadoPor: 'Contrato_Firmado_Por', contratoFecha: 'Contrato_Fecha', avisoCheckin: 'Aviso_Checkin_Enviado', avisoCheckout: 'Aviso_Checkout_Enviado',
 };
-const CAMPOS_LINEA_SERVICIO = { idReserva: 'ID_Reserva', nombre: 'Nombre_Servicio', cantidad: 'Cantidad', coste: 'Coste_Unitario_Snapshot', precio: 'Precio_Unitario_Snapshot' };
+// DD-03 (F-43): cobro de cada servicio: Pendiente o Cobrado, y si se cobró vía plataforma o presencial.
+const CAMPOS_LINEA_SERVICIO = {
+  idReserva: 'ID_Reserva', nombre: 'Nombre_Servicio', cantidad: 'Cantidad', coste: 'Coste_Unitario_Snapshot', precio: 'Precio_Unitario_Snapshot',
+  cobroEstado: 'Cobro_Estado', cobroForma: 'Cobro_Forma',
+};
 const CAMPOS_ESPACIO = { nombre: 'Nombre_Espacio', activo: 'Activo', modoFecha: 'Modo_Fecha', nombreCorto: 'Nombre_Corto' };
 const CAMPOS_CANAL = { espacio: 'Espacio', nombre: 'Nombre_Canal', activo: 'Activo', comision: '%_Comisión_Default', gestionContrato: 'Gestión_Contrato', costeFijo: 'Coste_Fijo_Por_Reserva', requiereRef: 'Requiere_Ref_Canal' };
 const CAMPOS_SERVICIO = { espacio: 'Espacio', nombre: 'Nombre_Servicio', activo: 'Activo', coste: 'Coste_Unitario', precio: 'Precio_Unitario' };
@@ -242,7 +248,7 @@ const ESQUEMA_HOJAS = [
       ['Mensaje_Solapamiento', 'Ya existe una reserva para ese espacio en esas fechas.', 'Mensaje de bloqueo por solapamiento'],
       ['Hora_CheckIn_Default', '16:00', 'Hora de entrada por defecto (modo Rango_Dias)'],
       ['Hora_CheckOut_Default', '12:00', 'Hora de salida por defecto (modo Rango_Dias)'],
-      ['Tamano_Max_Contrato_MB', '5', 'Tamaño máximo del archivo de contrato (MB)'],
+      ['Tamano_Max_Contrato_MB', '15', 'Tamaño máximo de cada foto o PDF del contrato (MB; DI-10)'],
       ['Tamano_Max_Video_MB', '100', 'Tamaño máximo del vídeo de check-in/out en MB (100 MB evita cuelgues en móvil)'],
       ['Valor_Construccion', '', 'Valor de construcción del inmueble — amortización IRPF (ADR-0012)'],
       ['Proporcion_Alquilada', '', 'Proporción alquilada de la vivienda — amortización IRPF (ADR-0012)'],
@@ -271,6 +277,9 @@ const ESQUEMA_HOJAS = [
       ['SES_Reintento_Minutos', '30', 'Minutos entre reintentos de una comunicación fallida (DD-02 §3.5)'],
       ['SES_Max_Intentos', '3', 'Intentos antes de pasar a comunicación manual (DD-02 §3.5)'],
       ['SES_Web_Url', 'https://hospedajes.ses.mir.es/', 'Web de SES.Hospedajes para comunicar o anular a mano (botón de los emails de aviso)'],
+      ['Dias_Aviso_Ingreso', '10', 'Días tras la salida sin "Ingresado" para avisar del cobro; se repite cada tantos días (F-37)'],
+      ['Horas_Aviso_Checkin', '4', 'Horas antes de la llegada desde las que se avisa de hacer el check-in si no está hecho (F-40)'],
+      ['Anios_Retencion_Contrato', '5', 'Años, desde la salida, que se guardan las fotos del contrato firmado (F-41; art. 1964.2 del Código Civil)'],
     ],
   },
   { nombre: HOJA_USUARIOS, campos: CAMPOS_USUARIO },

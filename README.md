@@ -4,16 +4,17 @@ Webapp de gestión de alquileres para los copropietarios de Calle 16, construida
 
 Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización manual de plataformas) por una única interfaz que centraliza el ciclo de vida de las reservas, evita solapamientos, avisa de la sincronización de canales y consolida los datos económicos y fiscales.
 
-> **Estado actual:** Fase 1 implementada (**v1**, código en [`docs_dev/src/`](docs_dev/src/)). Sin tests automáticos todavía. En curso: **v2** (reorganización, seguridad y tests; ver sprints). Pendiente prioritario: **seguridad de las funciones expuestas** y la infraestructura de tests. Ver [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md).
+> **Estado actual (2026-10-03):** en producción, con código en capas, tests automáticos (unitarios, de endpoints y E2E con Playwright) e integración continua; comunicación a SES.Hospedajes activa. Recién hecho: el rediseño de Reservas (DD-03). Ver [PROXIMOS_PASOS.md](docs_work/PROXIMOS_PASOS.md) y el [CHANGELOG](CHANGELOG.md).
 
 ---
 
 ## Qué resuelve
 
 - **Cero overbooking:** bloqueo automático de solapamientos al crear una reserva.
-- **Ciclo de vida con auditoría:** estado calculado (`Abierta` / `Completada` / `Cancelada`) e historial campo a campo.
+- **Ciclo de vida con auditoría:** estado calculado (`Abierta` / `Cerrada` / `Cancelada`) e historial campo a campo.
 - **Sincronización de canales:** avisos por email para cerrar y reabrir disponibilidad (sin *channel manager* de pago).
-- **Visibilidad:** Inicio con últimas reservas, buscador y calendario de ocupación; estadísticas e informes mensuales y trimestrales.
+- **Visibilidad:** Inicio con las próximas o últimas reservas, buscador y calendario de ocupación; Gestionar en tarjetas pensado para el móvil; estadísticas e informes mensuales y trimestrales.
+- **Tareas de cada estancia:** checklists digitales de entrada y salida, validación de identidades con comunicación a **SES.Hospedajes**, contrato firmado en fotos y cobro de servicios extra, con avisos por email de cobros y checklists pendientes.
 - **Evidencias:** contratos y vídeos de entrada y salida en Drive, por espacio y reserva.
 - **Fiscalidad:** gastos con justificante y resumen del IRPF a tercios.
 - **Configuración sin código:** espacios, canales, servicios, emails y parámetros viven en el Sheet.

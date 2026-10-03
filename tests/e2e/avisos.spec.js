@@ -55,3 +55,13 @@ test('RF-82 · sin evento de Calendar: aviso con botón que envía la incidencia
   expect(incidencia.to).toBe('admin@test.com');
   expect(incidencia.body).not.toContain('Marta Pérez');
 });
+
+test('RNF-13 · si una llamada al servidor falla al instante, la ventana de "trabajando" se cierra y se muestra el error', async ({ page }) => {
+  await page.evaluate(() => {
+    // Como en Apps Script cuando la función no existe en google.script.run: el runner no tiene ese método.
+    window.google.script.run = { withSuccessHandler: () => ({ withFailureHandler: () => ({}) }) };
+    servidor('Cargando…').withSuccessHandler(() => {}).noExiste();
+  });
+  await expect(page.locator('#ocupado')).toBeHidden();
+  await expect(dialogo(page)).toContainText('Algo ha fallado en la app (noExiste:');
+});

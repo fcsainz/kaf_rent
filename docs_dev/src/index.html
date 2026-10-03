@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
   <?!= include('estilos'); ?>
 </head>
-<body>
+<body data-accion="<?= datos.accion ?>" data-id-accion="<?= datos.idAccion ?>">
   <header class="app-header">
     <span class="marca"><img class="marca-icono" src="<?= datos.icono ?>" alt="">KAF Rent</span>
     <span class="usuario"><?= datos.email ?></span>
@@ -18,24 +18,24 @@
 
     <section id="seccion-inicio" class="seccion activa">
       <div class="panel">
-        <h2>5 Últimas Reservas</h2>
-        <div class="tabla-scroll">
-          <table id="tabla-inicio">
-            <thead>
-              <tr>
-                <th class="orden" data-clave="espacio" data-tipo="texto">Espacio</th>
-                <th class="orden" data-clave="refCanal" data-tipo="texto">Código de reserva del canal</th>
-                <th class="orden" data-clave="nombre" data-tipo="texto">Nombre</th>
-                <th class="orden" data-clave="inicioOrden" data-tipo="num">Inicio</th>
-                <th class="orden" data-clave="finOrden" data-tipo="num">Fin</th>
-                <th class="orden" data-clave="neto" data-tipo="num">Importe Neto</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-ultimas">
-              <tr><td colspan="6" class="vacio">Cargando…</td></tr>
-            </tbody>
-          </table>
+        <h2>Reservas de un vistazo</h2>
+        <div class="form-grupo form-grupo-compacto">
+          <label for="vistazo-modo">Mostrar</label>
+          <select id="vistazo-modo">
+            <option value="proximas">5 próximas por fecha</option>
+            <option value="ultimas">5 últimas registradas</option>
+          </select>
         </div>
+        <div class="form-grupo form-grupo-compacto">
+          <label for="vistazo-orden">Ordenar por</label>
+          <select id="vistazo-orden">
+            <option value="entrada-asc">Entrada: primero la más cercana</option>
+            <option value="entrada-desc">Entrada: primero la más lejana</option>
+            <option value="nombre-asc">Nombre (A–Z)</option>
+            <option value="neto-desc">Importe neto: mayor primero</option>
+          </select>
+        </div>
+        <ul class="lista-tarjetas" id="lista-vistazo"><li class="vacio">Cargando…</li></ul>
         <div class="form-acciones">
           <a class="btn btn-secundario" id="enlace-calendario" href="#" target="_blank">Ver calendario</a>
         </div>
@@ -57,19 +57,13 @@
         <div class="form-acciones">
           <button type="button" class="btn btn-secundario" id="btn-buscar">Buscar</button>
         </div>
-        <div class="tabla-scroll">
-          <table>
-            <thead>
-              <tr><th>Ref.</th><th>Espacio</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Nombre</th></tr>
-            </thead>
-            <tbody id="tabla-busqueda">
-              <tr><td colspan="5" class="vacio">Introduce un nombre o una fecha y pulsa Buscar.</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <ul class="lista-tarjetas" id="lista-busqueda"><li class="vacio">Introduce un nombre o una fecha y pulsa Buscar.</li></ul>
       </div>
 
-      <div class="panel" id="panel-conexion-ses" hidden>
+    </section>
+
+    <section id="seccion-conexion-ses" class="seccion">
+      <div class="panel">
         <h2>Conexión con SES.Hospedajes</h2>
         <p class="ayuda-campo">Solo administradores. Comprueba el usuario y la contraseña de SES sin enviar datos de huéspedes.</p>
         <div class="form-acciones">
@@ -207,158 +201,110 @@
     </section>
 
     <section id="seccion-gestionar" class="seccion">
-      <div class="panel" id="panel-lista">
-        <h2>Gestionar Reserva</h2>
-        <div class="campo-fila">
-          <div class="form-grupo"><label for="filtro-nombre">Nombre</label><input type="text" id="filtro-nombre" autocomplete="off"></div>
-          <div class="form-grupo"><label for="filtro-desde">Desde</label><input type="date" id="filtro-desde"></div>
-          <div class="form-grupo"><label for="filtro-hasta">Hasta</label><input type="date" id="filtro-hasta"></div>
+      <div class="panel panel-compacto">
+        <h2>Gestionar Reservas</h2>
+        <div class="filtros">
+          <div class="form-grupo"><label for="filtro-nombre">Nombre</label><input type="search" id="filtro-nombre" autocomplete="off"></div>
+          <div class="form-grupo"><label for="filtro-espacio">Espacio</label><select id="filtro-espacio"><option value="">Todos</option></select></div>
+          <div class="form-grupo"><label for="filtro-estado">Estado</label>
+            <select id="filtro-estado"><option value="">Sin canceladas</option><option>Abierta</option><option>Cerrada</option><option>Cancelada</option></select></div>
+          <div class="form-grupo"><label for="filtro-cobro">Cobro</label>
+            <select id="filtro-cobro"><option value="">Todos</option><option value="Ingresado">Ingresada</option><option value="No ingresado">No ingresada</option></select></div>
         </div>
-        <div class="form-acciones" style="justify-content:flex-start">
-          <button type="button" class="btn btn-secundario" id="btn-rapido-semana">Próxima semana</button>
-          <button type="button" class="btn btn-secundario" id="btn-rapido-mes">Próximo mes</button>
-          <button type="button" class="btn btn-primario" id="btn-filtrar">Filtrar</button>
+        <div class="chips-filtro" role="group" aria-label="Fechas">
+          <button type="button" class="btn-chip" id="btn-rapido-semana" data-rango="semana" aria-pressed="false">Próxima semana</button>
+          <button type="button" class="btn-chip" id="btn-rapido-mes" data-rango="mes" aria-pressed="false">Próximo mes</button>
         </div>
-        <div class="tabla-scroll">
-          <table class="tabla-ancha">
-            <thead><tr><th></th><th>Estado</th><th>ID Reserva</th><th>Canal</th><th>Entrada</th><th>Salida</th><th>Personas</th><th>Check-in revisado</th><th>Check-out revisado</th><th>Nombre</th><th>Ingreso</th></tr></thead>
-            <tbody id="tabla-gestion"><tr><td colspan="11" class="vacio">Cargando…</td></tr></tbody>
-          </table>
+        <p class="ayuda-campo" id="gestion-total" aria-live="polite"></p>
+        <ul class="lista-tarjetas" id="lista-gestion"><li class="vacio">Cargando…</li></ul>
+        <nav class="paginacion" id="paginacion-gestion" aria-label="Páginas de reservas" hidden>
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-pagina-anterior">‹ Anterior</button>
+          <span id="pagina-actual"></span>
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-pagina-siguiente">Siguiente ›</button>
+        </nav>
+      </div>
+    </section>
+
+    <section id="seccion-ficha" class="seccion">
+      <div class="panel panel-compacto">
+        <div class="cabecera-pantalla">
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-ficha-volver">← Volver</button>
+          <h2 id="ficha-titulo">Reserva</h2>
+        </div>
+        <p class="ayuda-campo" id="ficha-contexto"></p>
+        <div class="acciones-ficha" id="ficha-acciones-arriba"></div>
+        <div id="ficha-contenido"></div>
+        <div class="acciones-ficha" id="ficha-acciones-abajo"></div>
+      </div>
+    </section>
+
+    <section id="seccion-funcion" class="seccion">
+      <div class="panel panel-compacto">
+        <div class="cabecera-pantalla">
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-funcion-volver">← Reservas</button>
+          <h2 id="funcion-titulo">Checklist</h2>
+        </div>
+        <div class="segmentado" id="funcion-momento" role="group" aria-label="Momento de la checklist" hidden>
+          <button type="button" class="btn-segmento" data-momento="checkin" aria-pressed="false">IN · Check-in</button>
+          <button type="button" class="btn-segmento" data-momento="checkout" aria-pressed="false">OUT · Check-out</button>
+        </div>
+        <div id="funcion-selector" hidden>
+          <div class="propuesta" id="funcion-propuesta"></div>
+          <div class="filtros">
+            <div class="form-grupo" id="grupo-funcion-espacio"><label for="funcion-espacio">Espacio</label><select id="funcion-espacio"><option value="">Todos</option></select></div>
+            <div class="form-grupo"><label for="funcion-nombre">Buscar por nombre</label><input type="search" id="funcion-nombre" autocomplete="off"></div>
+          </div>
+          <div class="form-grupo"><label for="funcion-opciones">Siguientes reservas</label><select id="funcion-opciones"></select></div>
+          <button type="button" class="btn btn-primario btn-bloque" id="btn-funcion-abrir" disabled>Abrir esta reserva</button>
         </div>
       </div>
 
-      <div id="detalle-gestion"></div>
-
-      <div class="panel" id="panel-edicion" hidden>
-        <div class="form-acciones" style="justify-content:space-between;margin-top:0">
-          <h2 id="edicion-titulo">Reserva</h2>
-          <button type="button" class="btn btn-secundario" id="btn-volver-lista">Cerrar ✕</button>
+      <div class="panel panel-compacto" id="funcion-trabajo" hidden>
+        <div class="cabecera-pantalla">
+          <h3 id="funcion-reserva-titulo"></h3>
+          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-funcion-cambiar">Cambiar de reserva</button>
         </div>
-        <p class="ayuda-campo" id="edicion-contexto"></p>
-        <div class="form-acciones" id="bloque-mensaje-huesped" style="justify-content:flex-start" hidden>
-          <button type="button" class="btn btn-secundario" id="btn-mensaje-huesped">Mensaje para el huésped</button>
-        </div>
+        <p class="ayuda-campo" id="funcion-reserva-detalle"></p>
 
-        <section class="viajeros" id="bloque-viajeros" aria-labelledby="titulo-viajeros" hidden>
-          <h3 id="titulo-viajeros">Registro de viajeros (SES)</h3>
-          <div class="chips" id="viajeros-chips"></div>
-          <button type="button" class="btn btn-secundario btn-pequeno" id="btn-actualizar-viajeros">↻ Actualizar formularios</button>
-          <p class="aviso-viajeros" id="viajeros-aviso" hidden></p>
-          <div id="viajeros-lista"></div>
-          <button type="button" class="btn btn-primario" id="btn-comunicar-parte" disabled>Comunicar el parte a SES</button>
-          <button type="button" class="btn btn-secundario" id="btn-comprobar-ses" hidden>↻ Comprobar ahora</button>
-          <p class="ayuda-campo" id="viajeros-nota"></p>
-        </section>
+        <div id="trabajo-checklist" class="trabajo" hidden></div>
 
-        <div class="datos-reserva">
-          <div><span class="dato-etq">Espacio</span><span id="ed-espacio"></span></div>
-          <div><span class="dato-etq">Canal</span><span id="ed-canal"></span></div>
-          <div><span class="dato-etq">Entrada</span><span id="ed-inicio"></span></div>
-          <div><span class="dato-etq">Salida</span><span id="ed-fin"></span></div>
-          <div><span class="dato-etq">Servicios extra</span><span id="ed-servicios"></span></div>
-          <div><span class="dato-etq">Registro viajeros</span><span id="ed-viajeros"></span></div>
-        </div>
-
-        <h3 style="font-size:1rem;margin-bottom:var(--space-3)">Resumen económico</h3>
-        <div class="datos-reserva">
-          <div><span class="dato-etq">Importe bruto</span><span id="ed-bruto"></span></div>
-          <div><span class="dato-etq">Comisión</span><span id="ed-comision-imp"></span></div>
-          <div><span class="dato-etq">Coste servicios</span><span id="ed-coste-serv"></span></div>
-          <div><span class="dato-etq">Margen servicios</span><span id="ed-margen"></span></div>
-          <div><span class="dato-etq">Importe neto</span><span id="ed-neto"></span></div>
-        </div>
-        <p class="ayuda-campo" id="ed-auditoria"></p>
-
-        <div class="form-grupo" style="margin-bottom:var(--space-5)">
-          <span class="etiqueta-bloque">Editar servicios extra</span>
-          <div id="ed-lista-servicios" class="lista-servicios"></div>
-          <p class="ayuda-campo" id="ed-servicios-sin" hidden>No hay servicios configurados para este espacio.</p>
-          <div class="form-acciones" style="margin-top:var(--space-3)">
-            <button type="button" class="btn btn-secundario" id="btn-guardar-servicios">Guardar servicios</button>
+        <div id="trabajo-identidades" class="trabajo" hidden>
+          <div class="form-acciones" id="bloque-mensaje-huesped" hidden>
+            <button type="button" class="btn btn-secundario" id="btn-mensaje-huesped">Mensaje para el huésped</button>
           </div>
-          <p class="ayuda-campo">Los servicios añadidos aquí no modifican la comisión del canal (acuerdo directo propietario-huésped).</p>
+          <section class="viajeros" id="bloque-viajeros" aria-labelledby="titulo-viajeros">
+            <h3 id="titulo-viajeros">Registro de viajeros (SES)</h3>
+            <div class="chips" id="viajeros-chips"></div>
+            <button type="button" class="btn btn-secundario btn-pequeno" id="btn-actualizar-viajeros">↻ Actualizar formularios</button>
+            <p class="aviso-viajeros" id="viajeros-aviso" hidden></p>
+            <div id="viajeros-lista"></div>
+            <button type="button" class="btn btn-primario" id="btn-comunicar-parte" disabled>Comunicar el parte a SES</button>
+            <button type="button" class="btn btn-secundario" id="btn-comprobar-ses" hidden>↻ Comprobar ahora</button>
+            <p class="ayuda-campo" id="viajeros-nota"></p>
+          </section>
         </div>
 
-        <form id="form-edicion" novalidate>
-          <fieldset class="bloque-contacto"><legend>Huésped</legend>
-            <div class="form-grupo"><label for="ed-nombre">Nombre y apellido <span class="obligatorio">*</span></label><input type="text" id="ed-nombre"></div>
-            <div class="campo-fila">
-              <div class="form-grupo"><label for="ed-telefono">Teléfono</label><input type="tel" id="ed-telefono" inputmode="numeric"></div>
-              <div class="form-grupo"><label for="ed-email">Email</label><input type="email" id="ed-email"></div>
+        <div id="trabajo-contrato" class="trabajo" hidden>
+          <p class="aviso-viajeros" id="contrato-estado"></p>
+          <div class="form-grupo">
+            <label for="contrato-archivo">Foto del contrato firmado (o PDF)</label>
+            <input type="file" id="contrato-archivo" accept="image/*,.pdf">
+            <p class="ayuda-campo">Sube una foto por página. La primera marca el contrato como firmado a tu nombre. Se guardan 5 años.</p>
+          </div>
+          <button type="button" class="btn btn-primario btn-bloque" id="btn-subir-contrato">Subir foto</button>
+          <p class="ayuda-campo" id="contrato-enlace"></p>
+        </div>
+
+        <div id="trabajo-extras" class="trabajo" hidden>
+          <p class="ayuda-campo">Cada servicio queda pendiente hasta que lo cobras. Al cobrarlo indica si fue vía plataforma o presencial; si el cliente lo rechaza, quítalo.</p>
+          <ul class="lista-extras" id="extras-lista"></ul>
+          <div class="extras-anadir">
+            <h4>Añadir un servicio</h4>
+            <div class="filtros">
+              <div class="form-grupo"><label for="extras-servicio">Servicio</label><select id="extras-servicio"></select></div>
+              <div class="form-grupo"><label for="extras-cantidad">Unidades</label><input type="number" id="extras-cantidad" min="1" step="1" value="1" inputmode="numeric"></div>
             </div>
-            <div class="campo-fila">
-              <div class="form-grupo"><label for="ed-adultos">Adultos <span class="obligatorio">*</span></label><input type="number" id="ed-adultos" min="1" step="1"></div>
-              <div class="form-grupo"><label for="ed-menores">Menores</label><input type="number" id="ed-menores" min="0" step="1"></div>
-            </div>
-          </fieldset>
-
-          <div class="form-grupo"><label for="ed-ref-canal">Código de reserva del canal</label><input type="text" id="ed-ref-canal" maxlength="40" autocomplete="off" autocapitalize="characters"></div>
-
-          <div class="campo-fila">
-            <div class="form-grupo"><label for="ed-importe">Importe del alquiler (€) <span class="obligatorio">*</span></label><input type="number" id="ed-importe" min="0" step="0.01"></div>
-            <div class="form-grupo"><label for="ed-comision">% Comisión</label><input type="number" id="ed-comision" min="0" max="100" step="0.01"></div>
-          </div>
-
-          <div class="campo-fila">
-            <div class="form-grupo"><label for="ed-cobro">Estado de cobro</label>
-              <select id="ed-cobro"><option>No ingresado</option><option>Ingresado</option></select></div>
-            <div class="form-grupo"><label for="ed-contrato">Estado del contrato</label>
-              <select id="ed-contrato"><option>Gestionado por canal</option><option>Pendiente</option><option>Firmado</option></select></div>
-          </div>
-
-          <fieldset class="bloque-contacto"><legend>Incidencias</legend>
-            <div class="form-grupo"><label for="ed-incidencias">Incidencias</label>
-              <select id="ed-incidencias"><option>Sin incidentes</option><option>Con incidentes</option></select></div>
-            <div id="bloque-incidencia" hidden>
-              <div class="campo-fila">
-                <div class="form-grupo"><label for="ed-incidente-com">Incidente comunicado</label>
-                  <select id="ed-incidente-com"><option value=""></option><option>Sí</option><option>No</option></select></div>
-                <div class="form-grupo"><label for="ed-compensacion">Compensación de daños</label>
-                  <select id="ed-compensacion"><option value=""></option><option>No recibida</option><option>Recibida</option></select></div>
-                <div class="form-grupo"><label for="ed-incid-resuelta">Incidencia resuelta</label>
-                  <select id="ed-incid-resuelta"><option value=""></option><option>Sí</option><option>No</option></select></div>
-              </div>
-            </div>
-          </fieldset>
-
-          <div class="campo-fila">
-            <div class="form-grupo"><label for="ed-checkin">Check-in revisado</label>
-              <select id="ed-checkin" disabled><option>Pendiente</option><option>Hecho</option></select></div>
-            <div class="form-grupo"><label for="ed-checkout">Check-out revisado</label>
-              <select id="ed-checkout" disabled><option>Pendiente</option><option>Hecho</option></select></div>
-          </div>
-          <p class="ayuda-campo">Se marcan al terminar cada checklist, más abajo.</p>
-
-          <div class="form-grupo"><label for="ed-notas">Notas</label><textarea id="ed-notas" rows="3"></textarea></div>
-
-          <div class="form-acciones">
-            <button type="button" class="btn btn-secundario" id="btn-cancelar-reserva">Cancelar reserva</button>
-            <button type="submit" class="btn btn-primario" id="btn-guardar-cambios">Guardar cambios</button>
-          </div>
-        </form>
-
-        <div class="form-grupo" id="bloque-subir-contrato" style="margin-top:var(--space-5)">
-          <span class="etiqueta-bloque">Contrato (PDF/JPG/PNG)</span>
-          <div class="campo-fila">
-            <input type="file" id="ed-archivo-contrato" accept=".pdf,.jpg,.jpeg,.png">
-            <button type="button" class="btn btn-secundario" id="btn-subir-contrato">Subir contrato</button>
-          </div>
-          <p class="ayuda-campo" id="ed-contrato-enlace"></p>
-        </div>
-
-        <div style="margin-top:var(--space-5)">
-          <h3>Checklists</h3>
-          <p class="ayuda-campo">Los vídeos de inicio y fin se suben desde su punto de la checklist.</p>
-          <div id="checklists-reserva"></div>
-        </div>
-
-        <div style="margin-top:var(--space-5)">
-          <h3>Historial de cambios</h3>
-          <div class="tabla-scroll">
-            <table>
-              <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
-              <tbody id="tabla-historial"><tr><td colspan="5" class="vacio">Sin cambios registrados.</td></tr></tbody>
-            </table>
+            <button type="button" class="btn btn-secundario btn-bloque" id="btn-extras-anadir" disabled>Añadir servicio</button>
           </div>
         </div>
       </div>
@@ -438,27 +384,49 @@
     <div class="ocupado-caja"><div class="ocupado-rueda" aria-hidden="true"></div><b id="ocupado-texto">Cargando…</b><p>No cierres la app.</p></div>
   </div>
 
-  <!-- Navegación inferior en dos pisos (F-25, ADR-0008): Reservas abre Gestionar / Crear encima de la barra. -->
+  <!-- Navegación inferior (F-25, F-31, F-33; ADR-0008): Reservas y Admin abren su segundo piso encima de la barra.
+       En Gestionar, la ficha y las funciones, la barra general se cambia por la de Reservas. -->
   <nav class="nav-inferior" aria-label="Secciones">
     <div class="nav-subpiso" id="nav-subpiso-reservas" hidden>
       <button type="button" class="nav-sub btn-nav" data-seccion="gestionar">Gestionar Reservas</button>
       <button type="button" class="nav-sub btn-nav" data-seccion="crear">Crear Reservas</button>
     </div>
-    <div class="nav-piso">
+    <div class="nav-subpiso" id="nav-subpiso-admin" hidden>
+      <button type="button" class="nav-sub btn-nav" data-seccion="checklists">Checklists</button>
+      <button type="button" class="nav-sub btn-nav" data-seccion="conexion-ses">Conexión SES</button>
+    </div>
+    <div class="nav-piso" id="nav-general">
       <button type="button" class="nav-item btn-nav" data-seccion="inicio">
         <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio
       </button>
       <button type="button" class="nav-item" id="btn-nav-reservas" aria-expanded="false" aria-controls="nav-subpiso-reservas">
         <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></svg>Reservas
       </button>
-      <button type="button" class="nav-item btn-nav" data-seccion="checklists" id="btn-nav-checklists" hidden>
-        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Checklists
-      </button>
       <button type="button" class="nav-item btn-nav" data-seccion="gastos">
         <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/></svg>Gastos
       </button>
       <button type="button" class="nav-item btn-nav" data-seccion="estadisticas">
         <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg>Estadísticas
+      </button>
+      <button type="button" class="nav-item" id="btn-nav-admin" aria-expanded="false" aria-controls="nav-subpiso-admin" hidden>
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg>Admin
+      </button>
+    </div>
+    <div class="nav-piso" id="nav-reservas" hidden>
+      <button type="button" class="nav-item" id="btn-nav-volver-inicio">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Inicio
+      </button>
+      <button type="button" class="nav-item btn-funcion" data-funcion="checklist">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Checklist
+      </button>
+      <button type="button" class="nav-item btn-funcion" data-funcion="identidades">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM8 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 16a3 3 0 0 1 6 0M14 9h4M14 13h4"/></svg>Identidades
+      </button>
+      <button type="button" class="nav-item btn-funcion" data-funcion="contrato">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4"/></svg>Contrato
+      </button>
+      <button type="button" class="nav-item btn-funcion" data-funcion="extras">
+        <svg class="nav-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM9 7V5a3 3 0 0 1 6 0v2M10 13h4"/></svg>Extras
       </button>
     </div>
   </nav>

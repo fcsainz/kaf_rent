@@ -16,7 +16,7 @@ test.describe('RF-02/RF-05 · autorización de endpoints', () => {
 
   test('un usuario dado de baja (Activo = No) no puede leer datos', () => {
     const e = crearEntornoConDatos({ usuarioActivo: 'baja@test.com' });
-    assert.equal(e.llamar('cargarUltimasReservas').success, false);
+    assert.equal(e.llamar('cargarReservasVistazo', 'proximas').success, false);
   });
 
   test('un usuario autorizado carga los espacios activos', () => {
@@ -310,17 +310,28 @@ test.describe('F-21 · enviar una incidencia al administrador', () => {
 });
 
 test.describe('RF-08/RF-11 · Inicio y buscador', () => {
-  test('últimas reservas: máximo 5', () => {
+  test('F-32 · reservas de un vistazo: máximo 5, tanto próximas como últimas registradas', () => {
     const e = crearEntornoConDatos();
     for (let i = 0; i < 6; i++) crear(e, datosReservaHabitacion({ fechaEntrada: isoDentroDe(10 + i * 3), fechaSalida: isoDentroDe(11 + i * 3) }));
-    assert.equal(e.llamar('cargarUltimasReservas').data.length, 5);
+    assert.equal(e.llamar('cargarReservasVistazo', 'proximas').data.length, 5);
+    assert.equal(e.llamar('cargarReservasVistazo', 'ultimas').data.length, 5);
+  });
+
+  test('F-32 · "Próximas" ordena por fecha de entrada y "Últimas" por orden de registro', () => {
+    const e = crearEntornoConDatos();
+    crear(e, datosReservaHabitacion({ nombre: 'Lejana', fechaEntrada: isoDentroDe(40), fechaSalida: isoDentroDe(41) }));
+    crear(e, datosReservaHabitacion({ nombre: 'Cercana', fechaEntrada: isoDentroDe(10), fechaSalida: isoDentroDe(11) }));
+    assert.deepEqual(e.llamar('cargarReservasVistazo', 'proximas').data.map((r) => r.nombre), ['Cercana', 'Lejana']);
+    assert.deepEqual(e.llamar('cargarReservasVistazo', 'ultimas').data.map((r) => r.nombre), ['Cercana', 'Lejana']);
+    e.llamar('cancelarReserva', e.hoja('Reservas').registros()[1].ID_Reserva);
+    assert.deepEqual(e.llamar('cargarReservasVistazo', 'proximas').data.map((r) => r.nombre), ['Lejana'], 'sin canceladas');
   });
 
   test('F-26 · últimas reservas: espacio corto, código del canal y fechas cortas', () => {
     const e = crearEntornoConDatos();
     crear(e, datosReservaHabitacion());
     crear(e, datosReservaPiscina());
-    const ultimas = e.llamar('cargarUltimasReservas').data;
+    const ultimas = e.llamar('cargarReservasVistazo', 'ultimas').data;
     const habitacion = ultimas.find((r) => r.nombre === 'Marta Pérez');
     const piscina = ultimas.find((r) => r.nombre === 'Grupo Ruiz');
     assert.equal(habitacion.espacio, 'Interior');
@@ -334,7 +345,7 @@ test.describe('RF-08/RF-11 · Inicio y buscador', () => {
     const e = crearEntornoConDatos();
     e.hoja('Catálogo_Espacios').datos.forEach((f) => { if (f[0] === 'Habitación Interior') f[3] = ''; });
     crear(e, datosReservaHabitacion());
-    assert.equal(e.llamar('cargarUltimasReservas').data[0].espacio, 'Habitación Interior');
+    assert.equal(e.llamar('cargarReservasVistazo').data[0].espacio, 'Habitación Interior');
   });
 
   test('busca por nombre (sin mayúsculas) y por fecha ocupada, y excluye canceladas (B-02)', () => {

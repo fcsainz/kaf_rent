@@ -31,3 +31,11 @@ const copiasAConservar_ = (dias, { diarias, semanales, mensuales }) => {
   aplicar((dia) => dia.slice(0, 7), mensuales);
   return [...conservar].sort((a, b) => a - b);
 };
+
+// F-41 (Q-11): las fotos del contrato se guardan N años desde la salida; después se borran.
+const contratoCaducado_ = (reserva, ahora, anios) => {
+  if (!texto_(reserva.contratoArchivo) || !(anios >= 1)) return false;
+  const limite = new Date(reserva.fin.getTime());
+  limite.setFullYear(limite.getFullYear() + anios);
+  return ahora.getTime() >= limite.getTime();
+};

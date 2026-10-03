@@ -1,6 +1,7 @@
 // Capa: INFRAESTRUCTURA — adaptador de Google Drive: carpetas por espacio/reserva y guardado de archivos (ADR-0014).
 
-const TIPOS_CONTRATO = ['pdf', 'jpg', 'jpeg', 'png'];
+const TIPOS_CONTRATO = ['pdf', 'jpg', 'jpeg', 'png', 'heic'];
+const NOMBRE_CARPETA_CONTRATO = 'Contrato';
 const TIPOS_VIDEO = ['mp4', 'mov', 'm4v'];
 const BYTES_POR_MB = 1024 * 1024;
 
@@ -62,8 +63,26 @@ const guardarArchivo_ = (carpeta, archivo, nombre) => {
   return carpeta.createFile(blob).getUrl();
 };
 
-const nombreContrato_ = (reserva, archivo) =>
-  `${referenciaDrive_(reserva.id)} - contrato - ${fechaCorta_(reserva.inicio)}.${extensionDe_(archivo.nombre)}`;
+// F-41: Documentos / {Espacio} / "KAF. Documentos {NN-AA} - {DDMMAA}" / Contrato.
+const carpetaContratoReserva_ = (reserva) => buscarOcrearSubcarpeta_(carpetaDocumentosReserva_(reserva), NOMBRE_CARPETA_CONTRATO);
+
+const nombreFotoContrato_ = (reserva, archivo, ahora) =>
+  `${referenciaDrive_(reserva.id)} - contrato - ${Utilities.formatDate(ahora, zonaHoraria_(), 'ddMMyy-HHmmss')}.${extensionDe_(archivo.nombre)}`;
+
+// ID de Drive de un enlace de carpeta (/folders/ID) o de archivo (/d/ID); null si no lo es.
+const idDriveDeUrl_ = (url) => {
+  const coincidencia = texto_(url).match(/\/folders\/([\w-]+)|\/d\/([\w-]+)/);
+  if (!coincidencia) return null;
+  return coincidencia[1] ? { tipo: 'carpeta', id: coincidencia[1] } : { tipo: 'archivo', id: coincidencia[2] };
+};
+
+// A la papelera de Drive (recuperable 30 días) la carpeta de fotos o el archivo del contrato.
+const enviarContratoAPapelera_ = (url) => {
+  const destino = idDriveDeUrl_(url);
+  if (!destino) return false;
+  (destino.tipo === 'carpeta' ? DriveApp.getFolderById(destino.id) : DriveApp.getFileById(destino.id)).setTrashed(true);
+  return true;
+};
 
 const nombreVideo_ = (reserva, momento, archivo) =>
   `Video ${momento} ${referenciaDrive_(reserva.id)} ${reserva.nombre} ${fechaCorta_(reserva.inicio)}.${extensionDe_(archivo.nombre)}`;

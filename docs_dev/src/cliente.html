@@ -1,15 +1,36 @@
 <script>
   // Navegación entre secciones (HTML Service no tiene enrutado nativo, ver ADR-0008).
-  // Barra inferior en dos pisos (F-25): Gestionar y Crear cuelgan de "Reservas".
-  const SECCIONES_RESERVAS = ['gestionar', 'crear'];
+  // Barra inferior (F-25, F-31): Gestionar y Crear cuelgan de "Reservas"; Checklists y Conexión SES, de "Admin".
+  // F-33: en Gestionar, la ficha y las funciones, la barra general se cambia por la de Reservas.
+  const SUBPISOS = {
+    reservas: { secciones: ['gestionar', 'crear', 'ficha', 'funcion'], boton: 'btn-nav-reservas', piso: 'nav-subpiso-reservas' },
+    admin: { secciones: ['checklists', 'conexion-ses'], boton: 'btn-nav-admin', piso: 'nav-subpiso-admin' },
+  };
+  const SECCIONES_BARRA_RESERVAS = ['gestionar', 'ficha', 'funcion'];
 
-  const mostrarSubpisoReservas = (visible) => {
-    $('nav-subpiso-reservas').hidden = !visible;
-    $('btn-nav-reservas').setAttribute('aria-expanded', String(visible));
-    document.body.classList.toggle('con-subpiso', visible);
+  // Otra pantalla puede frenar la navegación (p. ej. la ficha con cambios sin guardar, F-44):
+  // devuelve true si se encarga ella y llamará a `continuar` cuando proceda.
+  let guardiaNavegacion = null;
+
+  const mostrarSubpiso = (nombre, visible) => {
+    const { boton, piso } = SUBPISOS[nombre];
+    $(piso).hidden = !visible;
+    $(boton).setAttribute('aria-expanded', String(visible));
+    const abierto = Object.values(SUBPISOS).some((x) => !$(x.piso).hidden);
+    document.body.classList.toggle('con-subpiso', abierto);
   };
 
-  const navegar = (seccion) => {
+  const subpisoDe = (seccion) => Object.keys(SUBPISOS).find((n) => SUBPISOS[n].secciones.includes(seccion)) || null;
+
+  const mostrarBarra = (seccion) => {
+    const deReservas = SECCIONES_BARRA_RESERVAS.includes(seccion);
+    $('nav-general').hidden = deReservas;
+    $('nav-reservas').hidden = !deReservas;
+    return deReservas;
+  };
+
+  const navegar = (seccion, { forzar = false } = {}) => {
+    if (!forzar && guardiaNavegacion && guardiaNavegacion(seccion, () => navegar(seccion, { forzar: true }))) return;
     document.querySelectorAll('.seccion').forEach((s) => {
       s.classList.toggle('activa', s.id === 'seccion-' + seccion);
     });
@@ -17,18 +38,28 @@
       if (b.dataset.seccion === seccion) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
     });
-    const enReservas = SECCIONES_RESERVAS.includes(seccion);
-    if (enReservas) $('btn-nav-reservas').setAttribute('aria-current', 'page');
-    else $('btn-nav-reservas').removeAttribute('aria-current');
-    mostrarSubpisoReservas(enReservas);
+    const deReservas = mostrarBarra(seccion);
+    const subpiso = subpisoDe(seccion);
+    Object.keys(SUBPISOS).forEach((n) => {
+      if (n === subpiso && !deReservas) $(SUBPISOS[n].boton).setAttribute('aria-current', 'page');
+      else $(SUBPISOS[n].boton).removeAttribute('aria-current');
+      mostrarSubpiso(n, n === subpiso && !deReservas);
+    });
     window.scrollTo(0, 0);
+  };
+
+  const alternarSubpiso = (nombre) => {
+    const abrir = $(SUBPISOS[nombre].piso).hidden;
+    Object.keys(SUBPISOS).forEach((n) => mostrarSubpiso(n, n === nombre && abrir));
   };
 
   const inicializarNavegacion = () => {
     document.querySelectorAll('.btn-nav').forEach((btn) => {
       btn.addEventListener('click', () => navegar(btn.dataset.seccion));
     });
-    $('btn-nav-reservas').addEventListener('click', () => mostrarSubpisoReservas($('nav-subpiso-reservas').hidden));
+    $('btn-nav-reservas').addEventListener('click', () => alternarSubpiso('reservas'));
+    $('btn-nav-admin').addEventListener('click', () => alternarSubpiso('admin'));
+    $('btn-nav-volver-inicio').addEventListener('click', () => navegar('inicio'));
     navegar('inicio');
     const btnCancelar = $('btn-cancelar-crear');
     if (btnCancelar) btnCancelar.addEventListener('click', () => navegar('inicio'));
@@ -72,16 +103,33 @@
       get: (_, nombre) => {
         if (nombre === 'withSuccessHandler') return (f) => { alTerminarBien = f; return llamada; };
         if (nombre === 'withFailureHandler') return (f) => { alFallar = f; return llamada; };
+        // RNF-13: un fallo al llamar o al pintar la respuesta nunca deja la ventana de "trabajando" abierta ni
+        // pasa en silencio: se cierra la ventana y se muestra el error (con el nombre de la llamada, para soporte).
         return (...args) => {
           empezarOcupado(texto);
-          google.script.run
-            .withSuccessHandler((r) => { terminarOcupado(); alTerminarBien(r); })
-            .withFailureHandler((e) => { terminarOcupado(); alFallar(e); })[nombre](...args);
+          const protegido = (manejador) => (valor) => {
+            terminarOcupado();
+            try { manejador(valor); } catch (error) { mostrarErrorInterno(nombre, error); }
+          };
+          try {
+            google.script.run.withSuccessHandler(protegido(alTerminarBien)).withFailureHandler(protegido(alFallar))[nombre](...args);
+          } catch (error) {
+            terminarOcupado();
+            mostrarErrorInterno(nombre, error);
+          }
         };
       },
     });
     return llamada;
   };
+
+  // Error inesperado de la interfaz: se cuenta en una ventana, con el detalle técnico para el administrador.
+  const mostrarErrorInterno = (donde, error) => {
+    const detalle = error && error.message ? error.message : String(error);
+    const texto = `Algo ha fallado en la app (${donde}: ${detalle}). Recarga la página; si se repite, envía este mensaje al administrador.`;
+    try { mostrarMensaje(texto, 'error'); } catch (e) { window.alert(texto); } // si falla antes de cargar la ventana de avisos
+  };
+  window.addEventListener('error', (evento) => mostrarErrorInterno('interfaz', evento.error || evento.message));
 
   const formatearEuros = (importe) =>
     Number(importe || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -515,71 +563,95 @@
     ],
   });
 
-  // ----- Inicio: 5 últimas reservas, ordenable (HU-04) -----
+  // ----- Tarjeta de reserva (F-36, DI-22): en el móvil nada se desplaza en horizontal -----
+  // lineas: [{ texto, clase }] o nodos; etiquetas: nodos (badges). Toda la tarjeta es un botón.
+  const crearTarjetaReserva = ({ titulo, lineas = [], etiquetas = [], alPulsar }) => {
+    const li = document.createElement('li');
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'tarjeta-reserva';
+    const cabecera = document.createElement('span');
+    cabecera.className = 'tarjeta-linea tarjeta-titulo';
+    cabecera.textContent = titulo;
+    boton.appendChild(cabecera);
+    lineas.filter(Boolean).forEach((texto) => {
+      const linea = document.createElement('span');
+      linea.className = 'tarjeta-linea tarjeta-fechas';
+      linea.textContent = texto;
+      boton.appendChild(linea);
+    });
+    if (etiquetas.length > 0) {
+      const fila = document.createElement('span');
+      fila.className = 'tarjeta-linea tarjeta-etiquetas';
+      fila.append(...etiquetas);
+      boton.appendChild(fila);
+    }
+    boton.addEventListener('click', alPulsar);
+    li.appendChild(boton);
+    return li;
+  };
+
+  const pintarTarjetas = (lista, elementos, aTarjeta, textoVacio) => {
+    lista.innerHTML = '';
+    if (elementos.length === 0) {
+      const vacio = document.createElement('li');
+      vacio.className = 'vacio';
+      vacio.textContent = textoVacio;
+      lista.appendChild(vacio);
+      return;
+    }
+    elementos.forEach((x) => lista.appendChild(aTarjeta(x)));
+  };
+
+  // Al tocar una reserva del Inicio se abre su ficha (gestion_interfaz.html).
+  const abrirFichaDesdeInicio = (r) => abrirFicha(r.idReserva);
+
+  // ----- Inicio: reservas de un vistazo (HU-04, F-32), con "Ordenar por" en lugar de columnas (DI-22) -----
   let ultimasReservas = [];
-  const ordenInicio = { clave: null, asc: true };
-
-  const crearCelda = (texto) => {
-    const td = document.createElement('td');
-    td.textContent = texto;
-    return td;
+  const TEXTO_VACIO_VISTAZO = { proximas: 'No hay reservas próximas.', ultimas: 'Todavía no hay reservas.' };
+  const ORDENES_VISTAZO = {
+    'entrada-asc': (a, b) => a.inicioOrden - b.inicioOrden,
+    'entrada-desc': (a, b) => b.inicioOrden - a.inicioOrden,
+    'nombre-asc': (a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'),
+    'neto-desc': (a, b) => b.neto - a.neto,
   };
 
-  const filaVacia = (texto, colspan = 5) => {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = colspan;
-    td.className = 'vacio';
-    td.textContent = texto;
-    tr.appendChild(td);
-    return tr;
+  const tarjetaVistazo = (r) => crearTarjetaReserva({
+    titulo: `${r.ref} · ${r.nombre}`,
+    lineas: [`${r.espacio}${r.refCanal ? ' · ' + r.refCanal : ''}`, `${r.inicioTexto} → ${r.finTexto}`, `Neto: ${formatearEuros(r.neto)}`],
+    alPulsar: () => abrirFichaDesdeInicio(r),
+  });
+
+  const renderUltimas = () => {
+    const ordenadas = [...ultimasReservas].sort(ORDENES_VISTAZO[$('vistazo-orden').value]);
+    pintarTarjetas($('lista-vistazo'), ordenadas, tarjetaVistazo, TEXTO_VACIO_VISTAZO[$('vistazo-modo').value]);
   };
 
-  const pintarFilas = (tbody, reservas, columnas, textoVacio) => {
-    tbody.innerHTML = '';
-    if (reservas.length === 0) { tbody.appendChild(filaVacia(textoVacio, tbody.closest('table').querySelectorAll('thead th').length)); return; }
-    reservas.forEach((r) => {
-      const tr = document.createElement('tr');
-      columnas.forEach((celda) => tr.appendChild(crearCelda(celda(r))));
-      tbody.appendChild(tr);
-    });
-  };
-
-  const renderUltimas = () => pintarFilas(
-    $('tabla-ultimas'), ultimasReservas,
-    [(r) => r.espacio, (r) => r.refCanal || '—', (r) => r.nombre, (r) => r.inicioTexto, (r) => r.finTexto, (r) => formatearEuros(r.neto)],
-    'Todavía no hay reservas.'
-  );
-
-  const ordenarUltimas = (clave, tipo) => {
-    ordenInicio.asc = ordenInicio.clave === clave ? !ordenInicio.asc : true;
-    ordenInicio.clave = clave;
-    const factor = ordenInicio.asc ? 1 : -1;
-    ultimasReservas.sort((a, b) =>
-      (tipo === 'num' ? a[clave] - b[clave] : String(a[clave]).localeCompare(String(b[clave]), 'es')) * factor);
-    renderUltimas();
-  };
-
-  const inicializarInicio = () => {
-    document.querySelectorAll('#tabla-inicio th.orden').forEach((th) => {
-      th.addEventListener('click', () => ordenarUltimas(th.dataset.clave, th.dataset.tipo));
-    });
-    servidor('Cargando las últimas reservas…')
+  const cargarVistazo = () => {
+    servidor('Cargando las reservas…')
       .withSuccessHandler((res) => {
-        if (!res.success) { pintarFilas($('tabla-ultimas'), [], [], res.error); return; }
+        if (!res.success) { pintarTarjetas($('lista-vistazo'), [], tarjetaVistazo, res.error); return; }
         ultimasReservas = res.data;
         renderUltimas();
       })
-      .withFailureHandler(() => pintarFilas($('tabla-ultimas'), [], [], 'No se pudieron cargar las reservas.'))
-      .cargarUltimasReservas();
+      .withFailureHandler(() => pintarTarjetas($('lista-vistazo'), [], tarjetaVistazo, 'No se pudieron cargar las reservas.'))
+      .cargarReservasVistazo($('vistazo-modo').value);
+  };
+
+  const inicializarInicio = () => {
+    $('vistazo-modo').addEventListener('change', cargarVistazo);
+    $('vistazo-orden').addEventListener('change', renderUltimas);
+    cargarVistazo();
   };
 
   // ----- Buscar Reserva (HU-06) -----
-  const renderBusqueda = (reservas) => pintarFilas(
-    $('tabla-busqueda'), reservas,
-    [(r) => r.id, (r) => r.espacio, (r) => r.inicioTexto, (r) => r.finTexto, (r) => r.nombre],
-    'Ninguna reserva coincide con ese nombre o fecha.'
-  );
+  const tarjetaBusqueda = (r) => crearTarjetaReserva({
+    titulo: `${r.id} · ${r.nombre}`,
+    lineas: [r.espacio, `${r.inicioTexto} → ${r.finTexto}`],
+    alPulsar: () => abrirFichaDesdeInicio(r),
+  });
+
+  const renderBusqueda = (reservas) => pintarTarjetas($('lista-busqueda'), reservas, tarjetaBusqueda, 'Ninguna reserva coincide con ese nombre o fecha.');
 
   const ejecutarBusqueda = () => {
     const boton = $('btn-buscar');

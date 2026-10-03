@@ -16,8 +16,11 @@ test('RF-03 · una cuenta no autorizada ve "Acceso denegado" y no la app', async
 test('RNF-26 · un nombre con HTML se muestra como texto en Inicio y en Gestionar', async ({ page, request }) => {
   await rpc(request, 'crearReserva', datosHabitacion({ nombre: XSS }));
   await page.goto('/');
-  await expect(page.locator('#tabla-ultimas')).toContainText(XSS);
+  await expect(page.locator('#lista-vistazo')).toContainText(XSS);
   await irA(page, 'Gestionar Reservas');
-  await expect(page.locator('#tabla-gestion')).toContainText(XSS);
+  await expect(page.locator('#lista-gestion')).toContainText(XSS);
+  await page.locator('#lista-gestion .tarjeta-reserva').click();
+  await expect(page.locator('#ficha-titulo')).toBeVisible();
+  await expect(page.locator('#ficha-contenido')).toContainText(XSS);
   expect(await page.evaluate(() => window.__xss)).toBeUndefined();
 });

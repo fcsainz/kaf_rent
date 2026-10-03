@@ -56,3 +56,16 @@ const guardarRegistroChecklist_ = (idReserva, momento, puntos, email, ahora) => 
   if (entrada) actualizarRegistro_(tabla, entrada, registro);
   else anadirRegistro_(tabla, registro);
 };
+
+// Quién guardó por última vez cada checklist de una reserva y cuándo: { 'Check-in': { usuario, fecha }, … } (F-42).
+const leerAutoriaChecklists_ = (idReserva) => registrosDe_(HOJA_CHECKLISTS_RESERVA)
+  .filter((r) => texto_(r.idReserva) === idReserva)
+  .reduce((autoria, r) => ({ ...autoria, [texto_(r.momento)]: { usuario: texto_(r.usuario), fecha: r.fecha === '' ? null : aFecha_(r.fecha) } }), {});
+
+// F-45: filas de checklists dadas por hechas en la puesta al día, sin puntos marcados; en bloque y sin duplicar.
+// `filas`: [{ idReserva, momento, usuario, fecha }].
+const anadirChecklistsPuestaAlDia_ = (filas) => {
+  const tabla = leerTabla_(HOJA_CHECKLISTS_RESERVA);
+  const nuevas = filas.filter((f) => !buscarFilaChecklist_(tabla, f.idReserva, f.momento));
+  anadirRegistros_(tabla, nuevas.map((f) => ({ ...f, puntos: '[]', observaciones: 'Dada por hecha al poner los datos al día (F-45).' })));
+};

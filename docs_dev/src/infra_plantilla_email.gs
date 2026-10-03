@@ -82,6 +82,9 @@ const textoEmail_ = ({ etiqueta, titulo, resumen, datos = [], accion, botones = 
 // Mensaje listo para MailApp: asunto, HTML y texto.
 const correoConPlantilla_ = (asunto, contenido) => ({ subject: asunto, htmlBody: htmlEmail_(contenido), body: textoEmail_(contenido) });
 
+// Acciones que un enlace de email puede pedir a la app (?accion=…&id=…); doGet solo admite estas (F-37, F-40).
+const ACCION_APP = { INGRESO: 'ingreso', FICHA: 'ficha', CHECKIN: 'checkin', CHECKOUT: 'checkout' };
+
 // Enlaces de los botones.
 const urlApp_ = () => {
   try {

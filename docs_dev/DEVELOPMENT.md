@@ -4,6 +4,8 @@ El código de la app vive en [`docs_dev/src/`](src/) (Google Apps Script). Se ed
 
 ## clasp (flujo normal, una vez configurado)
 
+> **`npm run push` usa `--force` (decisión del usuario, 2026-10-03):** Apps Script vuelve a guardar `appsscript.json` con las claves en otro orden cada vez, y sin `--force` clasp se salta la subida en silencio ("Skipping push"). El manifiesto vive en el repo: no se toca a mano en el editor.
+
 **Una vez por equipo** (sirve para todos tus proyectos):
 1. Activa la *Google Apps Script API* en <https://script.google.com/home/usersettings> con cada cuenta.
 2. `npm install -g @google/clasp`
@@ -62,8 +64,8 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 ├── api_web.gs                      API: doGet() e include() de plantillas
 ├── api_seguridad.gs                API: identidad, autorización, ejecutarEndpoint_, ejecutarTareaDelSistema_
 ├── api_catalogo.gs                 API: catálogos del formulario
-├── api_reservas.gs                 API: crear reserva, últimas reservas, buscador
-├── api_gestion.gs                  API: lista, ficha, edición auditada, servicios, cancelación, historial
+├── api_reservas.gs                 API: crear reserva, reservas de un vistazo, buscador
+├── api_gestion.gs                  API: lista paginada, ficha, edición auditada, cobro, cancelación, funciones de la barra de Reservas (DD-03)
 ├── api_documentos.gs               API: contrato y vídeos a Drive
 ├── api_estadisticas.gs             API: estadísticas (y su recálculo) y enlace al calendario
 ├── api_gastos.gs                   API: gastos y resumen fiscal
@@ -88,7 +90,7 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 ├── index.html                      PRESENTACIÓN: shell de la app
 ├── estilos.html                    PRESENTACIÓN: tokens del sistema de diseño (ADR-0011)
 ├── cliente.html                    PRESENTACIÓN: navegación, Crear Reserva, Inicio, Buscar
-├── gestion_interfaz.html           PRESENTACIÓN: Gestionar Reserva, Estadísticas, calendario
+├── gestion_interfaz.html           PRESENTACIÓN: Gestionar (tarjetas), ficha, funciones de la barra de Reservas, Estadísticas, calendario
 ├── gastos_interfaz.html            PRESENTACIÓN: Gastos y resumen fiscal
 └── acceso-denegado.html            PRESENTACIÓN: pantalla de acceso denegado
 ```
@@ -125,8 +127,23 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 
 - Tras cambiar un `.gs` o un HTML en VS Code: `npm run push` (o, en emergencia, vuelve a pegar ese fichero en el editor).
 - Prueba en la URL **`/dev`** (`Implementar → Probar implementaciones`), que usa el último código guardado; recárgala tras pegar.
+- **Ojo (B-28, 2026-10-03):** copia la URL de pruebas de *Implementar → Probar implementaciones* (implementación `@HEAD`). Añadir `/dev` a la URL de producción **no** sirve: con ese identificador se sigue viendo la versión implementada.
 - Crea una **nueva versión de implementación** solo cuando quieras publicar a los usuarios (`npm run deploy -- "…"` o `Gestionar implementaciones → Editar → Nueva versión`). La URL de producción no cambia.
 - Tras publicar, haz el **smoke test** (abajo). Claude lo recuerda en cada publicación.
+
+## Despliegue de DD-03 (Reservas: navegación, listado, ficha y funciones; 2026-10-03)
+
+Pasos, en este orden, al publicar la versión con S31–S34:
+
+1. `npm run push` (con OK del usuario) y probar en `/dev`.
+2. Sheet → **KAF Rent → Inicializar / reparar hojas**: añade a `Reservas` las columnas `Contrato_Firmado_Por`, `Contrato_Fecha`, `Aviso_Checkin_Enviado`, `Aviso_Checkout_Enviado`; a `Reserva_Servicios`, `Cobro_Estado` y `Cobro_Forma`; y a `Config`, `Dias_Aviso_Ingreso`, `Horas_Aviso_Checkin` y `Anios_Retencion_Contrato`. **Sin este paso la app falla al leer las reservas** ("Falta la columna…"). En `Config`, cambia a mano `Tamano_Max_Contrato_MB` de 5 a **15** (DI-10; *Reparar hojas* no cambia valores existentes).
+3. Editor → ejecutar **`instalarTriggers`**: añade `avisosDeCobro` (9:00 diario) y `avisosDeChecklist` (cada 15 min).
+4. Editor → ejecutar **`ponerAlDiaReservas`** (F-45; **obligatorio antes de implementar**, DI-03) y revisar su resultado: reservas cambiadas, códigos del canal asignados y filas del Form para revisar a mano. Hacerlo **antes** de que pase el primer `avisosDeCobro`, para no avisar de reservas antiguas ya cobradas que constan como "No ingresado" (ver DI-08).
+5. Publicar (`npm run deploy`) y hacer el smoke (abajo, apartado DD-03).
+
+## Demo local para validar la interfaz
+
+`npm run demo` arranca la app real con datos inventados (sin Google) en `http://localhost:4180/demo`: panel para entrar como Admin o como Gestión, abrir los enlaces de los emails, lanzar los avisos y la puesta al día y ver los emails que se envían. Para verla como en el móvil: F12 → modo dispositivo (360–393 px). `Ctrl+C` la para. Es el mismo servidor de los E2E (`tests/e2e/servidor.js`, modo `DEMO=1`); nada se despliega.
 
 ## Smoke test tras publicar (T-06)
 
@@ -157,6 +174,15 @@ Lo que solo se puede comprobar en Google real. Unos 15 minutos; marca cada punto
 - [ ] El email de una reserva nueva llega con la plantilla nueva (logo, botones) y el botón **Abrir la reserva en KAF Rent** abre la URL de **producción** (`/exec`), no la de pruebas (`/dev`); si abre `/dev`, apúntalo (la URL sale de `ScriptApp.getService().getUrl()`).
 - [ ] En una reserva de Habitación, **Mensaje para el huésped** abre WhatsApp con el texto y el enlace del Form con el código puesto (o lo copia si no hay teléfono).
 - [ ] La ventana de "trabajando" aparece al abrir una reserva y se va sola; la barra inferior abre el segundo piso de Reservas.
+
+**Reservas DD-03 (S31–S34)**
+- [ ] Inicio: el selector cambia entre "5 próximas" y "5 últimas registradas".
+- [ ] "Ver calendario" en cada móvil Android abre la app de Google Calendar y Atrás vuelve a KAF Rent (R-25).
+- [ ] Gestionar: tarjetas sin scroll lateral, filtros al momento, paginación; la barra cambia a la de Reservas e "Inicio" vuelve.
+- [ ] Ficha: Modificar → cambiar algo → "← Volver" pregunta Guardar / Descartar.
+- [ ] Contrato: subir una foto desde el móvil a una reserva de Exterior → carpeta `Contrato` en Drive y "Firmado" a tu nombre.
+- [ ] Admin (solo rol Admin): Checklists y Conexión SES.
+- [ ] Al día siguiente: comprobar en `Logs`/`Errores` y en el correo que `avisosDeCobro` y `avisosDeChecklist` funcionan, y que el botón del email abre `/exec` con la confirmación.
 
 **Cierre**
 - [ ] Borrar del Sheet las reservas de prueba (y sus eventos) o cancelarlas.

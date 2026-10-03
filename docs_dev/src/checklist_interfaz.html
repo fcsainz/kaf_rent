@@ -1,6 +1,7 @@
   <script>
-    // Checklists de check-in y check-out (F-14, DD-01) dentro de Gestionar → Modificar, y editor del catálogo (Admin).
-    // Reutiliza $, mostrarMensaje, mostrarExito, confirmarAccion, leerArchivo y modificar de cliente/gestion (mismo ámbito).
+    // Checklists de check-in y check-out (F-14, DD-01) en la función Checklist de la barra de Reservas (F-38),
+    // y editor del catálogo (Admin). Reutiliza $, servidor, mostrarMensaje, mostrarExito, confirmarAccion, leerArchivo
+    // y refrescarTrabajo de cliente/gestion (mismo ámbito).
 
     const MOMENTOS_CHECKLIST_UI = [
       { momento: 'Check-in', titulo: 'Check-in', video: 'In' },
@@ -12,19 +13,19 @@
 
     let checklistReservaId = null;
 
-    const cargarChecklistsReserva = (id) => {
+    // Pinta la checklist de un momento ('Check-in' | 'Check-out') de una reserva en `cont`, desplegada.
+    const abrirChecklistEn = (cont, id, momento) => {
       checklistReservaId = id;
-      const cont = $('checklists-reserva');
+      const m = MOMENTOS_CHECKLIST_UI.find((x) => x.momento === momento);
       cont.innerHTML = '';
-      MOMENTOS_CHECKLIST_UI.forEach((m) => {
-        const det = document.createElement('details');
-        det.className = 'checklist';
-        const resumen = document.createElement('summary');
-        resumen.textContent = `${m.titulo} — cargando…`;
-        det.appendChild(resumen);
-        cont.appendChild(det);
-        pedirChecklist(m, det);
-      });
+      const det = document.createElement('details');
+      det.className = 'checklist';
+      det.open = true;
+      const resumen = document.createElement('summary');
+      resumen.textContent = `${m.titulo} — cargando…`;
+      det.appendChild(resumen);
+      cont.appendChild(det);
+      pedirChecklist(m, det);
     };
 
     const pedirChecklist = (m, det) => {
@@ -234,12 +235,8 @@
     // Si algún punto de daños se respondió "Con daños", se lleva al usuario a registrar la incidencia (B-19).
     const hayDanos = (puntos) => puntos.some((p) => p.tipo === 'Daños' && p.valor === 'Con daños');
 
-    // Vuelve a abrir la reserva para ver su estado recalculado.
-    const reabrirDetalle = () => {
-      const id = checklistReservaId;
-      cerrarDetalle();
-      modificar(id);
-    };
+    // Vuelve a cargar la checklist para ver su estado recalculado.
+    const reabrirDetalle = () => refrescarTrabajo();
 
     const terminarChecklistUI = (m, puntos) => {
       servidor('Terminando la checklist…')
@@ -248,18 +245,18 @@
           mostrarExito(`${m.titulo} terminado.`);
           reabrirDetalle();
           if (m.momento === 'Check-out' && hayDanos(puntos)) {
-            mostrarMensaje('Has indicado daños. Registra la incidencia en el formulario: Incidencias → "Con incidentes".', 'aviso');
+            mostrarMensaje('Has indicado daños. Registra la incidencia en la ficha de la reserva: Modificar → Incidencias → "Con incidentes".', 'aviso');
           }
         })
         .withFailureHandler(() => mostrarMensaje('No se pudo terminar la checklist.', 'error'))
         .confirmarChecklist(checklistReservaId, m.momento);
     };
 
-    // ----- Editor del catálogo (solo Admin, DD-01 §3.3) -----
+    // ----- Menú Admin (F-31) y editor del catálogo (solo Admin, DD-01 §3.3) -----
     const cargarPerfil = () => {
       google.script.run
         .withSuccessHandler((res) => {
-          if (res.success && res.data.esAdmin) $('btn-nav-checklists').hidden = false;
+          if (res.success && res.data.esAdmin) $('btn-nav-admin').hidden = false;
         })
         .withFailureHandler(() => {})
         .obtenerPerfil();
@@ -293,12 +290,14 @@
         .guardarPuntoChecklist(datos);
     };
 
+    // DI-22: el texto de un punto puede ser largo; en el móvil se parte en líneas en lugar de desplazarse de lado.
     const campoTexto = (valor, etiquetaAccesible) => {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = valor;
-      input.setAttribute('aria-label', etiquetaAccesible);
-      return input;
+      const texto = document.createElement('textarea');
+      texto.rows = 2;
+      texto.value = valor;
+      texto.className = 'texto-punto';
+      texto.setAttribute('aria-label', etiquetaAccesible);
+      return texto;
     };
 
     const renderEditor = (puntos, espacio, momento) => {

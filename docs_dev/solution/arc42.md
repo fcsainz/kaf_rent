@@ -119,16 +119,16 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 
 | Capa | Fichero | Responsabilidad | Endpoints / entradas públicas | ADR |
 |---|---|---|---|---|
-| API | `api_web.gs` | `doGet`, plantillas | `doGet`, `include` | 0001, 0008 |
+| API | `api_web.gs` | `doGet` (con la acción de un enlace de email, F-37/F-40), plantillas | `doGet`, `include` | 0001, 0008 |
 | API | `api_seguridad.gs` | Identidad, autorización, `ejecutarEndpoint_` (plantilla de endpoint), `ejecutarTareaDelSistema_` (triggers/editor) | — | 0001 |
 | API | `api_catalogo.gs` | Catálogos del formulario | `cargarEspaciosFormulario`, `cargarOpcionesEspacio` | 0003 |
-| API | `api_reservas.gs` | Crear reserva; Inicio y buscador | `crearReserva`, `cargarUltimasReservas`, `buscarReservas` | 0003, 0014 |
-| API | `api_gestion.gs` | Lista, ficha, edición auditada, servicios, cancelación, historial | `listarReservasActivas`, `obtenerReserva`, `actualizarReserva`, `cargarServiciosReserva`, `actualizarServiciosReserva`, `cancelarReserva`, `obtenerHistorial` | 0004, 0005 |
-| API | `api_documentos.gs` | Contrato y vídeos | `subirContrato`, `subirVideo` | 0014 |
+| API | `api_reservas.gs` | Crear reserva; Inicio (reservas de un vistazo) y buscador | `crearReserva`, `cargarReservasVistazo`, `buscarReservas` | 0003, 0014 |
+| API | `api_gestion.gs` | Lista filtrada y paginada, ficha (con servicios, checklists, identidades e historial), edición auditada con servicios, marcar ingresada, cancelación y funciones de la barra de Reservas (DD-03) | `listarReservasGestion`, `obtenerFichaReserva`, `actualizarReserva`, `marcarIngresado`, `cancelarReserva`, `buscarReservasPara`, `cargarServiciosCobro`, `registrarCobroServicio`, `anadirServicioReserva` | 0004, 0005 |
+| API | `api_documentos.gs` | Fotos del contrato y vídeos | `subirContrato`, `subirVideo` | 0014, 0023 |
 | API | `api_checklist.gs` | Checklists por reserva, fotos de desperfectos y editor del catálogo (Admin) | `cargarChecklist`, `guardarChecklist`, `confirmarChecklist`, `subirFotoDesperfecto`, `cargarCatalogoChecklist`, `guardarPuntoChecklist` | — |
 | API | `api_estadisticas.gs` | Estadísticas y enlace al calendario | `cargarEstadisticas`, `recalcularEstadisticas`, `obtenerEnlaceCalendario` | 0009, 0010 |
 | API | `api_gastos.gs` | Gastos y resumen fiscal | `cargarCategoriasGasto`, `registrarGasto`, `calcularResumenFiscal` | 0012 |
-| API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `instalarTriggers`, `sincronizarReservasCalendario`, `corregirHorasReservas` (D-28), `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
+| API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `avisosDeCobro` (F-37), `avisosDeChecklist` (F-40), `instalarTriggers`, `sincronizarReservasCalendario`, `corregirHorasReservas` (D-28), `ponerAlDiaReservas` (F-45), `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
 | API | `api_ses.gs` | SES.Hospedajes: al llegar un Form programa la reserva (RH) y actualiza el registro; cada 10 min envía, consulta lotes y reintenta; refresca catálogos (S27) | `alEnviarFormularioViajeros`, `procesarComunicacionesSES`, `actualizarCatalogosSES`, `comprobarConexionSES` (menú); endpoints `mensajeHuesped`, `cargarViajeros`, `validarViajero`, `deshacerValidacionViajero`, `comunicarParte`, `comprobarSES`, `probarConexionSES` (S28) | 0018 |
 | Dominio | `dominio_reservas.gs` | Validaciones, fechas, importes (fórmula única), solapamiento, IDs, ciclo de vida, edición, filtros | — | 0003–0005, 0014 |
 | Dominio | `dominio_informes.gs` | Agregados de estadísticas e informes, periodos | — | 0009 |
@@ -148,7 +148,7 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` | Gastos y resumen fiscal · cache de estadísticas e histórico de informes | — | 0009, 0012 |
 | Infra | `infra_catalogo.gs` | Catálogos (espacios, canales, servicios, categorías) | — | 0003 |
 | Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` · `infra_plantilla_email.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal); plantilla HTML común de los emails (D-35) | — | 0006, 0010, 0014 |
-| Infra | `infra_mantenimiento.gs` | Copias (rotación abuelo-padre-hijo), purgas y poda de vídeos | — | 0013, 0014, 0016 |
+| Infra | `infra_mantenimiento.gs` | Copias (rotación abuelo-padre-hijo), purgas, poda de vídeos y de fotos del contrato | — | 0013, 0014, 0016, 0023 |
 
 **Script del Form de viajeros** (proyecto aparte, `docs_dev/src_form_checkin/`, [ADR-0021](adr/0021-script-propio-del-form-de-viajeros.md)): `dominio_form.gs` (opciones de cada lista y validaciones; títulos = contrato con `dominio_ses.gs`), `infra_form.gs` (`FormApp` y lectura de `Catálogo_SES`), `api_form.gs` (`onOpen`, `configurarFormulario`, `configurarFormularioDesdeMenu`).
 
@@ -163,7 +163,7 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 ### 6.1 Carga de la app
 1. `doGet` → `obtenerEmailSesion_` → `verificarAcceso_` (lee `Usuarios_Autorizados`, escribe en `Logs`).
 2. Autorizado → plantilla `index` (incluye estilos y JS); si no → `acceso-denegado`.
-3. El cliente pide `cargarUltimasReservas`, `obtenerEnlaceCalendario`, `cargarEstadisticas`, `listarReservasActivas`, `cargarEspaciosFormulario` y `cargarCategoriasGasto`.
+3. El cliente pide `cargarReservasVistazo`, `obtenerEnlaceCalendario`, `cargarEstadisticas`, `listarReservasGestion`, `cargarEspaciosFormulario` y `cargarCategoriasGasto`.
 
 ### 6.2 Crear reserva (HU-15, HU-16)
 ```
@@ -188,7 +188,10 @@ Cliente ──crearReserva(datos)──► ejecutarEndpoint_ (autorización, try
 `cancelarReserva` → bloqueo → `cancelar_` (pura) → `guardarReserva_` → `registrarHistorial_` → `eliminarEventoReserva_` → `notificarReaperturaCanales_`.
 
 ### 6.5 Mantenimiento nocturno (03:00)
-`tareasNocturnas(e)` → `ejecutarTareaDelSistema_` (valida `e.triggerUid`) → `ejecutarTarea_` × {`recalcularEstadisticas_`, `copiaSeguridadSheet_`, `purgarPorAntiguedad_` (Logs, Errores), `purgarVideosAntiguos_`}; cada fallo va a `Errores` sin detener las demás.
+`tareasNocturnas(e)` → `ejecutarTareaDelSistema_` (valida `e.triggerUid`) → `ejecutarTarea_` × {`recalcularEstadisticas_`, `copiaSeguridadSheet_`, `purgarPorAntiguedad_` (Logs, Errores), `purgarVideosAntiguos_`, `purgarContratosAntiguos_` (ADR-0023)}; cada fallo va a `Errores` sin detener las demás.
+
+### 6.5 bis Avisos (DD-03 §3.7)
+`avisosDeCobro(e)` (diario, 09:00) → `tocaAvisoIngreso_` (sin guardar estado: a los 10, 20, 30… días de la salida) → `enviarRecordatorioIngreso_` a Admin y Gestión, con el botón `?accion=ingreso&id=…`. `avisosDeChecklist(e)` (cada 15 min, bajo bloqueo) → `tocaAvisoCheckin_` / `tocaAvisoCheckout_` → `enviarAvisoChecklist_` → anota `Aviso_*_Enviado` solo si el email sale. El enlace del email entra por `doGet(e)` → `accionInicial_` (lista cerrada de acciones e ID con formato) → el cliente abre la ficha o la checklist y pide confirmación.
 
 ### 6.6 Informes (día 1, 07:00)
 `informesProgramados(e)` → `periodoMensual_` (y `periodoTrimestral_` si `esInicioDeTrimestre_`) → `reservasDelPeriodo_` → `agregarPorEspacioCanal_` → `archivarInforme_` + `enviarInforme_` (HTML escapado).
@@ -240,12 +243,12 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | 18 | Importe_Neto | Número | Calculado |
 | 19 | Estado_Cobro | Texto | No ingresado / Ingresado |
 | 20 | Contrato_Estado | Texto | Gestionado por canal / Pendiente / Firmado |
-| 21 | Contrato_Archivo | URL | Drive |
+| 21 | Contrato_Archivo | URL | Carpeta `Contrato` de la reserva en Drive (F-41; antes, un archivo). Vacío tras borrar las fotos a los 5 años (ADR-0023) |
 | 22 | Incidencias | Texto | Sin incidentes / Con incidentes |
 | 23 | Incidente_Comunicado | Texto | Sí / No |
 | 24 | Compensación_Daños | Texto | No recibida / Recibida (informativo) |
 | 25 | Incidencia_Resuelta | Texto | Sí / No (condición de cierre) |
-| 26 | Estado_Reserva | Texto | Abierta / Completada / Cancelada (calculado) |
+| 26 | Estado_Reserva | Texto | Abierta / Cerrada / Cancelada (calculado). "Completada" (antes de Q-07) se lee como Cerrada hasta migrarlo con `ponerAlDiaReservas` (F-45) |
 | 27 | Registro_Viajeros_Estado | Texto | Pendiente / Completado (solo `Rango_Dias`, Fase 2) |
 | 28 | Checkin_Revisado | Texto | Pendiente / Hecho |
 | 29 | Checkout_Revisado | Texto | Pendiente / Hecho |
@@ -259,12 +262,16 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | 37 | Video_Out_Url | URL | Ídem |
 | 38 | Coste_Canal_Fijo | Número | Snapshot de `Coste_Fijo_Por_Reserva` del canal |
 | 39 | Ref_Canal | Texto | Código de la reserva en la plataforma (≤ 40); obligatorio si el canal tiene `Requiere_Ref_Canal` = Sí (RF-88) |
+| 40 | Contrato_Firmado_Por | Email | Quién subió la primera foto del contrato (F-41) |
+| 41 | Contrato_Fecha | Fecha+hora | Cuándo (F-41) |
+| 42 | Aviso_Checkin_Enviado | Fecha+hora | Aviso de check-in sin hacer ya enviado (F-40); vacío = no |
+| 43 | Aviso_Checkout_Enviado | Fecha+hora | Ídem para el check-out (F-40) |
 
 #### Otras hojas
 
 | Hoja | Columnas | Propósito | ADR |
 |---|---|---|---|
-| `Reserva_Servicios` | ID_Reserva, Nombre_Servicio, Cantidad, Coste_Unitario_Snapshot, Precio_Unitario_Snapshot | Líneas de servicios extra | 0003 |
+| `Reserva_Servicios` | ID_Reserva, Nombre_Servicio, Cantidad, Coste_Unitario_Snapshot, Precio_Unitario_Snapshot, Cobro_Estado, Cobro_Forma | Líneas de servicios extra; cada una nace Pendiente y se cobra en Extras vía Plataforma o Presencial (F-43, DI-11); vacío en las anteriores a DD-03 = cobrada | 0003, DD-03 |
 | `Catálogo_Espacios` | Nombre_Espacio, Activo, Modo_Fecha, Nombre_Corto | Espacios, modo de fecha y nombre corto para tablas (F-26: Interior / Exterior) | 0003 |
 | `Catálogo_Canales` | Espacio, Nombre_Canal, Activo, %_Comisión_Default, Gestión_Contrato, Coste_Fijo_Por_Reserva, Requiere_Ref_Canal | Canales por espacio; `Requiere_Ref_Canal` = Sí exige el código de la plataforma (RF-88) | 0003, 0004 |
 | `Catálogo_Servicios_Extra` | Espacio, Nombre_Servicio, Activo, Coste_Unitario, Precio_Unitario | Servicios por espacio | 0003 |
@@ -318,7 +325,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 - Un fallo secundario que el usuario debe conocer vuelve en la respuesta como `aviso` (y, si procede, `incidencia`); el cliente lo muestra en ventana modal con opción de enviarlo a las cuentas `Admin` (F-21, RF-82).
 
 ### 8.7 Configuración (`Config`)
-Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default` (prerrellenan las horas de la Habitación, ADR-0019; se leen como `HH:mm` aunque Sheets las guarde como hora), `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23), `Sheet_Viajeros_Id`, `Sheet_Viajeros_Hoja`, `Form_Viajeros_Enlace` (enlace prerrellenado con `{codigo}`, F-27), `SES_Url`, `SES_Codigo_Arrendador`, `SES_Codigo_Establecimiento`, `SES_Aplicacion`, `SES_Tipo_Pago`, `SES_Reintento_Minutos`, `SES_Max_Intentos` (S27), `SES_Web_Url` (S28, botón "Abrir SES.Hospedajes" de los emails). *Reparar hojas* añade al final las claves que falten sin tocar las existentes. Se leen una vez por ejecución (`leerConfig`).
+Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default` (prerrellenan las horas de la Habitación, ADR-0019; se leen como `HH:mm` aunque Sheets las guarde como hora), `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23), `Sheet_Viajeros_Id`, `Sheet_Viajeros_Hoja`, `Form_Viajeros_Enlace` (enlace prerrellenado con `{codigo}`, F-27), `SES_Url`, `SES_Codigo_Arrendador`, `SES_Codigo_Establecimiento`, `SES_Aplicacion`, `SES_Tipo_Pago`, `SES_Reintento_Minutos`, `SES_Max_Intentos` (S27), `SES_Web_Url` (S28, botón "Abrir SES.Hospedajes" de los emails), `Dias_Aviso_Ingreso` (F-37), `Horas_Aviso_Checkin` (F-40), `Anios_Retencion_Contrato` (F-41, ADR-0023). `Tamano_Max_Contrato_MB` vale 15 por defecto (DI-10). *Reparar hojas* añade al final las claves que falten sin tocar las existentes. Se leen una vez por ejecución (`leerConfig`).
 
 ### 8.8 Concurrencia
 `LockService.getScriptLock()` (espera de 20 s) en crear, editar, cancelar, servicios y gastos.
@@ -327,10 +334,10 @@ Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_N
 Respuesta siempre `{ success: boolean, data?, error? }` (algunos endpoints usan claves propias: `id`, `url`, `estado`). Cliente: `withSuccessHandler` + `withFailureHandler`, botón deshabilitado durante la llamada.
 
 ### 8.10 Interfaz
-Hub + secciones (ADR-0008), mobile-first, tokens de [design-system.md](design-system.md) (ADR-0011), estándares de UX de CLAUDE.md §6.
+Hub + secciones (ADR-0008); barra general, segundos pisos (Reservas, Admin) y barra de Reservas en Gestionar, la ficha y las funciones (DD-03); mobile-first, tokens de [design-system.md](design-system.md) (ADR-0011), estándares de UX de CLAUDE.md §6.
 
 ### 8.11 Almacenamiento en Drive
-`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (rotación abuelo-padre-hijo: 7 diarias, 4 semanales, 12 mensuales). ADR-0013, ADR-0014, ADR-0016.
+`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado, salvo la subcarpeta `Contrato`, que se borra a los 5 años de la salida, ADR-0023), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (rotación abuelo-padre-hijo: 7 diarias, 4 semanales, 12 mensuales). ADR-0013, ADR-0014, ADR-0016.
 
 ### 8.12 Testabilidad
 Ver CLAUDE.md §7. **Implantado en v2:** `npm test` carga los `.gs` en un contexto `vm` (un ámbito global, como Apps Script) con dobles en memoria de Sheets, Drive, Calendar, Mail, Lock, Session y ScriptApp (`tests/soporte/`). Hay tests unitarios del dominio y tests de los 20 endpoints y de las entradas del sistema; cobertura ≈ 98 % de líneas; CI en GitHub Actions. Pendiente (S11): E2E de la interfaz con Playwright e integración contra un Sheet de pruebas.
@@ -368,7 +375,7 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 
 | ID | Riesgo | P | I | Exposición | Mitigación | Estado |
 |---|---|---|---|---|---|---|
-| R-01 | Superar las cuotas de Apps Script | B | M | Baja | Lecturas en bloque; un solo trigger; vigilar el panel de cuotas | Abierto |
+| R-01 | Superar las cuotas de Apps Script | B | M | Baja | Lecturas en bloque; pocos triggers y cortos (ver R-24); vigilar el panel de cuotas | Abierto |
 | R-02 | Escritura concurrente que elude el solapamiento | B | M | Baja | `LockService` (RF-30) | Mitigado |
 | R-03 | Incumplimiento RGPD con datos de huéspedes | M | A | **Media** | Base legal contractual, minimización, política de retención, capacidad de localizar y borrar datos | Abierto (RNF-37 pendiente) |
 | R-04 | Contrato demasiado grande para subir | B | B | Baja | `Tamano_Max_Contrato_MB` en `Config` | Mitigado |
@@ -391,6 +398,8 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-21 | Sin Form del huésped antes del día de entrada, la reserva (`RH`) no se comunica a SES en 24 h (RD 933/2021, Art. 6.3 a) | M | M | Media | El parte (`PV`) se comunica siempre al validar; mensaje de WhatsApp con el Form al crear la reserva (F-27) | Aceptado por el usuario (D-31) |
 | R-22 | Cambio de estructura del Google Form de viajeros (preguntas repetidas leídas por orden) rompe la lectura de KAF Rent | B | A | Media | No tocar el Form sin revisar DD-02; test de cabeceras; error claro en pantalla (ADR-0018) | Abierto (Fase 2) |
 | R-23 | SES se activó en producción sin probar antes el alta de la reserva (`RH`), el parte (`PV`), la consulta del lote y la anulación contra SES real, porque pre-ses respondía HTTP 502 (2026-10-02). Un formato no aceptado haría fallar esas comunicaciones | M | B | Baja | Conexión y catálogo comprobados en producción; tests con la especificación v3.1.3; cada fallo da un email ✕ y se comunica a mano; verificación con la primera reserva real (S29, ACC-06) | Abierto |
+| R-24 | Dos triggers frecuentes (SES cada 10 min y avisos de checklist cada 15 min, DD-03) más los diarios suman tiempo de ejecución contra la cuota gratuita de triggers (90 min/día en cuentas personales; no medido en real) | B | M | Baja | Cada pasada lee `Reservas` una vez y termina en segundos; vigilar el panel de ejecuciones en `/dev` tras implementar; si se acerca, pasar los avisos de checklist a cada 30 min | Abierto |
+| R-25 | "Ver calendario" en Android abre la app de Google Calendar con un enlace `intent://` (D-44 B); no verificado en los móviles reales (Motorola G85, Pixel 10, Redmi 9) ni dentro del marco de Apps Script | M | B | Baja | Si la app no se abre, el enlace lleva la web como alternativa; smoke en los 3 móviles tras implementar | Abierto |
 
 *P/I:* A = alta · M = media · B = baja.
 

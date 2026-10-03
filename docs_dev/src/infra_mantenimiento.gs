@@ -1,4 +1,5 @@
-// Capa: INFRAESTRUCTURA — tareas de mantenimiento: copia del Sheet, purga de Logs/Errores y poda de vídeos (ADR-0013, ADR-0014, ADR-0016).
+// Capa: INFRAESTRUCTURA — tareas de mantenimiento: copia del Sheet, purga de Logs/Errores, poda de vídeos y de contratos
+// (ADR-0013, ADR-0014, ADR-0016, ADR-0023).
 
 const NIVEL_CARPETA_RESERVA = 2; // Vídeos (0) / espacio (1) / reserva (2)
 const FORMATO_DIA = 'yyyy-MM-dd';
@@ -75,4 +76,25 @@ const purgarVideosAntiguos_ = (ahora) => {
   if (!obtenerConfig_('Carpeta_Videos_Id')) return;
   const limite = ahora.getTime() - obtenerConfigNumero_('Retencion_Videos_Dias', 180) * MS_POR_DIA;
   podarCarpeta_(carpetaPorId_('Carpeta_Videos_Id'), limite, 0);
+};
+
+const ETIQUETA_FOTOS_CONTRATO = 'Fotos del contrato';
+const ANIOS_RETENCION_CONTRATO_DEFECTO = 5;
+
+// F-41 (ADR-0023): manda a la papelera las fotos del contrato caducadas, vacía el enlace y lo deja en el historial.
+// Caducan muy pocas cada noche: se escriben de una en una (KISS), y un fallo de Drive no frena las demás.
+const purgarContratosAntiguos_ = (ahora) => {
+  const anios = obtenerConfigNumero_('Anios_Retencion_Contrato', ANIOS_RETENCION_CONTRATO_DEFECTO);
+  const lectura = leerReservas_();
+  lectura.entradas.filter(({ reserva }) => contratoCaducado_(reserva, ahora, anios)).forEach((entrada) => {
+    const { reserva } = entrada;
+    try {
+      enviarContratoAPapelera_(reserva.contratoArchivo);
+    } catch (error) {
+      registrarError_('purgarContratosAntiguos_', error, { id: reserva.id });
+      return;
+    }
+    guardarCampoReserva_(lectura.tabla, entrada.filaSheet, 'contratoArchivo', '');
+    registrarHistorial_(reserva.id, [{ campo: ETIQUETA_FOTOS_CONTRATO, anterior: reserva.contratoArchivo, nuevo: `Borradas: más de ${anios} años` }], USUARIO_SISTEMA, ahora);
+  });
 };

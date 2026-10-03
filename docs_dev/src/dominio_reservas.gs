@@ -2,7 +2,10 @@
 // ni leen la hora actual (se recibe como parámetro). Ver ADR-0003, ADR-0004, ADR-0005, ADR-0014.
 
 // ---------- Valores del dominio ----------
-const ESTADO_RESERVA = { ABIERTA: 'Abierta', COMPLETADA: 'Completada', CANCELADA: 'Cancelada' };
+const ESTADO_RESERVA = { ABIERTA: 'Abierta', CERRADA: 'Cerrada', CANCELADA: 'Cancelada' };
+// Q-07 (2026-10-03): "Completada" pasa a llamarse "Cerrada". Hasta migrar el Sheet (ponerAlDiaReservas) se leen igual.
+const ESTADO_LEGADO_COMPLETADA = 'Completada';
+const normalizarEstadoReserva_ = (estado) => (texto_(estado) === ESTADO_LEGADO_COMPLETADA ? ESTADO_RESERVA.CERRADA : texto_(estado));
 const COBRO = { NO_INGRESADO: 'No ingresado', INGRESADO: 'Ingresado' };
 const CONTRATO = { GESTIONADO_CANAL: 'Gestionado por canal', PENDIENTE: 'Pendiente', FIRMADO: 'Firmado' };
 const INCIDENCIAS = { SIN: 'Sin incidentes', CON: 'Con incidentes' };
@@ -38,6 +41,7 @@ const ETIQUETAS_EDICION = {
 const ETIQUETA_ESTADO = 'Estado de la reserva';
 const ETIQUETA_SERVICIOS = 'Servicios extra';
 const ETIQUETA_NETO = 'Importe neto';
+const ETIQUETA_COBRO_SERVICIOS = 'Cobro de servicios extra';
 const ETIQUETA_INICIO = 'Fecha y hora de entrada';
 const ETIQUETA_FIN = 'Fecha y hora de salida';
 
@@ -140,18 +144,63 @@ const validarCambiosReserva_ = (cambios) => (cambios
 
 // ---------- Servicios e importes (RF-23, RF-27, RF-49; fórmulas en arc42 §8.2) ----------
 
-// El coste y el precio salen SIEMPRE del catálogo (snapshot); nunca del cliente.
-const resolverLineasServicio_ = (solicitados, catalogo) => {
+// F-43 (Q-14, DI-11 resuelta el 2026-10-03): todo servicio nace Pendiente de cobro; al cobrarlo en Extras se indica
+// si fue vía plataforma o presencial. Las líneas anteriores a DD-03 (sin estado) cuentan como cobradas.
+const COBRO_SERVICIO = { PENDIENTE: 'Pendiente', COBRADO: 'Cobrado' };
+const FORMA_COBRO = { PLATAFORMA: 'Plataforma', PRESENCIAL: 'Presencial' };
+
+const estaPendienteDeCobro_ = (linea) => texto_(linea.cobroEstado) === COBRO_SERVICIO.PENDIENTE;
+
+// El coste y el precio salen SIEMPRE del catálogo (snapshot); nunca del cliente. `actuales`: líneas ya guardadas,
+// cuyo estado de cobro se conserva al volver a guardar la reserva.
+const resolverLineasServicio_ = (solicitados, catalogo, actuales = []) => {
   if (!Array.isArray(solicitados)) return [];
   return solicitados.reduce((lineas, s) => {
     const servicio = catalogo.find((c) => c.nombre === s.nombre);
     const cantidad = parseInt(s.cantidad, 10);
     if (servicio && cantidad >= 1) {
-      lineas.push({ nombre: servicio.nombre, cantidad, coste: servicio.costeUnitario, precio: servicio.precioUnitario });
+      const previa = actuales.find((l) => l.nombre === servicio.nombre);
+      lineas.push({
+        nombre: servicio.nombre, cantidad, coste: servicio.costeUnitario, precio: servicio.precioUnitario,
+        cobroEstado: previa ? texto_(previa.cobroEstado) : COBRO_SERVICIO.PENDIENTE, cobroForma: previa ? texto_(previa.cobroForma) : '',
+      });
     }
     return lineas;
   }, []);
 };
+
+const tieneCobroPendiente_ = (lineas) => lineas.some(estaPendienteDeCobro_);
+
+// F-43: añadir un servicio desde Extras. Si ya estaba, se suman las unidades y vuelve a quedar Pendiente (DI-26).
+const anadirLineaServicio_ = (lineas, servicio, cantidad) => {
+  const unidades = parseInt(cantidad, 10);
+  if (!servicio) return invalido_('Ese servicio no está en el catálogo de este espacio.');
+  if (!(unidades >= 1)) return invalido_('Indica cuántas unidades (al menos 1).');
+  const previa = lineas.find((l) => l.nombre === servicio.nombre);
+  const nueva = {
+    nombre: servicio.nombre, cantidad: (previa ? previa.cantidad : 0) + unidades,
+    coste: previa ? previa.coste : servicio.costeUnitario, precio: previa ? previa.precio : servicio.precioUnitario,
+    cobroEstado: COBRO_SERVICIO.PENDIENTE, cobroForma: '',
+  };
+  return { valido: true, lineas: previa ? lineas.map((l) => (l === previa ? nueva : l)) : [...lineas, nueva] };
+};
+
+// Cobro de servicios extra (F-43): 'cobrado' lo marca con su forma de cobro; 'quitar' lo elimina porque el cliente lo rechazó.
+const ACCION_COBRO_SERVICIO = { COBRADO: 'cobrado', QUITAR: 'quitar' };
+
+const aplicarCobroServicio_ = (lineas, nombre, accion, forma) => {
+  const linea = lineas.find((l) => l.nombre === nombre);
+  if (!linea) return invalido_('Ese servicio ya no está en la reserva. Recarga la pantalla.');
+  if (accion === ACCION_COBRO_SERVICIO.QUITAR) return { valido: true, lineas: lineas.filter((l) => l !== linea) };
+  if (accion !== ACCION_COBRO_SERVICIO.COBRADO) return invalido_('Acción no válida.');
+  if (!Object.values(FORMA_COBRO).includes(forma)) return invalido_('Indica si se cobró vía plataforma o presencial.');
+  if (!estaPendienteDeCobro_(linea)) return invalido_('Ese servicio ya está cobrado.');
+  return { valido: true, lineas: lineas.map((l) => (l === linea ? { ...l, cobroEstado: COBRO_SERVICIO.COBRADO, cobroForma: forma } : l)) };
+};
+
+// "BBQ (Pendiente), Hielo (Cobrado, Presencial)": el cobro de cada servicio, para auditar sus cambios en el historial.
+const textoCobroLinea_ = (l) => [texto_(l.cobroEstado) || COBRO_SERVICIO.COBRADO, texto_(l.cobroForma)].filter(Boolean).join(', ');
+const resumenCobros_ = (lineas) => lineas.map((l) => `${l.nombre} (${textoCobroLinea_(l)})`).join(', ');
 
 const totalesServicios_ = (lineas) => ({
   precio: lineas.reduce((s, l) => s + l.cantidad * l.precio, 0),
@@ -212,7 +261,7 @@ const calcularEstadoReserva_ = (r) => {
   const sinIncidenciaAbierta = r.incidencias !== INCIDENCIAS.CON || r.incidenciaResuelta === SI;
   // F-14: cerrar exige cobro y check-out hecho (DD-01 §3.5).
   return r.cobro === COBRO.INGRESADO && r.checkout === REVISION.HECHO && sinIncidenciaAbierta
-    ? ESTADO_RESERVA.COMPLETADA : ESTADO_RESERVA.ABIERTA;
+    ? ESTADO_RESERVA.CERRADA : ESTADO_RESERVA.ABIERTA;
 };
 
 // Qué falta para completar la reserva (RF-51).
@@ -269,6 +318,10 @@ const construirReservaNueva_ = (entrada, { id, email, ahora }) => ({
   videoOutUrl: '',
   costeFijoCanal: entrada.costeFijoCanal,
   refCanal: entrada.refCanal,
+  contratoFirmadoPor: '',
+  contratoFecha: '',
+  avisoCheckin: '',
+  avisoCheckout: '',
 });
 
 // Normaliza los campos editables recibidos del cliente sobre una copia de la reserva.
@@ -311,7 +364,8 @@ const aplicarCambios_ = (reserva, c, email, ahora) => {
 };
 
 // Sustituye los servicios de una reserva existente sin recalcular la comisión (RF-49).
-const aplicarServicios_ = (reserva, lineas, email, ahora) => {
+// `previas`: líneas que tenía, para auditar los cambios de su cobro (F-43).
+const aplicarServicios_ = (reserva, lineas, email, ahora, previas = []) => {
   const totales = totalesServicios_(lineas);
   const importes = calcularImportes_({
     importeAlquiler: reserva.importeAlquiler, serviciosPrecio: totales.precio, serviciosCoste: totales.coste,
@@ -324,6 +378,10 @@ const aplicarServicios_ = (reserva, lineas, email, ahora) => {
   const diffs = [];
   if (String(reserva.serviciosExtra) !== nueva.serviciosExtra) diffs.push({ campo: ETIQUETA_SERVICIOS, anterior: reserva.serviciosExtra, nuevo: nueva.serviciosExtra });
   if (numero_(reserva.neto) !== nueva.neto) diffs.push({ campo: ETIQUETA_NETO, anterior: reserva.neto, nuevo: nueva.neto });
+  // Solo los servicios que estaban y siguen: los añadidos o quitados ya quedan en "Servicios extra".
+  const enAmbas = (lista, otra) => lista.filter((l) => otra.some((x) => x.nombre === l.nombre));
+  const [cobroAntes, cobroDespues] = [resumenCobros_(enAmbas(previas, lineas)), resumenCobros_(enAmbas(lineas, previas))];
+  if (cobroAntes !== cobroDespues) diffs.push({ campo: ETIQUETA_COBRO_SERVICIOS, anterior: cobroAntes, nuevo: cobroDespues });
   return { reserva: nueva, diffs };
 };
 
@@ -343,9 +401,152 @@ const coincideBusqueda_ = (r, nombre, dia) => {
   return r.inicio.getTime() < finDia && inicioDia < r.fin.getTime();
 };
 
-const coincideFiltroGestion_ = (r, { nombre, desde, hasta }) => {
+// F-34: Estado vacío = todas salvo las canceladas (se ven eligiendo "Cancelada"). `espacio` vacío = todos.
+const coincideFiltroGestion_ = (r, { nombre, espacio, estado, cobro, desde, hasta }) => {
   if (nombre && !String(r.nombre).toLowerCase().includes(nombre)) return false;
+  if (espacio && r.espacio !== espacio) return false;
+  if (estado ? r.estado !== estado : r.estado === ESTADO_RESERVA.CANCELADA) return false;
+  if (cobro && r.cobro !== cobro) return false;
   if (desde !== null && r.fin.getTime() < desde) return false;
   if (hasta !== null && r.inicio.getTime() > hasta) return false;
   return true;
+};
+
+// Próxima semana / Próximo mes (F-34): desde hoy a las 00:00 hasta dentro de 7 o 30 días a las 23:59.
+const DIAS_RANGO_RAPIDO = { semana: 7, mes: 30 };
+
+const rangoRapido_ = (rango, ahora) => {
+  const dias = DIAS_RANGO_RAPIDO[rango];
+  if (!dias) return { desde: null, hasta: null };
+  const hoy = inicioDelDia_(ahora);
+  return { desde: hoy.getTime(), hasta: hoy.getTime() + (dias + 1) * MS_POR_DIA - 1 };
+};
+
+// Q-16: primero las que no han terminado (en curso y próximas), de la más cercana a la más lejana;
+// después las pasadas, de la más reciente a la más antigua.
+const ordenarParaGestion_ = (reservas, ahora) => {
+  const t = ahora.getTime();
+  const vigentes = reservas.filter((r) => r.fin.getTime() >= t).sort((a, b) => a.inicio - b.inicio);
+  const pasadas = reservas.filter((r) => r.fin.getTime() < t).sort((a, b) => b.inicio - a.inicio);
+  return [...vigentes, ...pasadas];
+};
+
+// F-36: página pedida (acotada a las que existen) y el total, para los botones de paginación.
+const paginar_ = (lista, pagina, porPagina) => {
+  const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
+  const actual = Math.min(Math.max(1, parseInt(pagina, 10) || 1), paginas);
+  return { elementos: lista.slice((actual - 1) * porPagina, actual * porPagina), pagina: actual, paginas, total: lista.length };
+};
+
+// F-32: las siguientes por fecha de entrada (incluida la que está en curso), sin canceladas.
+const proximasReservas_ = (reservas, ahora, cuantas) => reservas
+  .filter((r) => r.estado !== ESTADO_RESERVA.CANCELADA && r.fin.getTime() >= ahora.getTime())
+  .sort((a, b) => a.inicio - b.inicio)
+  .slice(0, cuantas);
+
+const totalPersonas_ = (r) => numero_(r.adultos) + numero_(r.menores);
+
+// ---------- Funciones de la barra de Reservas (F-38, F-39, F-41, F-43; DD-03 §3.5) ----------
+
+const FUNCION_RESERVA = { CHECKIN: 'checkin', CHECKOUT: 'checkout', IDENTIDADES: 'identidades', CONTRATO: 'contrato', EXTRAS: 'extras' };
+
+// `c`: { espaciosInterior: [nombres], partesComunicados: Set(ids), conExtrasPendientes: Set(ids) }.
+// admite: qué reservas ofrece la función; pendiente: si aún hay trabajo en ella (para proponerla).
+const REGLAS_FUNCION = {
+  [FUNCION_RESERVA.CHECKIN]: { admite: () => true, pendiente: (r) => r.checkin !== REVISION.HECHO },
+  [FUNCION_RESERVA.CHECKOUT]: { admite: () => true, pendiente: (r) => r.checkout !== REVISION.HECHO },
+  [FUNCION_RESERVA.IDENTIDADES]: { admite: (r, c) => c.espaciosInterior.includes(r.espacio), pendiente: (r, c) => !c.partesComunicados.has(r.id) },
+  [FUNCION_RESERVA.CONTRATO]: { admite: (r, c) => !c.espaciosInterior.includes(r.espacio), pendiente: (r) => r.contratoEstado !== CONTRATO.FIRMADO },
+  // F-43: en Extras también se añaden servicios, así que se ofrecen todas; se proponen las que tienen cobros pendientes.
+  [FUNCION_RESERVA.EXTRAS]: { admite: () => true, pendiente: (r, c) => c.conExtrasPendientes.has(r.id) },
+};
+
+const esFuncionReserva_ = (funcion) => Object.prototype.hasOwnProperty.call(REGLAS_FUNCION, funcion);
+
+const reservasDeFuncion_ = (funcion, reservas, c) =>
+  reservas.filter((r) => esModificable_(r) && REGLAS_FUNCION[funcion].admite(r, c));
+
+// La reserva más cercana a hoy con trabajo pendiente. El check-out propone la última que ya ha empezado
+// (la que acaba de irse); el resto, la siguiente que no ha terminado; Extras, la más antigua con cobros pendientes
+// o, si no hay, la siguiente (para añadirle servicios).
+const propuestaDeFuncion_ = (funcion, reservas, c, ahora) => {
+  const t = ahora.getTime();
+  const pendientes = reservasDeFuncion_(funcion, reservas, c).filter((r) => REGLAS_FUNCION[funcion].pendiente(r, c));
+  const porEntrada = [...pendientes].sort((a, b) => a.inicio - b.inicio);
+  if (funcion === FUNCION_RESERVA.EXTRAS && porEntrada.length > 0) return porEntrada[0];
+  if (funcion === FUNCION_RESERVA.EXTRAS) {
+    return reservasDeFuncion_(funcion, reservas, c).sort((x, y) => x.inicio - y.inicio).find((r) => r.fin.getTime() >= t) || null;
+  }
+  if (funcion === FUNCION_RESERVA.CHECKOUT) {
+    const empezadas = porEntrada.filter((r) => r.inicio.getTime() <= t);
+    if (empezadas.length > 0) return empezadas[empezadas.length - 1];
+  }
+  return porEntrada.find((r) => r.fin.getTime() >= t) || null;
+};
+
+// ---------- Avisos (F-37, F-40) ----------
+
+// DI-07: el aviso de check-out se envía durante las 24 h siguientes a la salida; después ya no.
+// (Literal: MS_POR_HORA vive en dominio_ses.gs y no se puede usar al cargar.)
+const VENTANA_AVISO_CHECKOUT_MS = 24 * 60 * 60 * 1000;
+
+const diasNaturalesEntre_ = (desde, hasta) => Math.round((inicioDelDia_(hasta) - inicioDelDia_(desde)) / MS_POR_DIA);
+
+// F-37 (Q-08): a los N días de la salida sin ingresar y cada N días después (N, 2N, 3N…), sin guardar estado.
+const tocaAvisoIngreso_ = (r, ahora, dias) => {
+  if (r.estado === ESTADO_RESERVA.CANCELADA || r.cobro === COBRO.INGRESADO || !(dias >= 1)) return false;
+  const transcurridos = diasNaturalesEntre_(r.fin, ahora);
+  return transcurridos >= dias && transcurridos % dias === 0;
+};
+
+// F-40 (DI-07): una sola vez, desde N horas antes de la llegada hasta la hora de llegada.
+const tocaAvisoCheckin_ = (r, ahora, horas) => esModificable_(r) && r.checkin !== REVISION.HECHO && !esFechaValida_(r.avisoCheckin)
+  && ahora.getTime() >= r.inicio.getTime() - horas * MS_POR_HORA && ahora.getTime() < r.inicio.getTime();
+
+// F-40 (DI-07): una sola vez, desde la hora de salida hasta 24 h después.
+const tocaAvisoCheckout_ = (r, ahora) => {
+  if (!esModificable_(r) || r.checkout === REVISION.HECHO || esFechaValida_(r.avisoCheckout)) return false;
+  const desdeSalida = ahora.getTime() - r.fin.getTime();
+  return desdeSalida >= 0 && desdeSalida < VENTANA_AVISO_CHECKOUT_MS;
+};
+
+// ---------- Puesta al día (F-45) ----------
+
+const USUARIO_PUESTA_AL_DIA = 'Puesta al día (2026-10-03)';
+const CAMPOS_REVISION = ['checkin', 'checkout'];
+
+// Reservas ya terminadas y no canceladas: qué revisiones siguen pendientes.
+const revisionesPorPonerAlDia_ = (r, ahora) => (esModificable_(r) && r.fin.getTime() < ahora.getTime()
+  ? CAMPOS_REVISION.filter((campo) => r[campo] !== REVISION.HECHO)
+  : []);
+
+// Respuesta del Form (adulto) con un código que no casa con ninguna reserva → la única reserva sin código
+// cuyo nombre contiene el nombre y el primer apellido de quien responde y que no había terminado al responder.
+const reservaParaCodigoForm_ = (respuesta, candidatas) => {
+  const nombre = normalizarTexto_(respuesta.nombre);
+  const apellido = normalizarTexto_(respuesta.apellido1);
+  if (!respuesta.esAdulto || !nombre || !apellido || !texto_(respuesta.codigoReserva)) return null;
+  const respondida = aFecha_(respuesta.marcaTemporal).getTime();
+  const coinciden = candidatas.filter((r) => {
+    const delHuesped = normalizarTexto_(r.nombre);
+    return delHuesped.includes(nombre) && delHuesped.includes(apellido) && respondida <= r.fin.getTime();
+  });
+  return coinciden.length === 1 ? coinciden[0] : null;
+};
+
+// F-45: códigos del canal que se pueden poner desde el Form de viajeros. Una respuesta cuyo código no casa con
+// ninguna reserva se asigna a la única reserva de Interior sin código que le corresponde (reservaParaCodigoForm_).
+// Si no hay una sola, o una reserva recibe dos códigos distintos, no se escribe: se devuelve para revisarla a mano.
+const asignarCodigosForm_ = (respuestas, reservas, espaciosInterior) => {
+  const conocidos = new Set(reservas.flatMap((r) => [r.refCanal, referenciaMostrada_(r.id)]).map(normalizarCodigoReserva_).filter(Boolean));
+  const sinCodigo = reservas.filter((r) => espaciosInterior.includes(r.espacio) && esModificable_(r) && !texto_(r.refCanal));
+  const huerfanas = respuestas.filter((r) => r.esAdulto && texto_(r.codigoReserva) && !conocidos.has(normalizarCodigoReserva_(r.codigoReserva)));
+  const propuestas = huerfanas.map((respuesta) => ({ respuesta, reserva: reservaParaCodigoForm_(respuesta, sinCodigo) }));
+  const codigosPorReserva = propuestas.filter((p) => p.reserva).reduce((mapa, p) => {
+    mapa.set(p.reserva.id, new Set([...(mapa.get(p.reserva.id) || []), normalizarCodigoReserva_(p.respuesta.codigoReserva)]));
+    return mapa;
+  }, new Map());
+  const asignables = propuestas.filter((p) => p.reserva && codigosPorReserva.get(p.reserva.id).size === 1);
+  const asignaciones = [...new Map(asignables.map((p) => [p.reserva.id, { id: p.reserva.id, codigo: normalizarCodigoReserva_(p.respuesta.codigoReserva) }])).values()];
+  return { asignaciones, revisar: propuestas.filter((p) => !asignables.includes(p)).map((p) => p.respuesta.fila) };
 };

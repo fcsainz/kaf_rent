@@ -238,3 +238,47 @@ const enviarAvisoSESExito_ = (comunicacion, aviso, detalle = {}) => {
       tono: 'exito', etiqueta: aviso.etiqueta, titulo: aviso.cabecera, resumen: aviso.resumen, datos, pie: aviso.pie,
     }));
 };
+
+// ---------- Recordatorios (F-37, F-40) ----------
+
+// Enlace a la app que abre una acción concreta (doGet la valida contra una lista cerrada).
+const urlAccionApp_ = (accion, id) => {
+  const base = urlApp_();
+  return base ? `${base}?accion=${encodeURIComponent(accion)}&id=${encodeURIComponent(id)}` : '';
+};
+
+// F-37: la reserva sigue sin ingresar N días después de la salida; se repite cada N días hasta que se marque.
+const enviarRecordatorioIngreso_ = (reserva, dias, destinatarios) => {
+  const ref = referenciaMostrada_(reserva.id);
+  return enviarCorreo_('enviarRecordatorioIngreso_', { id: reserva.id }, correoConPlantilla_(
+    `[${NOMBRE_APP_EMAIL}] ? ¿Se ha ingresado la reserva ${ref}? · ${reserva.espacio} · ${rangoCortoEmail_(reserva)}`, {
+      tono: 'aviso', etiqueta: 'Cobro pendiente', titulo: `¿Se ha ingresado la reserva ${ref}?`,
+      resumen: `Han pasado **${dias} días** desde la salida y la reserva sigue como **No ingresada** en KAF Rent.`,
+      datos: [['Reserva', `${ref} · ${reserva.nombre}`], ['Espacio', reserva.espacio], ['Canal', reserva.canal],
+        ['Estancia', estanciaEmail_(reserva)], ['**Neto esperado**', `**${formatearImporte_(reserva.neto)}**`]],
+      accion: 'Si ya está ingresada, pulsa "Sí, se ha ingresado" y confírmalo en la app. Si no, revisa el pago con el canal. Este aviso se repite cada '
+        + `${dias} días hasta que la reserva se marque como ingresada.`,
+      botones: [{ texto: 'Sí, se ha ingresado', url: urlAccionApp_(ACCION_APP.INGRESO, reserva.id) }, { texto: 'Abrir la reserva', url: urlAccionApp_(ACCION_APP.FICHA, reserva.id) }],
+      pie: 'Recibes este email porque tienes rol Gestión o Admin en KAF Rent.',
+    }), destinatarios);
+};
+
+const TEXTOS_AVISO_CHECKLIST = {
+  checkin: { titulo: 'Toca hacer el check-in', cuando: (r) => `Los huéspedes llegan el **${fechaHoraEmail_(r.inicio)}**`, boton: 'Hacer el check-in' },
+  checkout: { titulo: 'Toca hacer el check-out', cuando: (r) => `Los huéspedes salen el **${fechaHoraEmail_(r.fin)}**`, boton: 'Hacer el check-out' },
+};
+
+// F-40: el check-in (antes de la llegada) o el check-out (tras la salida) sigue sin hacer.
+const enviarAvisoChecklist_ = (reserva, momento, destinatarios) => {
+  const ref = referenciaMostrada_(reserva.id);
+  const textos = TEXTOS_AVISO_CHECKLIST[momento];
+  return enviarCorreo_('enviarAvisoChecklist_', { id: reserva.id, momento }, correoConPlantilla_(
+    `[${NOMBRE_APP_EMAIL}] ! ${textos.titulo} · ${ref} · ${reserva.espacio}`, {
+      tono: 'aviso', etiqueta: 'Checklist pendiente', titulo: `${textos.titulo} de la reserva ${ref}`,
+      resumen: `${textos.cuando(reserva)} y el ${momento === 'checkin' ? 'check-in' : 'check-out'} aún no está hecho en KAF Rent.`,
+      datos: [['Reserva', `${ref} · ${reserva.nombre}`], ['Espacio', reserva.espacio], ['Estancia', estanciaEmail_(reserva)], ['Huéspedes', personasEmail_(reserva)]],
+      accion: 'Abre la checklist desde el botón y márcala punto por punto. Si ya la hiciste en papel, dala por terminada en la app.',
+      botones: [{ texto: textos.boton, url: urlAccionApp_(momento, reserva.id) }],
+      pie: 'Recibes este email porque tienes rol Gestión o Admin en KAF Rent.',
+    }), destinatarios);
+};

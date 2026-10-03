@@ -1,15 +1,16 @@
 // Journeys J-1 a J-6 (01_problema.md, Anexo A) de principio a fin en el navegador (T-05).
 const { test, expect } = require('@playwright/test');
-const { irA, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, isoDentroDe, resolverChecklist, idInterno } = require('./ayudas');
+const { abrirFicha, irA, reiniciar, prueba, rpc, datosHabitacion, rellenarReservaHabitacion, dialogo, isoDentroDe, resolverChecklist, idInterno } = require('./ayudas');
 
 const reservaEnHoja = async (request) => (await prueba(request, '/__test/hoja?nombre=Reservas'))[0];
 
+// F-42: la ficha se abre tocando la reserva y "Modificar" la pone en edición en la misma pantalla.
 const abrirModificar = async (page, nombre = 'Marta Pérez') => {
-  await irA(page, 'Gestionar Reservas');
-  const fila = page.locator('#tabla-gestion tr', { hasText: nombre });
-  await fila.getByRole('button', { name: 'Modificar' }).click();
-  await expect(page.locator('#edicion-titulo')).toContainText('Reserva');
+  await abrirFicha(page, nombre);
+  await page.locator('#ficha-acciones-arriba').getByRole('button', { name: 'Modificar' }).click();
+  await expect(page.locator('#ficha-contexto')).toContainText('Modificando');
 };
+const guardarCambios = (page) => page.locator('#ficha-acciones-arriba').getByRole('button', { name: 'Guardar cambios' }).click();
 
 test.beforeEach(async ({ request }) => reiniciar(request));
 
@@ -34,22 +35,23 @@ test('J-1 · un solapamiento se explica en una ventana y no guarda nada', async 
   expect((await prueba(request, '/__test/hoja?nombre=Reservas')).length).toBe(1);
 });
 
-test('J-2 · completar el ciclo: cobro ingresado + check-out terminado (con confirmación) → Completada', async ({ page, request }) => {
+test('J-2 · completar el ciclo: cobro ingresado + check-out terminado desde la función Checklist (con confirmación) → Cerrada', async ({ page, request }) => {
   await rpc(request, 'crearReserva', datosHabitacion());
   await resolverChecklist(request, await idInterno(request), 'Check-out');
   await page.goto('/');
   await abrirModificar(page);
   await page.locator('#ed-cobro').selectOption('Ingresado');
-  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await guardarCambios(page);
   await expect(page.getByRole('status')).toHaveText('Cambios guardados.');
   expect((await reservaEnHoja(request)).Estado_Reserva).toBe('Abierta');
 
-  await abrirModificar(page);
-  await page.locator('details.checklist', { hasText: 'Check-out' }).locator('summary').click();
+  await page.locator('#nav-reservas').getByRole('button', { name: 'Checklist' }).click();
+  await page.getByRole('button', { name: 'OUT · Check-out' }).click();
+  await page.locator('#funcion-propuesta .tarjeta-reserva', { hasText: 'Marta Pérez' }).click();
   await page.getByRole('button', { name: 'Dar el check-out por terminado' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Sí, continuar' }).click();
   await expect(page.getByRole('status')).toHaveText('Check-out terminado.');
-  expect((await reservaEnHoja(request)).Estado_Reserva).toBe('Completada');
+  expect((await reservaEnHoja(request)).Estado_Reserva).toBe('Cerrada');
 });
 
 test('J-3 · cancelar pide confirmación; "No, volver" no cancela y "Sí, continuar" sí', async ({ page, request }) => {
@@ -71,10 +73,9 @@ test('J-4 · el historial muestra el cambio hecho', async ({ page, request }) =>
   await page.goto('/');
   await abrirModificar(page);
   await page.locator('#ed-telefono').fill('611222333');
-  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await guardarCambios(page);
   await expect(page.getByRole('status')).toHaveText('Cambios guardados.');
-  await abrirModificar(page);
-  await expect(page.locator('#tabla-historial')).toContainText('611222333');
+  await expect(page.locator('#ficha-contenido .lista-historial')).toContainText('611222333');
 });
 
 test('J-5 · buscar por nombre desde el Inicio', async ({ page, request }) => {
@@ -82,7 +83,9 @@ test('J-5 · buscar por nombre desde el Inicio', async ({ page, request }) => {
   await page.goto('/');
   await page.locator('#buscar-nombre').fill('marta');
   await page.getByRole('button', { name: 'Buscar' }).click();
-  await expect(page.locator('#tabla-busqueda')).toContainText('Marta Pérez');
+  await expect(page.locator('#lista-busqueda')).toContainText('Marta Pérez');
+  await page.locator('#lista-busqueda .tarjeta-reserva').click();
+  await expect(page.locator('#ficha-titulo')).toContainText('Reserva 01/');
 });
 
 test('J-6 · registrar un gasto y ver el resumen fiscal del ejercicio', async ({ page }) => {

@@ -68,7 +68,7 @@ Documento de referencia para construir cualquier interfaz de KAF Rent. La direcc
 | Concepto | Color | Token |
 |---|---|---|
 | Estado **Abierta** | amber | `--c-warning` |
-| Estado **Completada** | verde | `--c-success` |
+| Estado **Cerrada** (antes Completada, Q-07) | verde | `--c-success` |
 | Estado **Cancelada** | gris | `--c-text-muted` |
 | Espacio **Piscina / Jardín** (eventos Calendar, badges) | oliva | `--c-accent-500` |
 | Espacio **Habitación** | terracota | `--c-primary-500` |
@@ -176,19 +176,40 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 ### Cabecera y navegación (F-24, F-25)
 - **Cabecera:** icono de la app (`Config.Icono_Url`, 36 px, `--radius-md`; si no hay, no se muestra) + "KAF Rent" a la izquierda; usuario a la derecha en `--c-text-muted`.
 - **Barra inferior fija** (al alcance del pulgar, patrón de KAF Finance): fondo `--c-surface`, borde superior `--c-border`, respeta `safe-area-inset-bottom`. Botones con icono SVG (22 px, trazo 2) encima del texto (0.8125rem, peso 600), alto ≥ 48 px. Activo: `aria-current="page"`, texto `--c-primary-700` sobre `--c-primary-50`.
-- **Segundo piso:** "Reservas" abre encima de la barra una fila con "Gestionar Reservas" y "Crear Reservas" (fondo `--c-surface-alt`). Se cierra al ir a otra sección. Las dos barras ocupan unos 120 px; el cuerpo reserva ese espacio para no tapar contenido.
+- **Segundo piso:** "Reservas" abre encima de la barra una fila con "Gestionar Reservas" y "Crear Reservas"; "Admin" (icono de persona, solo rol Admin, F-31) abre "Checklists" y "Conexión SES" (fondo `--c-surface-alt`). Solo hay un segundo piso abierto a la vez y se cierra al ir a otra sección. Las dos barras ocupan unos 120 px; el cuerpo reserva ese espacio para no tapar contenido.
+- **Barra de Reservas (F-33, DD-03):** en Gestionar, la ficha y las funciones, la barra general se sustituye por: ← Inicio · Checklist · Identidades · Contrato · Extras (mismo estilo; 5 botones de unos 72 px en 360 px). La función activa lleva `aria-current="page"`.
+- **Cabecera de pantalla:** botón secundario pequeño "← Volver" / "← Reservas" a la izquierda y el título a su lado (sin partir el botón). En móvil (≤ 600 px) la cabecera de la app se compacta (padding 8/16 px, título 1.25rem, icono 28 px).
 
-### Tablas (últimas reservas, gestionar)
+### Tablas
+> **DI-22 (2026-10-03):** las pantallas de la app no usan tablas: en el móvil nada se desplaza en horizontal. Las listas de reservas son tarjetas y los resúmenes, bloques de datos en 2 columnas. Esta guía queda para las tablas de los emails (informes).
+
 - Cabecera fondo `--c-surface-alt`, texto `--c-text-muted` en mayúscula sutil, peso 600.
 - Filas con separador `--c-border`; hover `--c-primary-50`.
 - Columnas ordenables con indicador ▲/▼.
 - Importes alineados a la derecha; estados como badge (ver abajo).
 
 ### Badges de estado
-- Pastilla `--radius-pill`, padding `2px 10px`, texto 0.75rem peso 600, fondo suave + texto del color de estado (p. ej. Completada: fondo `#E6F2E6`, texto `--c-success`).
+- Pastilla `--radius-pill`, padding `2px 10px`, texto 0.75rem peso 600, fondo suave + texto del color de estado (p. ej. Cerrada: fondo `--c-badge-cerrada`, texto `--c-text`). Cobro: *Ingresada* `--c-badge-cobro-si`, *No ingresada* `--c-badge-cobro-no`.
 
 ### Tarjetas / paneles
-- Fondo `--c-surface`, borde `--c-border`, `--radius-lg`, `--shadow-sm`, padding `--space-5`.
+- Fondo `--c-surface`, borde `--c-border`, `--radius-lg`, `--shadow-sm`, padding `--space-5` (`--space-4` en móvil y en los paneles compactos `.panel-compacto` de Reservas, F-35).
+
+### Tarjeta de reserva (F-36, DD-03)
+- Sustituye a la tabla ancha en Gestionar y en las funciones: botón a todo el ancho, borde `--c-border`, `--radius-md`, padding `--space-3`, ≥ 44 px.
+- Tres líneas: **Ref · Nombre** (peso 600) · Espacio corto, entrada → salida (`--c-text-muted`, 0.875rem) · badges de Estado y Cobro.
+- Hover `--c-primary-50`; foco visible `--c-accent-500`. Se toca para abrir. Paginación debajo: "‹ Anterior · Página N de M · Siguiente ›".
+
+### Filtros compactos y chips (F-34)
+- Rejilla de 2 columnas (Nombre · Espacio / Estado · Cobro), etiquetas 0.8125rem. Sin botón *Filtrar*: aplican al cambiar.
+- Chips conmutables (`.btn-chip`, `--radius-pill`, ≥ 44 px): contorno terracota; activos (`aria-pressed="true"`) rellenos `--c-primary-500` con texto blanco.
+
+### Selector segmentado (F-38)
+- Dos botones a partes iguales ("IN · Check-in" / "OUT · Check-out"), ≥ 48 px, con `aria-pressed`; el elegido, relleno `--c-primary-500`.
+
+### Ficha de la reserva (F-42)
+- Secciones con título h3 (0.95rem) y una rejilla de datos en 2 columnas sobre `--c-surface-alt`. En modificación, cada dato editable pasa a ser su control (etiqueta asociada) en la misma posición.
+- Acciones arriba y abajo: en consulta "Mensaje para el huésped" (Interior) y "Modificar" (primario); en modificación "Descartar cambios" / "Guardar cambios" arriba y "Cancelar reserva" / "Guardar cambios" abajo.
+- Historial en lista (cuándo · quién, y "Campo: antes → después"), sin tabla ancha.
 
 ### Modales (confirmación, errores y avisos)
 - Un único componente para toda la app (`crearDialogo` en `cliente.html`): overlay `rgba(42,36,32,.45)`; contenedor `--c-surface`, `--radius-lg`, `--shadow-lg`.

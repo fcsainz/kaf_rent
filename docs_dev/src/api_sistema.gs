@@ -5,6 +5,10 @@
 const HORA_TAREAS_NOCTURNAS = 3;
 const DIA_MES_INFORMES = 1;
 const HORA_INFORMES = 7;
+const HORA_AVISOS_COBRO = 9; // de día: un aviso de madrugada sonaría en el móvil a deshoras
+const MINUTOS_AVISOS_CHECKLIST = 15;
+const DIAS_AVISO_INGRESO_DEFECTO = 10;
+const HORAS_AVISO_CHECKIN_DEFECTO = 4;
 
 // Aísla cada tarea: si una falla se registra y las demás continúan (RF-67).
 const ejecutarTarea_ = (nombre, tarea) => {
@@ -23,6 +27,7 @@ const tareasNocturnas = (e) => ejecutarTareaDelSistema_('tareasNocturnas', e, ()
   ejecutarTarea_('purgarLogs', () => purgarPorAntiguedad_(HOJA_LOGS, obtenerConfigNumero_('Retencion_Logs_Dias', 90), ahora));
   ejecutarTarea_('purgarErrores', () => purgarPorAntiguedad_(HOJA_ERRORES, obtenerConfigNumero_('Retencion_Errores_Dias', 365), ahora));
   ejecutarTarea_('purgarVideos', () => purgarVideosAntiguos_(ahora));
+  ejecutarTarea_('purgarContratos', () => purgarContratosAntiguos_(ahora));
   if (tocaActualizarCatalogosSES_(ahora)) ejecutarTarea_('catalogosSES', () => conBloqueo_(actualizarCatalogosSES_));
   return { success: true };
 });
@@ -52,14 +57,45 @@ const instalarTriggers = (e) => ejecutarTareaDelSistema_('instalarTriggers', e, 
   ScriptApp.newTrigger('tareasNocturnas').timeBased().atHour(HORA_TAREAS_NOCTURNAS).everyDays(1).create();
   ScriptApp.newTrigger('informesProgramados').timeBased().onMonthDay(DIA_MES_INFORMES).atHour(HORA_INFORMES).create();
   ScriptApp.newTrigger('procesarComunicacionesSES').timeBased().everyMinutes(MINUTOS_TAREA_SES).create();
+  ScriptApp.newTrigger('avisosDeCobro').timeBased().atHour(HORA_AVISOS_COBRO).everyDays(1).create();
+  ScriptApp.newTrigger('avisosDeChecklist').timeBased().everyMinutes(MINUTOS_AVISOS_CHECKLIST).create();
   const sheetViajeros = texto_(obtenerConfig_('Sheet_Viajeros_Id'));
   if (sheetViajeros) ScriptApp.newTrigger('alEnviarFormularioViajeros').forSpreadsheet(sheetViajeros).onFormSubmit().create();
   return {
     success: true,
     mensaje: `Triggers instalados: tareasNocturnas (${HORA_TAREAS_NOCTURNAS}:00 diario), informesProgramados (día ${DIA_MES_INFORMES}, ${HORA_INFORMES}:00), `
-      + `procesarComunicacionesSES (cada ${MINUTOS_TAREA_SES} min)${sheetViajeros ? ', alEnviarFormularioViajeros (al enviar el Form de viajeros)' : ' — sin Sheet_Viajeros_Id: falta el activador del Form'}.`,
+      + `procesarComunicacionesSES (cada ${MINUTOS_TAREA_SES} min), avisosDeCobro (${HORA_AVISOS_COBRO}:00 diario), `
+      + `avisosDeChecklist (cada ${MINUTOS_AVISOS_CHECKLIST} min)${sheetViajeros ? ', alEnviarFormularioViajeros (al enviar el Form de viajeros)' : ' — sin Sheet_Viajeros_Id: falta el activador del Form'}.`,
   };
 });
+
+// F-37 (Q-08): trigger diario. Reservas sin ingresar a los 10, 20, 30… días de la salida → email a Gestión y Admin.
+const avisosDeCobro = (e) => ejecutarTareaDelSistema_('avisosDeCobro', e, () => {
+  const ahora = new Date();
+  const dias = obtenerConfigNumero_('Dias_Aviso_Ingreso', DIAS_AVISO_INGRESO_DEFECTO);
+  const destinatarios = obtenerEmailsGestion_();
+  const avisadas = leerReservas_().entradas.map((x) => x.reserva).filter((r) => tocaAvisoIngreso_(r, ahora, dias));
+  avisadas.forEach((r) => enviarRecordatorioIngreso_(r, diasNaturalesEntre_(r.fin, ahora), destinatarios));
+  return { success: true, avisadas: avisadas.map((r) => r.id) };
+});
+
+// F-40 (DI-07): trigger cada 15 min. Check-in sin hacer en las 4 h antes de la llegada, o check-out sin hacer en
+// las 24 h tras la salida → un email a Gestión y Admin, una sola vez (se anota en la reserva). Bajo bloqueo: no se duplica.
+const avisosDeChecklist = (e) => ejecutarTareaDelSistema_('avisosDeChecklist', e, () => conBloqueo_(() => {
+  const ahora = new Date();
+  const horas = obtenerConfigNumero_('Horas_Aviso_Checkin', HORAS_AVISO_CHECKIN_DEFECTO);
+  const lectura = leerReservas_();
+  const avisos = lectura.entradas.flatMap((entrada) => [
+    ...(tocaAvisoCheckin_(entrada.reserva, ahora, horas) ? [{ entrada, momento: ACCION_APP.CHECKIN, campo: 'avisoCheckin' }] : []),
+    ...(tocaAvisoCheckout_(entrada.reserva, ahora) ? [{ entrada, momento: ACCION_APP.CHECKOUT, campo: 'avisoCheckout' }] : []),
+  ]);
+  const destinatarios = obtenerEmailsGestion_();
+  // Como mucho un par de avisos por pasada: se anotan de uno en uno (KISS).
+  avisos.forEach(({ entrada, momento, campo }) => {
+    if (enviarAvisoChecklist_(entrada.reserva, momento, destinatarios)) guardarCampoReserva_(lectura.tabla, entrada.filaSheet, campo, ahora);
+  });
+  return { success: true, avisos: avisos.map((a) => `${a.entrada.reserva.id} ${a.momento}`) };
+}));
 
 // Crea los eventos de Calendar que falten en reservas no canceladas (reconciliación, RF-40). Desde el editor.
 const sincronizarReservasCalendario = (e) => ejecutarTareaDelSistema_('sincronizarReservasCalendario', e, () => {
@@ -101,6 +137,51 @@ const corregirHorasReservas = (e) => ejecutarTareaDelSistema_('corregirHorasRese
     if (esModificable_(reserva)) actualizarHorarioEvento_({ ...reserva, ...fechas });
   });
   return { success: true, corregidas: corregidas.map((c) => c.entrada.reserva.id) };
+}));
+
+// ---------- F-45: puesta al día de los datos (tarea de editor de un solo uso; repetirla no cambia nada) ----------
+
+// Códigos del canal desde el Form de viajeros. Sin Form configurado o ilegible, no asigna nada y lo dice.
+const codigosDelForm_ = (reservas) => {
+  try {
+    return asignarCodigosForm_(leerRespuestasFormViajeros_(), reservas, espaciosConRegistroViajeros_());
+  } catch (error) {
+    registrarError_('codigosDelForm_', error, {});
+    return { asignaciones: [], revisar: [], error: error.message };
+  }
+};
+
+// Cambios de una reserva: código del canal, revisiones pasadas dadas por hechas y estado recalculado.
+// `estadoGuardado`: el texto de la celda, por si aún dice "Completada" (Q-07: pasa a "Cerrada").
+const reservaPuestaAlDia_ = (reserva, estadoGuardado, codigo, ahora) => {
+  const revisiones = revisionesPorPonerAlDia_(reserva, ahora);
+  const conRevisiones = revisiones.reduce((r, campo) => ({ ...r, [campo]: REVISION.HECHO }), { ...reserva, refCanal: codigo || reserva.refCanal });
+  const { reserva: nueva, diffs } = aplicarCambios_(reserva, conRevisiones, USUARIO_PUESTA_AL_DIA, ahora);
+  const renombrado = texto_(estadoGuardado) !== nueva.estado && !diffs.some((d) => d.campo === ETIQUETA_ESTADO);
+  return { nueva, diffs: renombrado ? [...diffs, { campo: ETIQUETA_ESTADO, anterior: texto_(estadoGuardado), nuevo: nueva.estado }] : diffs, revisiones };
+};
+
+const MOMENTO_POR_REVISION = { checkin: 'Check-in', checkout: 'Check-out' };
+
+const ponerAlDiaReservas = (e) => ejecutarTareaDelSistema_('ponerAlDiaReservas', e, () => conBloqueo_(() => {
+  const ahora = new Date();
+  const lectura = leerReservas_();
+  const codigos = codigosDelForm_(lectura.entradas.map((x) => x.reserva));
+  const codigoDe = new Map(codigos.asignaciones.map((a) => [a.id, a.codigo]));
+  const estadoGuardado = (entrada) => entrada.valores[lectura.tabla.columnas.estado];
+  const cambios = lectura.entradas
+    .map((entrada) => ({ entrada, ...reservaPuestaAlDia_(entrada.reserva, estadoGuardado(entrada), codigoDe.get(entrada.reserva.id), ahora) }))
+    .filter((c) => c.diffs.length > 0);
+  // Tarea de una sola vez sobre pocas filas: cada reserva se escribe en su fila (KISS, como corregirHorasReservas).
+  cambios.forEach((c) => guardarReserva_(lectura.tabla, c.entrada, c.nueva));
+  anadirChecklistsPuestaAlDia_(cambios.flatMap((c) => c.revisiones.map((campo) => ({
+    idReserva: c.nueva.id, momento: MOMENTO_POR_REVISION[campo], usuario: USUARIO_PUESTA_AL_DIA, fecha: campo === 'checkin' ? c.nueva.inicio : c.nueva.fin,
+  }))));
+  registrarHistorialVarios_(cambios.map((c) => ({ idReserva: c.nueva.id, diffs: c.diffs })), USUARIO_PUESTA_AL_DIA, ahora);
+  return {
+    success: true, reservasCambiadas: cambios.map((c) => c.nueva.id), codigosAsignados: codigos.asignaciones,
+    filasFormParaRevisar: codigos.revisar, avisoForm: codigos.error || '',
+  };
 }));
 
 // Añade al final las columnas del esquema que falten; nunca renombra, mueve ni borra las existentes (B-16).
