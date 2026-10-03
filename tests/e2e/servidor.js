@@ -73,6 +73,9 @@ const sembrarDemo = () => {
   fijarCelda(idDe('Claudia Sánchez Tendero'), 'Estado_Cobro', 'Ingresado');
   fijarCelda(idDe('Claudia Sánchez Tendero'), 'Estado_Reserva', 'Completada'); // valor antiguo: se ve como "Cerrada"
   entorno.llamar('cancelarReserva', idDe('Reserva cancelada'));
+  // DD-04: un cierre pasado de Interior y la temporada baja de Exterior, para ver Cerrar días y la ocupación.
+  entorno.llamar('cerrarDias', { espacio: 'Habitación Interior', desde: isoEnDias(-6), hasta: isoEnDias(-4), motivo: 'Uso familiar' });
+  entorno.llamar('cerrarDias', { espacio: 'Piscina / Jardín', desde: isoEnDias(100), hasta: isoEnDias(130), motivo: 'Fuera de temporada' });
   entorno.correos.length = 0;
 };
 

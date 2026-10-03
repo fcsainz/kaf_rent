@@ -55,6 +55,8 @@ const guardarReservaNueva_ = (entrada, email, ahora) => {
   if (haySolapamiento_(reservas, entrada.espacio, entrada.inicio, entrada.fin)) {
     return { success: false, error: obtenerConfig_('Mensaje_Solapamiento', 'Ya existe una reserva para ese espacio en esas fechas.') };
   }
+  const cerrado = mensajeSiCerrado_(entrada);
+  if (cerrado) return { success: false, error: cerrado };
   // D-04: la referencia lleva el año en que se crea la reserva, no el de la estancia (B-15).
   const id = generarIdReserva_(reservas.map((r) => r.id), ahora.getFullYear());
   const reserva = construirReservaNueva_(entrada, { id, email, ahora });

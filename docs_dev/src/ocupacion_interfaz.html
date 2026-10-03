@@ -1,0 +1,215 @@
+  <script>
+    // Cerrar días (F-48) y Estadísticas por canal (F-49), DD-04 §3.2–§3.3. Reutiliza $, servidor, mostrarMensaje,
+    // mostrarExito, confirmarAccion, formatearEuros y marcarError de cliente.html, y nuevoEl y boton de
+    // gestion_interfaz.html (mismo ámbito global de la página). Los datos se pintan siempre con textContent (RNF-26).
+
+    // ----- Cerrar días -----
+    let cierresCargados = [];
+    const CAMPOS_CIERRE = ['cierre-espacio', 'cierre-desde', 'cierre-hasta', 'cierre-motivo'];
+
+    const limpiarErroresCierre = () => {
+      document.querySelectorAll('#form-cierre .invalido').forEach((el) => el.classList.remove('invalido'));
+      document.querySelectorAll('#form-cierre .error-campo').forEach((el) => el.remove());
+    };
+
+    // Validación inmediata; el servidor vuelve a validarlo todo (§4.7).
+    const validarFormularioCierre = () => {
+      const errores = [];
+      if (!$('cierre-espacio').value) errores.push(['cierre-espacio', 'Elige el espacio.']);
+      if (!$('cierre-desde').value) errores.push(['cierre-desde', 'Indica desde qué día.']);
+      if (!$('cierre-hasta').value) errores.push(['cierre-hasta', 'Indica hasta qué día.']);
+      else if ($('cierre-desde').value && $('cierre-hasta').value < $('cierre-desde').value) errores.push(['cierre-hasta', 'No puede ser anterior a «Desde».']);
+      if (!$('cierre-motivo').value.trim()) errores.push(['cierre-motivo', 'Indica el motivo (p. ej. «Fuera de temporada»).']);
+      return errores;
+    };
+
+    const tarjetaCierre = (c) => {
+      const li = nuevoEl('li', 'tarjeta-cierre');
+      const texto = nuevoEl('div', 'tarjeta-cierre-texto');
+      texto.append(nuevoEl('span', 'tarjeta-titulo', `${c.espacio} · ${c.desdeTexto} → ${c.hastaTexto}`), nuevoEl('span', 'tarjeta-fechas', c.motivo));
+      const quitar = boton('Quitar', 'btn-secundario btn-pequeno', () => confirmarAccion(
+        `¿Quitar el cierre de ${c.espacio} del ${c.desdeTexto} al ${c.hastaTexto}? Esos días se podrán volver a reservar.`,
+        () => quitarCierreUI(c.id)));
+      quitar.setAttribute('aria-label', `Quitar el cierre de ${c.espacio} del ${c.desdeTexto} al ${c.hastaTexto}`);
+      li.append(texto, quitar);
+      return li;
+    };
+
+    const pintarCierres = () => {
+      const verAnteriores = $('btn-cierres-anteriores').getAttribute('aria-pressed') === 'true';
+      const visibles = cierresCargados.filter((c) => verAnteriores || !c.pasado);
+      const lista = $('lista-cierres');
+      lista.innerHTML = '';
+      if (visibles.length === 0) {
+        lista.appendChild(nuevoEl('li', 'vacio', verAnteriores ? 'No hay días cerrados.' : 'No hay días cerrados de hoy en adelante.'));
+        return;
+      }
+      visibles.forEach((c) => lista.appendChild(tarjetaCierre(c)));
+    };
+
+    const rellenarEspaciosCierre = (espacios) => {
+      const sel = $('cierre-espacio');
+      if (sel.options.length > 1) return;
+      espacios.forEach((e) => {
+        const opt = nuevoEl('option', '', e.nombreCorto);
+        opt.value = e.nombre;
+        sel.appendChild(opt);
+      });
+    };
+
+    const cargarCierresUI = () => servidor('Cargando los días cerrados…')
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        rellenarEspaciosCierre(res.data.espacios);
+        cierresCargados = res.data.cierres;
+        pintarCierres();
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar los días cerrados.', 'error'))
+      .cargarCierres();
+
+    const enviarCierre = (evento) => {
+      evento.preventDefault();
+      limpiarErroresCierre();
+      const errores = validarFormularioCierre();
+      if (errores.length > 0) {
+        errores.forEach(([campo, mensaje]) => marcarError(campo, mensaje));
+        $(errores[0][0]).focus();
+        return;
+      }
+      const btn = $('btn-cerrar-dias');
+      btn.disabled = true;
+      servidor('Cerrando los días…')
+        .withSuccessHandler((res) => {
+          btn.disabled = false;
+          if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+          CAMPOS_CIERRE.slice(1).forEach((id) => { $(id).value = ''; });
+          if (res.aviso) mostrarMensaje(res.aviso, 'aviso'); else mostrarExito(res.mensaje);
+          cargarCierresUI();
+        })
+        .withFailureHandler(() => { btn.disabled = false; mostrarMensaje('No se pudieron cerrar los días. Inténtalo de nuevo.', 'error'); })
+        .cerrarDias({
+          espacio: $('cierre-espacio').value, desde: $('cierre-desde').value, hasta: $('cierre-hasta').value, motivo: $('cierre-motivo').value.trim(),
+        });
+    };
+
+    const quitarCierreUI = (id) => servidor('Quitando el cierre…')
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        mostrarExito('Cierre quitado: esos días se pueden reservar.');
+        cargarCierresUI();
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudo quitar el cierre. Inténtalo de nuevo.', 'error'))
+      .quitarCierre(id);
+
+    const inicializarCierres = () => {
+      $('form-cierre').addEventListener('submit', enviarCierre);
+      $('cierre-desde').addEventListener('change', () => { if (!$('cierre-hasta').value) $('cierre-hasta').value = $('cierre-desde').value; });
+      $('btn-cierres-anteriores').addEventListener('click', (evento) => {
+        const pulsado = evento.currentTarget.getAttribute('aria-pressed') !== 'true';
+        evento.currentTarget.setAttribute('aria-pressed', String(pulsado));
+        evento.currentTarget.textContent = pulsado ? 'Ver solo de hoy en adelante' : 'Ver también los anteriores';
+        pintarCierres();
+      });
+      document.querySelectorAll('[data-seccion="cierres"]').forEach((b) => b.addEventListener('click', cargarCierresUI));
+    };
+
+    // ----- Estadísticas por canal -----
+    const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const UNIDADES = {
+      noche: { singular: 'noche', plural: 'noches', abierta: 'noche abierta' },
+      hora: { singular: 'hora', plural: 'horas', abierta: 'hora abierta' },
+    };
+
+    const porcentaje = (v) => (v === null || v === undefined ? '—' : `${Math.round(v * 100)} %`);
+    const porcentajeFino = (v) => (v === null || v === undefined ? '—' : `${(v * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`);
+    const euros = (v) => (v === null || v === undefined ? '—' : formatearEuros(v));
+    const cantidad = (v) => Number(v || 0).toLocaleString('es-ES', { maximumFractionDigits: 1 });
+
+    const linea = (etiqueta, valor) => {
+      const p = nuevoEl('p', 'stat-linea');
+      p.append(nuevoEl('span', 'stat-label', etiqueta), nuevoEl('b', '', valor));
+      return p;
+    };
+
+    // Lo primero que se ve (DD-04 §3.1): por horas, los días con reserva y el € por hora; por noches, la ocupación y el € por noche.
+    const tarjetaCanal = (fila, m, esTotal) => {
+      const u = UNIDADES[m.unidad];
+      const card = nuevoEl('div', esTotal ? 'stat-card stat-card-total' : 'stat-card');
+      card.appendChild(nuevoEl('h3', '', fila.canal));
+      if (m.unidad === 'hora') {
+        card.append(nuevoEl('div', 'stat-num', porcentaje(fila.ocupacionDias)),
+          nuevoEl('div', 'stat-label', `días con reserva: ${fila.diasConReserva} de ${m.diasAbiertos} abiertos`));
+      } else {
+        card.append(nuevoEl('div', 'stat-num', porcentaje(fila.ocupacion)),
+          nuevoEl('div', 'stat-label', `ocupación: ${cantidad(fila.vendidas)} de ${m.unidadesAbiertas} noches abiertas`));
+      }
+      card.append(nuevoEl('div', 'stat-num stat-num-2', euros(fila.cobradoPorUnidad)), nuevoEl('div', 'stat-label', `cobrado por ${u.singular}, sin extras`));
+      if (m.unidad === 'hora') card.appendChild(linea('Horas vendidas', `${cantidad(fila.vendidas)} de ${cantidad(m.unidadesAbiertas)} (${porcentajeFino(fila.ocupacion)})`));
+      card.append(
+        linea('Reservas', `${fila.reservas}${fila.canceladas ? ` · ${fila.canceladas} cancelada${fila.canceladas > 1 ? 's' : ''}` : ''}`),
+        linea('Neto', euros(fila.neto)),
+        linea(`Ingreso por ${u.abierta}`, euros(fila.ingresoPorUnidadAbierta)));
+      return card;
+    };
+
+    const textoResumen = (m, etiquetaPeriodo) => {
+      const horario = m.unidad === 'hora' ? ` · ${cantidad(m.horasDia)} h abiertas al día` : '';
+      return `${etiquetaPeriodo}: ${m.diasPeriodo} días · ${m.diasCerrados} cerrados · ${m.diasAbiertos} abiertos${horario}.`;
+    };
+
+    // Barras de los 12 meses: la cifra va escrita, el color nunca es lo único que informa (§6.4).
+    const pintarEvolucion = (evolucion, unidad) => {
+      const lista = $('stats-evolucion');
+      lista.innerHTML = '';
+      evolucion.forEach((mes) => {
+        const li = nuevoEl('li', 'evolucion-mes');
+        const barra = nuevoEl('span', 'evolucion-barra');
+        const relleno = nuevoEl('span', 'evolucion-relleno');
+        relleno.style.width = `${Math.min(100, Math.round((mes.ocupacion || 0) * 100))}%`;
+        barra.appendChild(relleno);
+        li.append(nuevoEl('span', 'evolucion-etiqueta', MESES_CORTOS[mes.mes - 1]), barra,
+          nuevoEl('span', 'evolucion-valor', `${porcentaje(mes.ocupacion)} · ${euros(mes.ingresoPorUnidadAbierta)}/${UNIDADES[unidad].singular}`));
+        lista.appendChild(li);
+      });
+    };
+
+    const rellenarSelect = (sel, opciones, valor) => {
+      if (sel.options.length === 0) {
+        opciones.forEach(([v, texto]) => { const o = nuevoEl('option', '', texto); o.value = v; sel.appendChild(o); });
+      }
+      sel.value = valor;
+    };
+
+    const pintarEstadisticas = (data) => {
+      rellenarSelect($('stats-espacio'), data.espacios.map((e) => [e.nombre, e.nombreCorto]), data.espacio);
+      rellenarSelect($('stats-anyo'), data.anyos.map((a) => [String(a), String(a)]), $('stats-anyo').value || String(data.anyos[0]));
+      const m = data.metricas;
+      const etiquetaPeriodo = `${$('stats-periodo').selectedOptions[0].textContent} ${$('stats-anyo').value}`;
+      $('stats-resumen').textContent = textoResumen(m, etiquetaPeriodo);
+      const cont = $('stats-canales');
+      cont.innerHTML = '';
+      cont.appendChild(tarjetaCanal(m.total, m, true));
+      m.canales.forEach((fila) => cont.appendChild(tarjetaCanal(fila, m, false)));
+      $('stats-evolucion-titulo').textContent = m.unidad === 'hora'
+        ? `Evolución de ${$('stats-anyo').value}: días con reserva e ingreso por hora abierta`
+        : `Evolución de ${$('stats-anyo').value}: ocupación e ingreso por noche abierta`;
+      pintarEvolucion(data.evolucion, m.unidad);
+    };
+
+    const cargarEstadisticasUI = () => servidor('Calculando las estadísticas…')
+      .withSuccessHandler((res) => {
+        if (!res.success) { mostrarMensaje(res.error, 'error'); return; }
+        pintarEstadisticas(res.data);
+      })
+      .withFailureHandler(() => mostrarMensaje('No se pudieron cargar las estadísticas.', 'error'))
+      .cargarInformeOcupacion({ espacio: $('stats-espacio').value, anyo: $('stats-anyo').value, periodo: $('stats-periodo').value });
+
+    const inicializarEstadisticasCanal = () => {
+      $('stats-periodo').value = `M${new Date().getMonth() + 1}`;
+      ['stats-espacio', 'stats-anyo', 'stats-periodo'].forEach((id) => $(id).addEventListener('change', cargarEstadisticasUI));
+      document.querySelectorAll('[data-seccion="estadisticas"]').forEach((b) => b.addEventListener('click', cargarEstadisticasUI));
+    };
+
+    inicializarCierres();
+    inicializarEstadisticasCanal();
+  </script>

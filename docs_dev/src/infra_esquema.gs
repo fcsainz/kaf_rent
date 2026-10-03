@@ -23,6 +23,7 @@ const HOJA_CATALOGO_SES         = 'Catálogo_SES';
 const HOJA_MUNICIPIOS_INE       = 'Municipios_INE';
 const HOJA_COMUNICACIONES_SES   = 'Comunicaciones_SES';
 const HOJA_VALIDACION_VIAJEROS  = 'Validacion_Viajeros';
+const HOJA_DIAS_CERRADOS        = 'Dias_Cerrados';
 
 const CAMPOS_RESERVA = {
   id: 'ID_Reserva', espacio: 'Espacio', canal: 'Canal', inicio: 'Fecha_Hora_Inicio', fin: 'Fecha_Hora_Fin',
@@ -54,6 +55,7 @@ const CAMPOS_LOG = { fecha: 'Fecha_Hora', tipo: 'Tipo', email: 'Email', detalle:
 const CAMPOS_ERROR = { fecha: 'Fecha_Hora', funcion: 'Funcion', mensaje: 'Mensaje', contexto: 'Contexto' };
 const CAMPOS_HISTORIAL = { fecha: 'Fecha_Hora', usuario: 'Usuario', idReserva: 'ID_Reserva', campo: 'Campo', anterior: 'Valor_Anterior', nuevo: 'Valor_Nuevo' };
 const CAMPOS_INFORME = { periodo: 'Periodo', tipo: 'Tipo', espacio: 'Espacio', canal: 'Canal', numReservas: 'Num_Reservas', brutos: 'Ingresos_Brutos', comisiones: 'Comisiones', netos: 'Ingresos_Netos', ocupacion: 'Ocupacion' };
+// Sin uso desde S36 (DD-04: Estadísticas se calcula al abrir). La hoja se conserva: solo cambios aditivos.
 const CAMPOS_ESTADISTICA = { zona: 'Zona', totalReservas: 'Total_Reservas_Anyo', ingresosNetos: 'Ingresos_Netos', actualizado: 'Fecha_Actualizacion' };
 const CAMPOS_GASTO = { id: 'ID_Gasto', fecha: 'Fecha', ejercicio: 'Ejercicio', concepto: 'Concepto', categoria: 'Categoria', espacio: 'Espacio', importe: 'Importe', deducible: 'Deducible', pagadoPor: 'Pagado_Por', justificante: 'Justificante', notas: 'Notas' };
 const CAMPOS_RESUMEN_FISCAL = { ejercicio: 'Ejercicio', espacio: 'Espacio', ingresos: 'Ingresos_Integros', gastosDeducibles: 'Gastos_Deducibles', rendimiento: 'Rendimiento_Neto', tercio: 'Tercio_Comunero' };
@@ -72,6 +74,11 @@ const CAMPOS_COMUNICACION_SES = {
 const CAMPOS_VALIDACION_VIAJERO = {
   idReserva: 'ID_Reserva', filaForm: 'Fila_Form', marcaTemporal: 'Marca_Temporal_Form', validadoPor: 'Validado_Por', fecha: 'Fecha_Hora',
   codigoMunicipio: 'Codigo_INE_Municipio', // si se corrigió el municipio al validar (F-28)
+};
+// DD-04 (F-48): días en que un espacio no se alquila; `hasta` incluido.
+const CAMPOS_DIA_CERRADO = {
+  id: 'ID_Cierre', espacio: 'Espacio', desde: 'Desde', hasta: 'Hasta', motivo: 'Motivo', calendarEventId: 'Calendar_Event_Id',
+  registradoPor: 'Registrado_Por', fechaRegistro: 'Fecha_Registro',
 };
 
 // Semilla de las 4 checklists (F-14): copia exacta de docs_work/doc_check/checklists-check-in-out.md v1.0.
@@ -264,7 +271,7 @@ const ESQUEMA_HOJAS = [
       ['Retencion_Videos_Dias', '180', 'Días que se conservan los vídeos in/out en Drive (ADR-0014)'],
       ['Calendar_Id', '', 'ID del calendario de ocupación; vacío = calendario por defecto de quien use la app (ADR-0010, ADR-0017)'],
       ['Calendar_Url', '', 'Enlace al calendario para el botón del Inicio (ADR-0010)'],
-      ['Icono_Url', '', 'Enlace público directo al icono PNG de 192 px (pestaña y acceso directo del móvil; D-23)'],
+      ['Icono_Url', '', 'Enlace público directo al icono PNG de 192 px de la cabecera (F-24); el del acceso directo del móvil es D-23'],
       ['Dias_Office_Reponer', '3', 'Checklist de salida de la Habitación: si la siguiente reserva empieza en estos días o menos, se repone el office; si no, se recoge entero (F-14)'],
       ['Sheet_Viajeros_Id', '', 'ID del Sheet de respuestas del Google Form de viajeros (ADR-0018)'],
       ['Form_Viajeros_Enlace', '', 'Enlace prerrellenado del Form de viajeros con {codigo} en el lugar del código de reserva (mensaje de WhatsApp, F-27)'],
@@ -279,6 +286,8 @@ const ESQUEMA_HOJAS = [
       ['SES_Web_Url', 'https://hospedajes.ses.mir.es/', 'Web de SES.Hospedajes para comunicar o anular a mano (botón de los emails de aviso)'],
       ['Dias_Aviso_Ingreso', '10', 'Días tras la salida sin "Ingresado" para avisar del cobro; se repite cada tantos días (F-37)'],
       ['Horas_Aviso_Checkin', '4', 'Horas antes de la llegada desde las que se avisa de hacer el check-in si no está hecho (F-40)'],
+      ['Exterior_Hora_Apertura', '09:00', 'Hora a la que abre cada día el espacio que se alquila por horas (DD-04: horas abiertas para la ocupación)'],
+      ['Exterior_Hora_Cierre', '02:00', 'Hora a la que cierra; si es menor que la de apertura, es del día siguiente (DD-04)'],
       ['Anios_Retencion_Contrato', '5', 'Años, desde la salida, que se guardan las fotos del contrato firmado (F-41; art. 1964.2 del Código Civil)'],
     ],
   },
@@ -296,6 +305,7 @@ const ESQUEMA_HOJAS = [
   { nombre: HOJA_MUNICIPIOS_INE, campos: CAMPOS_MUNICIPIO_INE },
   { nombre: HOJA_COMUNICACIONES_SES, campos: CAMPOS_COMUNICACION_SES },
   { nombre: HOJA_VALIDACION_VIAJEROS, campos: CAMPOS_VALIDACION_VIAJERO },
+  { nombre: HOJA_DIAS_CERRADOS, campos: CAMPOS_DIA_CERRADO },
 ];
 
 const definicionHoja_ = (nombre) => {

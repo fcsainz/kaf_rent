@@ -27,6 +27,8 @@ Formato **[MADR 4.0](https://adr.github.io/madr/)** (Markdown Architectural Deci
 | [0021](0021-script-propio-del-form-de-viajeros.md) | Script propio ligado al Form de viajeros, sin credenciales de SES | accepted | 2026-10-02 |
 | [0022](0022-anulacion-en-ses-al-cancelar.md) | Al cancelar una reserva ya comunicada, se anula en SES tras confirmarlo | accepted | 2026-10-02 |
 | [0023](0023-fotos-del-contrato-y-retencion.md) | El contrato de Exterior se guarda en fotos y se borra a los 5 años de la salida | accepted | 2026-10-03 |
+| [0024](0024-copias-de-seguridad-del-form-de-viajeros.md) | Las respuestas del Form de viajeros se copian cada noche como `.xlsx`, con rotación (excepción a "una sola copia" de ADR-0018) | accepted | 2026-10-03 |
+| [0025](0025-estadisticas-calculadas-al-abrir.md) | Estadísticas por canal calculadas al abrir, sin el cache diario (sustituye la parte del cache de ADR-0009) | proposed | 2026-10-03 |
 
 ## Reglas
 

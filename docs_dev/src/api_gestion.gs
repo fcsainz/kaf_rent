@@ -101,14 +101,14 @@ const respuestasFormDeReserva_ = (reserva) => {
 // (D-45: lo manual solo consta en el Form).
 const identidadesDeFicha_ = (reserva) => {
   const validados = leerValidacionesReserva_(reserva.id).length;
-  const { parte } = estadoSESDeReserva_(comunicacionesDeReserva_(reserva.id).entradas.map((e) => e.comunicacion));
-  const porApp = Boolean(parte && parte.estado === ESTADO_COMUNICACION_SES.COMUNICADA);
   const respuestas = respuestasFormDeReserva_(reserva);
   const manual = respuestas ? parteComunicadoEnForm_(respuestas) : { comunicado: false, codigo: '' };
+  const parte = parteConManual_(estadoSESDeReserva_(comunicacionesDeReserva_(reserva.id).entradas.map((e) => e.comunicacion)).parte, manual);
+  const comunicado = Boolean(parte && parte.estado === ESTADO_COMUNICACION_SES.COMUNICADA);
   return {
     validados, personas: totalPersonas_(reserva), completa: validados >= totalPersonas_(reserva),
-    sesComunicado: porApp || manual.comunicado, sesManual: !porApp && manual.comunicado,
-    sesCodigo: porApp ? parte.codigo : manual.codigo, sesEstado: parte ? parte.estado : '', formNoDisponible: respuestas === null,
+    sesComunicado: comunicado, sesManual: Boolean(parte && parte.manual),
+    sesCodigo: comunicado ? parte.codigo : '', sesEstado: parte ? parte.estado : '', formNoDisponible: respuestas === null,
   };
 };
 

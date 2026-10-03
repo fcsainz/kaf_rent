@@ -20,7 +20,7 @@
     const chipSES = (tramite, estado) => {
       if (!estado) return null;
       const [texto, tono] = ESTADO_SES_VISIBLE[estado.estado] || [estado.estado, ''];
-      return chip(`${tramite} ${texto}${estado.codigo ? ` · ${estado.codigo}` : ''}`, tono);
+      return chip(`${tramite} ${texto}${estado.manual ? ' a mano' : ''}${estado.codigo ? ` · ${estado.codigo}` : ''}`, tono);
     };
 
     const filaDato = (etiqueta, valor, clase) => {
@@ -55,7 +55,7 @@
         .cargarViajeros(id);
     };
 
-    const tarjetaHuesped = (h, parteEnCurso) => {
+    const tarjetaHuesped = (h, parteEnCurso, parteManual) => {
       const tarjeta = nuevo('div', `huesped${h.validado ? ' validado' : ''}`);
       const edad = h.edad === null ? '' : ` · ${h.edad} años`;
       tarjeta.append(
@@ -70,6 +70,8 @@
         if (!parteEnCurso) tarjeta.append(botonPequeno('Deshacer', () => llamarRegistro('Deshaciendo la validación…', 'deshacerValidacionViajero', reservaTrabajoId, h.fila)));
         return tarjeta;
       }
+      // D-45: comunicado a mano, la identidad se cotejó fuera de la app; no se vuelve a validar.
+      if (parteManual) { tarjeta.append(nuevo('p', 'validado-por', '✓ Validado y comunicado a mano en SES')); return tarjeta; }
       return completarTarjetaSinValidar(tarjeta, h);
     };
 
@@ -112,7 +114,9 @@
     const avisoRegistro = (d) => {
       const parte = d.estadoSES.parte;
       if (parte && ['Pendiente', 'Enviada'].includes(parte.estado)) return ['av', 'Parte enviado a SES. SES lo procesa en unos minutos; KAF Rent lo comprueba cada 10 min y avisa por email. Puedes comprobarlo ya.'];
-      if (parte && parte.estado === 'Comunicada') return ['ok', `✓ Parte comunicado a SES (código ${parte.codigo}). No hay que hacer nada más.`];
+      if (parte && parte.estado === 'Comunicada') {
+        return ['ok', `✓ Parte comunicado ${parte.manual ? 'a mano ' : ''}a SES (código ${parte.codigo || 'sin código'}). No hay que hacer nada más.`];
+      }
       if (parte && ['Manual', 'Rechazada'].includes(parte.estado)) return ['err', `El parte no se ha comunicado: ${parte.error || 'revisa el email de aviso'}. Revisa los datos o comunícalo a mano en SES.`];
       if (d.faltanFormularios > 0) return ['err', `Falta el formulario de ${d.faltanFormularios} huésped(es). Envíales el mensaje y pulsa «Actualizar formularios» cuando lo rellenen.`];
       if (d.puedeComunicar) return ['ok', `Todo listo. Plazo legal: hasta el ${d.plazo}.`];
@@ -120,10 +124,11 @@
     };
 
     const pintarRegistroViajeros = (d) => {
+      const parteManual = Boolean(d.estadoSES.parte && d.estadoSES.parte.manual);
       const chips = $('viajeros-chips');
       chips.innerHTML = '';
       [chip(`Formularios ${d.formularios} de ${d.personas}`, d.faltanFormularios ? 'err' : 'ok'),
-        chip(`Validados ${d.validados} de ${d.formularios}`, d.formularios && d.validados === d.formularios ? 'ok' : 'av'),
+        parteManual ? chip('Validados a mano', 'ok') : chip(`Validados ${d.validados} de ${d.formularios}`, d.formularios && d.validados === d.formularios ? 'ok' : 'av'),
         chipSES('Reserva', d.estadoSES.reserva), chipSES('Parte', d.estadoSES.parte)]
         .filter(Boolean).forEach((c) => chips.append(c));
       const aviso = avisoRegistro(d);
@@ -132,7 +137,7 @@
       const parteEnCurso = Boolean(d.estadoSES.parte && ['Pendiente', 'Enviada', 'Comunicada'].includes(d.estadoSES.parte.estado));
       const lista = $('viajeros-lista');
       lista.innerHTML = '';
-      d.huespedes.forEach((h) => lista.append(tarjetaHuesped(h, parteEnCurso)));
+      d.huespedes.forEach((h) => lista.append(tarjetaHuesped(h, parteEnCurso, parteManual)));
       $('btn-comunicar-parte').disabled = !d.puedeComunicar;
       $('btn-comunicar-parte').hidden = parteEnCurso;
       $('btn-comprobar-ses').hidden = !(d.estadoSES.parte && ['Pendiente', 'Enviada'].includes(d.estadoSES.parte.estado));

@@ -17,6 +17,12 @@ const obtenerCanalesActivos_ = (espacio) => registrosDe_(HOJA_CAT_CANALES)
     requiereRef: esVerdadero_(c.requiereRef),
   }));
 
+// Nombres de los canales activos de cada espacio con una sola lectura del catálogo (RNF-05: nada de leer en bucle).
+const nombresCanalesActivosPorEspacio_ = () => {
+  const activos = registrosDe_(HOJA_CAT_CANALES).filter((c) => texto_(c.nombre) !== '' && esVerdadero_(c.activo));
+  return (espacio) => activos.filter((c) => texto_(c.espacio) === espacio).map((c) => texto_(c.nombre));
+};
+
 const obtenerServiciosActivos_ = (espacio) => registrosDe_(HOJA_CAT_SERVICIOS)
   .filter((s) => texto_(s.espacio) === espacio && texto_(s.nombre) !== '' && esVerdadero_(s.activo))
   .map((s) => ({ nombre: texto_(s.nombre), costeUnitario: numero_(s.coste), precioUnitario: numero_(s.precio) }));

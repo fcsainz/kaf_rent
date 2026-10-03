@@ -36,20 +36,41 @@ const politicaCopias_ = () => ({
   mensuales: Math.max(1, obtenerConfigNumero_('Backup_Mensuales', 12)),
 });
 
-const podarCopias_ = (carpeta) => {
-  const copias = copiasDeMasRecienteAMasAntigua_(carpeta);
+const SEPARADOR_COPIA = ' — backup ';
+
+// Cada origen rota por separado según el prefijo de su nombre; el resto de ficheros de la carpeta no se toca (D-49).
+const copiasDe_ = (carpeta, prefijo) =>
+  copiasDeMasRecienteAMasAntigua_(carpeta).filter((f) => f.getName().startsWith(prefijo));
+
+const podarCopias_ = (carpeta, prefijo) => {
+  const copias = copiasDe_(carpeta, prefijo);
   const conservar = copiasAConservar_(copias.map((f) => diaDe_(f.getDateCreated())), politicaCopias_());
   copias.forEach((f, i) => { if (!conservar.includes(i)) f.setTrashed(true); });
 };
 
+const copiarSiToca_ = (carpeta, idOrigen, hoy, guardarCopia) => {
+  const prefijo = `${DriveApp.getFileById(idOrigen).getName()}${SEPARADOR_COPIA}`;
+  const ultima = copiasDe_(carpeta, prefijo)[0];
+  if (tocaCopia_(ultima ? diaDe_(ultima.getDateCreated()) : null, hoy)) {
+    const copia = guardarCopia(`${prefijo}${hoy}`);
+    registrarLog_('COPIA', USUARIO_SISTEMA, `Copia de seguridad: ${copia.getName()}`);
+  }
+  podarCopias_(carpeta, prefijo);
+};
+
+// D-50 (ADR-0024): el Sheet del Form se guarda como .xlsx; con makeCopy Google podría duplicar también el Form.
+const exportarXlsx_ = (idOrigen, nombre) => UrlFetchApp.fetch(
+  `https://docs.google.com/spreadsheets/d/${idOrigen}/export?format=xlsx`,
+  { headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` } },
+).getBlob().setName(nombre);
+
 const copiaSeguridadSheet_ = (ahora) => {
   const carpeta = carpetaPorId_('Carpeta_Backups_Id');
   const hoy = diaDe_(ahora);
-  const ultima = copiasDeMasRecienteAMasAntigua_(carpeta)[0];
-  if (tocaCopia_(ultima ? diaDe_(ultima.getDateCreated()) : null, hoy)) {
-    DriveApp.getFileById(obtenerSpreadsheet_().getId()).makeCopy(`BBDD_KAF_Rent — backup ${hoy}`, carpeta);
-  }
-  podarCopias_(carpeta);
+  const idSheet = obtenerSpreadsheet_().getId();
+  copiarSiToca_(carpeta, idSheet, hoy, (nombre) => DriveApp.getFileById(idSheet).makeCopy(nombre, carpeta));
+  const idViajeros = texto_(obtenerConfig_('Sheet_Viajeros_Id', ''));
+  if (idViajeros) copiarSiToca_(carpeta, idViajeros, hoy, (nombre) => carpeta.createFile(exportarXlsx_(idViajeros, `${nombre}.xlsx`)));
 };
 
 // Elimina las filas cuya fecha supera el periodo de retención, reescribiendo sin dejar la hoja vacía.

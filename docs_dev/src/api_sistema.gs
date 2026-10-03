@@ -22,7 +22,6 @@ const ejecutarTarea_ = (nombre, tarea) => {
 // Trigger diario 03:00 (ADR-0009, ADR-0013).
 const tareasNocturnas = (e) => ejecutarTareaDelSistema_('tareasNocturnas', e, () => {
   const ahora = new Date();
-  ejecutarTarea_('recalcularEstadisticas', () => recalcularEstadisticas_(ahora));
   ejecutarTarea_('copiaSeguridadSheet', () => copiaSeguridadSheet_(ahora));
   ejecutarTarea_('purgarLogs', () => purgarPorAntiguedad_(HOJA_LOGS, obtenerConfigNumero_('Retencion_Logs_Dias', 90), ahora));
   ejecutarTarea_('purgarErrores', () => purgarPorAntiguedad_(HOJA_ERRORES, obtenerConfigNumero_('Retencion_Errores_Dias', 365), ahora));
@@ -32,15 +31,28 @@ const tareasNocturnas = (e) => ejecutarTareaDelSistema_('tareasNocturnas', e, ()
   return { success: true };
 });
 
-// Con la comparativa frente al periodo anterior y al mismo del año anterior (D-41).
+// DD-04: ocupación principal de cada espacio · canal en el periodo (días con reserva por horas; noches por días).
+const ocupacionPorEspacioCanal_ = (reservas, cierres, periodo) => {
+  const canalesDe = nombresCanalesActivosPorEspacio_();
+  return new Map(obtenerEspacios_({ soloActivos: false }).flatMap((espacio) => {
+    const metricas = metricasOcupacion_({ ...datosOcupacion_(espacio, reservas, cierres, canalesDe), periodo });
+    return metricas.canales.map((fila) => [`${espacio.nombre}||${fila.canal}`, ocupacionPrincipal_(metricas, fila)]);
+  }));
+};
+
+// Con la comparativa frente al periodo anterior y al mismo del año anterior (D-41). Las noches se reparten
+// entre meses y cada fila lleva su ocupación (DD-04 §3.1, §3.3).
 const generarInforme_ = (periodo) => {
   const todas = leerReservas_().entradas.map((e) => e.reserva);
-  const agregadosDe = (p) => agregarPorEspacioCanal_(reservasDelPeriodo_(todas, p));
-  const agregados = agregadosDe(periodo);
+  const modos = new Map(obtenerEspacios_({ soloActivos: false }).map((e) => [e.nombre, e.modoFecha]));
+  const agregadosDe = (p) => agregarPorEspacioCanal_(reservasDelPeriodo_(todas, p, (espacio) => modos.get(espacio)));
+  const ocupaciones = ocupacionPorEspacioCanal_(todas, leerCierres_(), periodo);
+  const conOcupacion = (a) => ({ ...a, ocupacion: ocupaciones.get(claveEspacioCanal_(a)) ?? null });
+  const agregados = agregadosDe(periodo).map(conOcupacion);
   if (agregados.length > 0) archivarInforme_(periodo.periodo, periodo.tipo, agregados);
   const comparados = periodosDeComparacion_(periodo);
   const comparativa = comparativaInforme_({ actual: agregados, anterior: agregadosDe(comparados.anterior), anyoAnterior: agregadosDe(comparados.anyoAnterior) });
-  enviarInforme_(periodo, comparativa, comparados);
+  enviarInforme_(periodo, { ...comparativa, filas: comparativa.filas.map(conOcupacion) }, comparados);
 };
 
 // Trigger del día 1 de cada mes: informe mensual y, al empezar trimestre, el trimestral (RF-61).
@@ -141,24 +153,41 @@ const corregirHorasReservas = (e) => ejecutarTareaDelSistema_('corregirHorasRese
 
 // ---------- F-45: puesta al día de los datos (tarea de editor de un solo uso; repetirla no cambia nada) ----------
 
-// Códigos del canal desde el Form de viajeros. Sin Form configurado o ilegible, no asigna nada y lo dice.
-const codigosDelForm_ = (reservas) => {
+// Respuestas del Form de viajeros y códigos del canal que salen de ellas. Sin Form configurado o ilegible,
+// no asigna nada, no toca el estado del registro y lo dice.
+const formParaPuestaAlDia_ = (reservas) => {
   try {
-    return asignarCodigosForm_(leerRespuestasFormViajeros_(), reservas, espaciosConRegistroViajeros_());
+    const respuestas = leerRespuestasFormViajeros_();
+    return { respuestas, ...asignarCodigosForm_(respuestas, reservas, espaciosConRegistroViajeros_()) };
   } catch (error) {
-    registrarError_('codigosDelForm_', error, {});
-    return { asignaciones: [], revisar: [], error: error.message };
+    registrarError_('formParaPuestaAlDia_', error, {});
+    return { respuestas: null, asignaciones: [], revisar: [], error: error.message };
   }
 };
 
-// Cambios de una reserva: código del canal, revisiones pasadas dadas por hechas y estado recalculado.
+// RF-78: el estado del registro, por los formularios recibidos (solo las reservas que lo llevan, es decir, la Habitación).
+const registroViajerosAlDia_ = (reserva, respuestas) => {
+  if (!respuestas || !texto_(reserva.registroViajeros) || !esModificable_(reserva)) return reserva.registroViajeros;
+  return estadoRegistroViajeros_(casarRespuestasConReserva_(respuestas, codigosDeReserva_(reserva)).length, totalPersonas_(reserva));
+};
+
+const ETIQUETA_REGISTRO_VIAJEROS = 'Registro de viajeros';
+
+// Cambios de una reserva: código del canal, revisiones pasadas dadas por hechas, registro de viajeros y estado recalculado.
 // `estadoGuardado`: el texto de la celda, por si aún dice "Completada" (Q-07: pasa a "Cerrada").
-const reservaPuestaAlDia_ = (reserva, estadoGuardado, codigo, ahora) => {
+const reservaPuestaAlDia_ = (reserva, estadoGuardado, codigo, respuestas, ahora) => {
   const revisiones = revisionesPorPonerAlDia_(reserva, ahora);
   const conRevisiones = revisiones.reduce((r, campo) => ({ ...r, [campo]: REVISION.HECHO }), { ...reserva, refCanal: codigo || reserva.refCanal });
-  const { reserva: nueva, diffs } = aplicarCambios_(reserva, conRevisiones, USUARIO_PUESTA_AL_DIA, ahora);
-  const renombrado = texto_(estadoGuardado) !== nueva.estado && !diffs.some((d) => d.campo === ETIQUETA_ESTADO);
-  return { nueva, diffs: renombrado ? [...diffs, { campo: ETIQUETA_ESTADO, anterior: texto_(estadoGuardado), nuevo: nueva.estado }] : diffs, revisiones };
+  const registroViajeros = registroViajerosAlDia_(conRevisiones, respuestas);
+  const { reserva: editada, diffs } = aplicarCambios_(reserva, conRevisiones, USUARIO_PUESTA_AL_DIA, ahora);
+  const nueva = { ...editada, registroViajeros };
+  const extra = [
+    texto_(estadoGuardado) !== nueva.estado && !diffs.some((d) => d.campo === ETIQUETA_ESTADO)
+      ? { campo: ETIQUETA_ESTADO, anterior: texto_(estadoGuardado), nuevo: nueva.estado } : null,
+    registroViajeros !== reserva.registroViajeros
+      ? { campo: ETIQUETA_REGISTRO_VIAJEROS, anterior: reserva.registroViajeros, nuevo: registroViajeros } : null,
+  ].filter(Boolean);
+  return { nueva, diffs: [...diffs, ...extra], revisiones };
 };
 
 const MOMENTO_POR_REVISION = { checkin: 'Check-in', checkout: 'Check-out' };
@@ -166,11 +195,11 @@ const MOMENTO_POR_REVISION = { checkin: 'Check-in', checkout: 'Check-out' };
 const ponerAlDiaReservas = (e) => ejecutarTareaDelSistema_('ponerAlDiaReservas', e, () => conBloqueo_(() => {
   const ahora = new Date();
   const lectura = leerReservas_();
-  const codigos = codigosDelForm_(lectura.entradas.map((x) => x.reserva));
+  const codigos = formParaPuestaAlDia_(lectura.entradas.map((x) => x.reserva));
   const codigoDe = new Map(codigos.asignaciones.map((a) => [a.id, a.codigo]));
   const estadoGuardado = (entrada) => entrada.valores[lectura.tabla.columnas.estado];
   const cambios = lectura.entradas
-    .map((entrada) => ({ entrada, ...reservaPuestaAlDia_(entrada.reserva, estadoGuardado(entrada), codigoDe.get(entrada.reserva.id), ahora) }))
+    .map((entrada) => ({ entrada, ...reservaPuestaAlDia_(entrada.reserva, estadoGuardado(entrada), codigoDe.get(entrada.reserva.id), codigos.respuestas, ahora) }))
     .filter((c) => c.diffs.length > 0);
   // Tarea de una sola vez sobre pocas filas: cada reserva se escribe en su fila (KISS, como corregirHorasReservas).
   cambios.forEach((c) => guardarReserva_(lectura.tabla, c.entrada, c.nueva));

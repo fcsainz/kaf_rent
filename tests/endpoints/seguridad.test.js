@@ -10,7 +10,7 @@ const ENDPOINTS = [
   'listarReservasGestion', 'obtenerFichaReserva', 'actualizarReserva', 'marcarIngresado', 'buscarReservasPara',
   'cargarServiciosCobro', 'registrarCobroServicio', 'anadirServicioReserva',
   'cancelarReserva', 'subirContrato', 'subirVideo', 'obtenerEnlaceCalendario',
-  'cargarEstadisticas', 'recalcularEstadisticas', 'cargarCategoriasGasto', 'registrarGasto', 'calcularResumenFiscal',
+  'cargarInformeOcupacion', 'cargarCierres', 'cerrarDias', 'quitarCierre', 'cargarCategoriasGasto', 'registrarGasto', 'calcularResumenFiscal',
   'notificarIncidencia', 'cargarChecklist', 'guardarChecklist', 'confirmarChecklist', 'subirFotoDesperfecto',
   'cargarCatalogoChecklist', 'guardarPuntoChecklist', 'obtenerPerfil', 'mensajeHuesped',
   'cargarViajeros', 'validarViajero', 'deshacerValidacionViajero', 'comunicarParte', 'comprobarSES', 'probarConexionSES',
@@ -96,18 +96,14 @@ test('F-37/F-40 · doGet abre una acción del email solo si es conocida y el ID 
   assert.equal(crearEntornoConDatos().llamar('doGet').datos.accion, '', 'sin parámetros, el Inicio');
 });
 
-test('D-23 · doGet pone el icono de Config y, si la URL no vale, abre la app igualmente y lo registra', () => {
-  // Un entorno por caso: Config se cachea por ejecución, como en Apps Script.
-  const conIcono = (url) => {
-    const e = crearEntornoConDatos();
-    e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Icono_Url') f[1] = url; });
-    return { e, salida: e.llamar('doGet') };
-  };
-  assert.equal(conIcono('').salida.icono, undefined, 'sin URL no se toca el icono');
-  assert.equal(conIcono('https://lh3.googleusercontent.com/d/ID_ICONO').salida.icono, 'https://lh3.googleusercontent.com/d/ID_ICONO');
-  const { e, salida } = conIcono('url-invalida');
+test('B-30 · doGet no toca el icono de la pestaña ni registra errores; el de la cabecera llega en los datos', () => {
+  const e = crearEntornoConDatos();
+  e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Icono_Url') f[1] = 'url-invalida'; });
+  const salida = e.llamar('doGet');
   assert.equal(salida.vista, 'index');
-  assert.ok(e.hoja('Errores').registros().some((r) => r.Funcion === 'conIcono_'));
+  assert.equal(salida.icono, undefined, 'sin setFaviconUrl');
+  assert.equal(salida.datos.icono, 'url-invalida', 'la cabecera sigue usando Config.Icono_Url (F-24)');
+  assert.equal(e.hoja('Errores').filas().length, 0);
 });
 
 test('RNF-20 · todo identificador global en camelCase sin "_" es un endpoint o entrada del sistema (incluye no-flechas)', () => {

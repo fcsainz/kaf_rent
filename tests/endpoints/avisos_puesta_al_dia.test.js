@@ -161,6 +161,23 @@ test.describe('F-45 · puesta al día de los datos (tarea de editor)', () => {
     assert.equal(reservaDe(e, id).Ref_Canal, 'HMNUEVO77');
   });
 
+  test('pone al día el registro de viajeros de la Habitación con los formularios ya recibidos (RF-78)', () => {
+    const e = crearEntornoConDatos();
+    e.llamar('crearReserva', datosReservaHabitacion({ adultos: '1', menores: '0' }));
+    const id = registros(e)[0].ID_Reserva;
+    e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Sheet_Viajeros_Id') f[1] = 'FORM'; });
+    vm.runInContext('cacheConfig_ = null;', e.ctx);
+    const libro = new e.LibroFalso();
+    const form = libro.insertSheet('Respuestas de formulario 1');
+    [CABECERAS_FORM, filaAdulto({ 'Código de reserva': 'HMTEST1234', 'Marca temporal': new Date() })].forEach((f) => form.appendRow(f));
+    e.librosExternos.FORM = libro;
+    assert.equal(reservaDe(e, id).Registro_Viajeros_Estado, 'Pendiente');
+    assert.deepEqual(e.comoPropietario(() => e.llamar('ponerAlDiaReservas')).reservasCambiadas, [id]);
+    assert.equal(reservaDe(e, id).Registro_Viajeros_Estado, 'Completado');
+    assert.ok(e.hoja('Historial_Cambios').registros().some((h) => h.Campo === 'Registro de viajeros' && h.Valor_Nuevo === 'Completado'));
+    assert.deepEqual(e.comoPropietario(() => e.llamar('ponerAlDiaReservas')).reservasCambiadas, [], 'repetirla no cambia nada');
+  });
+
   test('sin el Form configurado, sigue con lo demás y lo dice', () => {
     const { e } = conReserva();
     const r = e.comoPropietario(() => e.llamar('ponerAlDiaReservas'));

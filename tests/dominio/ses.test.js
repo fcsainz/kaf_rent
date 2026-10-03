@@ -330,15 +330,18 @@ test.describe('F-27 · mensaje de WhatsApp para el huésped', () => {
   const plantilla = 'https://docs.google.com/forms/d/e/FORM/viewform?usp=pp_url&entry.123={codigo}';
   const reserva = { id: '2026-015', refCanal: 'HMABC123', inicio: new Date(2026, 9, 19, 16), adultos: 1, menores: 1, telefono: '600111222' };
 
-  test('texto aprobado: fecha con día, personas, enlace con el código del canal y el código a la vista', () => {
+  test('texto aprobado: fecha con día, enlace con el código del canal y el código a la vista, sin emojis y en párrafos', () => {
     const texto = fn('mensajeHuesped_')({ reserva, plantillaEnlace: plantilla });
     assert.equal(texto, [
       'Antes de tu llegada el lunes 19/10, la ley española (RD 933/2021) nos obliga a registrar a todos los huéspedes ante el Ministerio del Interior.',
-      '📝 Rellena un formulario por persona (2 en total, menores incluidos; el de un menor lo rellena un adulto):',
-      '👉 https://docs.google.com/forms/d/e/FORM/viewform?usp=pp_url&entry.123=HMABC123',
-      'El código de tu reserva (HMABC123) ya viene puesto. Tarda unos 3 minutos y necesitarás vuestro DNI, NIE o pasaporte.',
-      'Al llegar comprobaremos los documentos en persona. Cualquier duda, escríbenos por aquí.',
-    ].join('\n'));
+      'Rellena un formulario por persona (menores incluidos; el de un menor lo rellena un adulto):',
+      'https://docs.google.com/forms/d/e/FORM/viewform?usp=pp_url&entry.123=HMABC123',
+      'El código de tu reserva (HMABC123).',
+      'Tardas unos 3 minutos.',
+      'Al llegar comprobaremos los documentos en persona.',
+      'Cualquier duda, me dices.',
+    ].join('\n\n'));
+    assert.doesNotMatch(texto, /[\u{1F300}-\u{1FAFF}]/u, 'sin emojis');
   });
 
   test('sin código del canal usa la referencia de KAF Rent, codificada en el enlace', () => {
@@ -362,5 +365,17 @@ test.describe('D-45 · parte comunicado a mano (casilla del Form)', () => {
     assert.deepEqual(p([{ comunicado: '' }, { comunicado: 'TRUE', codigoComunicacion: 'ABC' }]), { comunicado: true, codigo: 'ABC' });
     assert.deepEqual(p([{ comunicado: 'FALSE' }]), { comunicado: false, codigo: '' });
     assert.deepEqual(p([]), { comunicado: false, codigo: '' });
+  });
+
+  const c = (parte, manual) => JSON.parse(JSON.stringify(crearEntorno().fn('parteConManual_')(parte, manual)));
+  const MANUAL = { comunicado: true, codigo: 'COD-M' };
+  test('lo comunicado a mano cuenta como parte comunicado si la app no lo comunicó', () => {
+    assert.deepEqual(c(null, MANUAL), { estado: 'Comunicada', codigo: 'COD-M', error: '', manual: true });
+    assert.deepEqual(c({ estado: 'Manual', codigo: '', error: 'x' }, MANUAL).manual, true, 'tras un fallo de la app, se comunicó a mano');
+  });
+  test('si la app lo comunicó, o no hay nada a mano, se queda lo de la app', () => {
+    const app = { estado: 'Comunicada', codigo: 'COD-APP', error: '' };
+    assert.deepEqual(c(app, MANUAL), app);
+    assert.equal(c(null, { comunicado: false, codigo: '' }), null);
   });
 });

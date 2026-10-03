@@ -64,6 +64,20 @@ const actualizarHorarioEvento_ = (reserva) => {
   }
 };
 
+// DD-04 (F-48): un cierre es un evento gris de día completo; Calendar no incluye el día de fin, de ahí el siguiente.
+const crearEventoCierre_ = (cierre, nombreCorto) => {
+  try {
+    const titulo = `Cerrado · ${nombreCorto} · ${cierre.motivo}`;
+    const evento = obtenerCalendario_().createAllDayEvent(titulo, cierre.desde, diaSiguiente_(cierre.hasta));
+    evento.setColor(CalendarApp.EventColor.GRAY);
+    return evento.getId();
+  } catch (error) {
+    registrarError_('crearEventoCierre_', error, { id: cierre.id });
+    return '';
+  }
+};
+
+// Sirve para el evento de una reserva y para el de un cierre (DD-04).
 const eliminarEventoReserva_ = (eventoId) => {
   if (!eventoId) return;
   try {

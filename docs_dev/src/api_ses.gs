@@ -305,7 +305,7 @@ const contextoRegistroViajeros_ = (id) => {
   if (!entrada || !esModificable_(entrada.reserva)) return { error: 'No se encontró la reserva o está cancelada.' };
   if (!espaciosConRegistroViajeros_().includes(entrada.reserva.espacio)) return { error: 'El registro de viajeros solo se hace en la Habitación.' };
   return {
-    entrada,
+    entrada, tabla: lectura.tabla,
     casadas: casarRespuestasConReserva_(leerRespuestasFormViajeros_(), codigosDeReserva_(entrada.reserva)),
     validaciones: leerValidacionesReserva_(entrada.reserva.id),
     comunicaciones: comunicacionesDeReserva_(entrada.reserva.id).entradas.map((e) => e.comunicacion),
@@ -329,9 +329,14 @@ const fichaParaPantalla_ = (contexto, ahora) => (respuesta) => {
   };
 };
 
+const estadoSESConManual_ = (contexto) => {
+  const estado = estadoSESDeReserva_(contexto.comunicaciones);
+  return { ...estado, parte: parteConManual_(estado.parte, parteComunicadoEnForm_(contexto.casadas)) };
+};
+
 const vistaRegistroViajeros_ = (contexto, ahora) => {
   const { reserva } = contexto.entrada;
-  const estadoSES = estadoSESDeReserva_(contexto.comunicaciones);
+  const estadoSES = estadoSESConManual_(contexto);
   const resumen = resumenRegistro_({
     personas: numero_(reserva.adultos) + numero_(reserva.menores), parte: estadoSES.parte,
     filasCasadas: contexto.casadas.map((r) => r.fila), filasValidadas: contexto.validaciones.map((v) => v.fila),
@@ -349,8 +354,11 @@ const conRegistroViajeros_ = (id, accion) => {
   return { success: true, data: vistaRegistroViajeros_(contextoRegistroViajeros_(texto_(id)), new Date()) };
 };
 
-const cargarViajeros = (id) => ejecutarEndpoint_('cargarViajeros', { id },
-  () => conRegistroViajeros_(id, () => null), { errorUsuario: 'No se pudieron cargar los datos de los huéspedes.' });
+// "Actualizar formularios" pone también al día el estado del registro de la reserva (RF-78), por si el Form llegó sin activador.
+const cargarViajeros = (id) => ejecutarEndpoint_('cargarViajeros', { id }, () => conRegistroViajeros_(id, (contexto) => {
+  actualizarEstadoRegistroViajeros_(contexto.tabla, contexto.entrada, contexto.casadas.length);
+  return null;
+}), { bloqueo: true, errorUsuario: 'No se pudieron cargar los datos de los huéspedes.' });
 
 // Valida en persona a un huésped. Si su municipio no estaba en el INE, se elige y se corrige también en el Form.
 const validarViajero = (id, fila, codigoMunicipio) => ejecutarEndpoint_('validarViajero', { id, fila }, () => conRegistroViajeros_(id, (contexto) => {
@@ -372,7 +380,7 @@ const validarViajero = (id, fila, codigoMunicipio) => ejecutarEndpoint_('validar
 }), { bloqueo: true, errorUsuario: 'No se pudo validar al huésped. Inténtalo de nuevo.' });
 
 const deshacerValidacionViajero = (id, fila) => ejecutarEndpoint_('deshacerValidacionViajero', { id, fila }, () => conRegistroViajeros_(id, (contexto) => {
-  const { parte } = estadoSESDeReserva_(contexto.comunicaciones);
+  const { parte } = estadoSESConManual_(contexto);
   if (parte && ESTADOS_PARTE_EN_CURSO.includes(parte.estado)) return 'El parte ya se ha enviado a SES: no se puede deshacer la validación.';
   quitarValidacionViajero_(contexto.entrada.reserva.id, numero_(fila));
   return null;
@@ -382,9 +390,10 @@ const deshacerValidacionViajero = (id, fila) => ejecutarEndpoint_('deshacerValid
 const comunicarParte = (id) => ejecutarEndpoint_('comunicarParte', { id }, () => conRegistroViajeros_(id, (contexto) => {
   const vista = vistaRegistroViajeros_(contexto, new Date());
   if (!vista.puedeComunicar) {
+    const { parte } = vista.estadoSES;
+    if (parte && ESTADOS_PARTE_EN_CURSO.includes(parte.estado)) return 'El parte ya está enviado o comunicado.';
     if (vista.faltanFormularios > 0) return `Falta el formulario de ${vista.faltanFormularios} huésped(es).`;
-    if (vista.validados < vista.formularios) return 'Faltan huéspedes por validar en persona.';
-    return 'El parte ya está enviado o comunicado.';
+    return 'Faltan huéspedes por validar en persona.';
   }
   const idReserva = contexto.entrada.reserva.id;
   programarComunicacionSES_({

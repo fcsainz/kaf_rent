@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 const { irA, reiniciar, rpc, datosHabitacion } = require('./ayudas');
 
 const MINIMO_PX = 44;
-const SECCIONES = ['Inicio', 'Crear Reservas', 'Gestionar Reservas', 'Estadísticas', 'Gastos'];
+const SECCIONES = ['Inicio', 'Crear Reservas', 'Gestionar Reservas', 'Cerrar días', 'Estadísticas', 'Gastos'];
 
 test('RNF-12 · botones y campos visibles miden al menos 44 px de alto', async ({ page, request }, info) => {
   test.skip(info.project.name !== 'movil', 'solo aplica al móvil');

@@ -399,6 +399,30 @@ test.describe('F-28 · validar identidades y comunicar el parte', () => {
     assert.equal(e.llamar('deshacerValidacionViajero', id(e), adulto.fila).data.validados, 0);
   });
 
+  test('"Actualizar formularios" pone al día el estado del registro aunque los Forms llegaran sin activador (RF-78)', () => {
+    const e = entornoSES();
+    e.form.appendRow(antesDeEntrar(filaAdulto()));
+    e.form.appendRow(antesDeEntrar(filaMenor()));
+    assert.equal(e.reserva().Registro_Viajeros_Estado, 'Pendiente');
+    assert.equal(e.llamar('cargarViajeros', id(e)).success, true);
+    assert.equal(e.reserva().Registro_Viajeros_Estado, 'Completado');
+  });
+
+  test('D-45 · con el parte comunicado a mano en el Form, la pantalla lo da por comunicado y no deja volver a comunicar', () => {
+    const e = entornoSES();
+    [filaAdulto(), filaMenor()].forEach((f) => e.form.appendRow(antesDeEntrar(f)));
+    e.form.registros().forEach((_, i) => {
+      const fila = i + 2;
+      e.form.getRange(fila, CABECERAS_FORM.indexOf('Comunicados') + 1).setValue(true);
+      e.form.getRange(fila, CABECERAS_FORM.indexOf('Código de comunicación') + 1).setValue('COD-MANUAL-1');
+    });
+    const { data } = e.llamar('cargarViajeros', id(e));
+    assert.deepEqual(data.estadoSES.parte, { estado: 'Comunicada', codigo: 'COD-MANUAL-1', error: '', manual: true });
+    assert.equal(data.puedeComunicar, false);
+    assert.match(e.llamar('comunicarParte', id(e)).error, /ya está enviado o comunicado/);
+    assert.equal(e.comunicaciones().filter((c) => c.Tipo === 'PV').length, 0, 'no se programa un parte duplicado');
+  });
+
   test('solo Gestión y Admin pueden validar y comunicar', () => {
     const e = conFormularios();
     e.hoja('Usuarios_Autorizados').appendRow(['soporte@test.com', 'Sí', 'Soporte']);

@@ -57,7 +57,8 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .nav-piso, .nav-subpiso { display: flex; justify-content: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); }
-  .nav-subpiso { border-bottom: 1px solid var(--c-border); background: var(--c-surface-alt); }
+  .nav-subpiso { border-bottom: 1px solid var(--c-primary-300); background: var(--c-primary-100); }
+  .nav-subpiso .nav-sub { color: var(--c-primary-900); }
   .nav-subpiso[hidden], .nav-piso[hidden] { display: none; }
   .nav-item, .nav-sub {
     flex: 1 1 auto; max-width: 180px; min-height: 48px; border: 0; background: none; cursor: pointer;
@@ -68,6 +69,7 @@
   .nav-sub { padding: var(--space-2); font-size: 0.9375rem; }
   .nav-icono { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .nav-item[aria-current="page"], .nav-sub[aria-current="page"] { color: var(--c-primary-700); background: var(--c-primary-50); }
+  .nav-subpiso .nav-sub[aria-current="page"] { background: var(--c-surface); }
   .nav-item:focus-visible, .nav-sub:focus-visible { outline: 2px solid var(--c-accent-500); outline-offset: -2px; }
   a.btn { display: inline-flex; align-items: center; text-decoration: none; }
   .btn {
@@ -215,6 +217,22 @@
   .stat-card h3 { font-size: 1rem; margin-bottom: var(--space-3); color: var(--c-primary-700); }
   .stat-card .stat-num { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
   .stat-card .stat-label { font-size: 0.8rem; color: var(--c-text-muted); }
+  /* DD-04: Estadísticas por canal (tarjeta de total destacada, líneas de detalle y evolución en barras) */
+  .stat-card-total { background: var(--c-primary-50); border-color: var(--c-primary-300); }
+  .stat-card .stat-num-2 { font-size: 1.25rem; margin-top: var(--space-3); }
+  .stat-linea { display: flex; justify-content: space-between; gap: var(--space-2); margin: var(--space-2) 0 0; font-size: 0.875rem; }
+  .stat-linea b { font-variant-numeric: tabular-nums; text-align: right; }
+  .stats-subtitulo { font-size: 1rem; margin: var(--space-5) 0 var(--space-3); }
+  .evolucion { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .evolucion-mes { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: var(--space-1) var(--space-2); align-items: center; font-size: 0.875rem; }
+  .evolucion-etiqueta { font-weight: 600; }
+  .evolucion-barra { height: 10px; border-radius: var(--radius-pill); background: var(--c-surface-alt); border: 1px solid var(--c-border); overflow: hidden; }
+  .evolucion-relleno { display: block; height: 100%; background: var(--c-primary-500); }
+  .evolucion-valor { grid-column: 2; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+  /* Cerrar días (F-48): tarjeta con el texto a la izquierda y "Quitar" a la derecha */
+  .tarjeta-cierre { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--c-border); border-radius: var(--radius-md); background: var(--c-surface); }
+  .tarjeta-cierre-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .tarjeta-cierre .btn { flex: 0 0 auto; }
 
   /* Badge de estado de reserva */
   .estado-badge {

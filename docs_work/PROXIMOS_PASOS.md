@@ -1,6 +1,6 @@
 # Próximos pasos — KAF Rent
 
-**Actualizado:** 2026-10-03, revisión previa al commit: S31–S34 (DD-03, rediseño de Reservas) implementados, subidos a `/dev` y probados por el usuario; **falta implementarlos** (producción sigue en la versión 39). Registro en [mejoras_2026-10-03.md](docs_mejoras/mejoras_2026-10-03.md); valoración en [valor_dev.md](valor_dev.md) (v1.2).  
+**Actualizado:** 2026-10-03, revisión de cierre: S31–S34 (DD-03) y S35–S36 (copias, B-30, Cerrar días y Estadísticas por canal, DD-04) subidos a `/dev` el 2026-10-03; **falta implementarlos** (el usuario, ACC-08). Registro en [mejoras_2026-10-03.md](docs_mejoras/mejoras_2026-10-03.md); valoración en [valor_dev.md](valor_dev.md) (v1.3).  
 **Framework:** Scrum adaptado a un desarrollador único: **sprints por objetivo, sin duración fija** (se trabajan en ratos libres y se cierran al cumplir el objetivo), backlog priorizado y tallas convertidas a horas ([CLAUDE.md §2.4](../CLAUDE.md))  
 **Sustituye a:** el antiguo `09_roadmap.md` de discovery (ya no existe)
 
@@ -12,7 +12,9 @@
 
 ### Acciones manuales pendientes (no son decisiones)
 
-- **ACC-08 — URGENTE: implementar una versión nueva.** Producción está en la versión **39** ("v3.1 Mejora Interfaces"), creada con el código que tenía B-28: **Gestionar y Estadísticas no cargan** para Esperanza y Aura. El código corregido está en `/dev` y probado. `npm run deploy` o *Gestionar implementaciones → Nueva versión*.
+- **ACC-08 — URGENTE: implementar una versión nueva** (el usuario, en curso el 2026-10-03). Producción está en la versión **39** ("v3.1 Mejora Interfaces"), con el código que tenía B-28: **Gestionar y Estadísticas no cargan** para Esperanza y Aura. En `/dev` ya está todo (DD-03 + S35–S36, subido y comparado el 2026-10-03). **Antes de implementar:** Sheet → *KAF Rent → Inicializar / reparar hojas* (crea `Dias_Cerrados` y las claves `Exterior_Hora_Apertura`/`Exterior_Hora_Cierre`; sin ello fallan Cerrar días, Estadísticas y Crear Reserva). Después, `npm run deploy` o *Gestionar implementaciones → Nueva versión* (DEVELOPMENT, despliegue de DD-04 S36).
+- **ACC-11 — Tras implementar:** cerrar en la app la temporada baja de Exterior (p. ej. 1/10–30/04, "Fuera de temporada") y los días ya bloqueados en las plataformas; ocultar `Estadisticas_Cache` (sin uso, no se borra).
+- **ACC-12 — Mañana (2026-10-04):** en `Logs`, dos líneas `COPIA` (Sheet y Form `.xlsx`); si falla, `Errores` → `tarea:copiaSeguridadSheet` (D-50, ADR-0024).
 - **ACC-09 — Smoke de DD-03 tras implementar** (DEVELOPMENT.md, apartado DD-03): sobre todo "Ver calendario" en los móviles Android (R-25) y, al día siguiente, que lleguen bien los avisos de cobro y de check-in/out. Comprueba también que `instalarTriggers` se ejecutó (en el editor, *Activadores*: deben salir `avisosDeCobro` y `avisosDeChecklist`).
 - **ACC-10 — Revisar a mano el Sheet del Form de viajeros** (el usuario lo hace): fila 7 "Hmk xp9b8c" (le falta la N; no casa con Len Gibbs, HMKNXP9B8C) · filas 5–6 HMHB2NK3MR sin reserva con ese código · filas 9–10 con fecha de comunicación "02/09/2026", anterior a la reserva.
 - **ACC-03 — Cerrar el despliegue de la v2:** implementada de nuevo el 2026-10-02 con S22–S28. El usuario hizo la prueba en su móvil ("todo ok"). **Falta comprobar B-14 con Esperanza y Aura:** que cada una cree una reserva de prueba de Piscina / Jardín y aparezca en el calendario. Hecho eso, el CHANGELOG pasa a 2.0.0.
@@ -25,17 +27,24 @@
 
 - ~~ACC-07 — Puesta al día antes de implementar DD-03~~ ✅ 2026-10-03: *Reparar hojas*, `ponerAlDiaReservas` (reservas pasadas con check-in/out hechos y "Cerrada") y `Tamano_Max_Contrato_MB` = 15, comprobados en el Sheet.
 
-### D-13 — % de ocupación del Informe de Gestión (aplazada por el usuario, bloquea S18)
-Hay que cuadrarlo con las noches **ofrecidas**, no solo con las del periodo. Para Airbnb no hace falta entrar en la cuenta: su enlace de calendario (iCal) da lo reservado y lo bloqueado y la app podría leerlo; los demás canales, a revisar uno a uno.
-
 ### D-15 — Método de prorrateo del IRPF: validar con datos reales (bloquea S21)
 Método **aceptado como provisional** (referencia técnica IRPF §6bis). **Se cierra** al calcular un ejercicio real con los datos de EXT-01.
 
 ### D-18 — Desglose pormenorizado de los tipos de gasto (aplazada, bloquea S17)
 Revisar juntos, gasto a gasto, la clasificación antes de programar el registro de gastos (F-19). A coordinar con KAF Finance.
 
-### D-23 — Icono del acceso directo en el móvil
-Con `setFaviconUrl` el acceso directo de Android sigue sin icono (Chrome toma el de la página exterior de Google). **Propuesta:** página puente estática con manifest (192/512 px) y `apple-touch-icon` que redirige a la app; ADR nuevo; ~2 h. Alternativa: dejarlo así. (El icono **dentro** de la app, en la cabecera, es F-24 y ya está aprobado.)
+### D-54 — Aceptar ADR-0025 (Estadísticas calculadas al abrir)
+**Qué hay que decidir (en llano):** dar por buena por escrito una decisión que ya está en el código. Desde S36, Estadísticas se calcula al abrir la pantalla y no lee el resumen que se preparaba cada noche (ADR-0009).
+**Por qué ahora:** la revisión de cierre del 2026-10-03 detectó que S36 cambió una decisión de arquitectura sin un ADR que la sustituyera. [ADR-0025](../docs_dev/solution/adr/0025-estadisticas-calculadas-al-abrir.md) la recoge como `proposed`.
+
+| | A — Aceptar ADR-0025 (recomendada) | B — Volver al cache de ADR-0009 |
+|---|---|---|
+| En llano | Estadísticas siempre al día, con cualquier filtro | Datos de hasta 24 h de antigüedad y solo el resumen anual |
+| Técnico | ADR-0025 → `accepted`; ADR-0009 → "cache sustituido por ADR-0025" | Rehacer un cache por combinación de filtros o quitar filtros de DD-04 |
+| Pros | Ya implementado y probado; sin desfase | Carga constante si un día hay miles de reservas |
+| Contras | Hay que medir la carga en real (RNF-04) | Contradice DD-04, aprobado; 4–6 h |
+
+**Recomendación:** A, con confianza alta.
 
 ### D-46 — Número de versión del CHANGELOG
 **Qué hay que decidir (en llano):** el CHANGELOG sigue diciendo "en curso hacia 2.0.0", pero los commits se llaman "v3 SES" y la implementación de producción "v3.1 Mejora Interfaces".
@@ -50,7 +59,8 @@ Con `setFaviconUrl` el acceso directo de Android sigue sin icono (Chrome toma el
 **Recomendación:** A.
 
 ### Resueltas el 2026-10-03
-D-24 (recordatorios → F-37 y F-40), D-43 (avisos solo por email), D-44 (calendario en la app de Android), D-45 (la ficha lee lo comunicado a SES a mano), Q-01 a Q-16, DI-01 a DI-26, DD-03 aprobado y ADR-0023 aceptado: detalle en [mejoras_2026-10-03.md](docs_mejoras/mejoras_2026-10-03.md).
+Tarde (S35–S36): D-13 (días cerrados en la app → F-48), D-47 y D-48 (sin cambios), D-49 y D-50 (copias del Form, ADR-0024 aceptado), D-52 (precios: scraping desde otra cuenta + análisis propio), D-53 y DI-27 (tarifas por canal; un experimento = un canal), Q-19, DD-04 aprobado; D-23 y D-51 aparcadas (F-53).
+Mañana: D-24 (recordatorios → F-37 y F-40), D-43 (avisos solo por email), D-44 (calendario en la app de Android), D-45 (la ficha lee lo comunicado a SES a mano), Q-01 a Q-16, DI-01 a DI-26, DD-03 aprobado y ADR-0023 aceptado: detalle en [mejoras_2026-10-03.md](docs_mejoras/mejoras_2026-10-03.md).
 
 ### Resueltas el 2026-10-02
 D-21, D-22, D-26 a D-35 y D-37 a D-42, más la activación de SES en producción y D-36 (aprobada como T-09): detalle en [mejoras_2026-10-02.md](docs_mejoras/mejoras_2026-10-02.md) y en el [CHANGELOG](../CHANGELOG.md).
@@ -59,18 +69,19 @@ D-21, D-22, D-26 a D-35 y D-37 a D-42, más la activación de SES en producción
 
 ## §1 Sprints pendientes
 
-Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los puntos 2 a 5 pedidos el 2026-10-03 (S35), verificar SES en uso real (S29), calidad (S30) y el resto por prioridad.
+Orden propuesto: implementar y probar lo subido (ACC-08, ACC-09, ACC-11, ACC-12; cierra S36), tarifas, análisis y experimentos (S37), verificar SES en uso real (S29), calidad (S30) y el resto por prioridad.
 
 | Sprint | Objetivo | Contenido (resumen) | Estimación | Estado |
 |---|---|---|---|---|
-| **S35** | Mejoras pedidas el 2026-10-03, puntos 2 a 5 | 2 · orden de los ficheros del repo · 3 · hojas del Sheet · 4 · copias de seguridad · 5 · informes. Cada uno: diagnóstico → decisiones → implementación | Por estimar tras el diagnóstico | ⏳ Siguiente, tras ACC-08 |
+| **S36** | DD-04: Cerrar días y Estadísticas por canal | F-48 (HU-44, RF-104 a RF-106) · F-49 (HU-31, RF-107, RF-108; RF-59 y RF-60 retirados) · ocupación y reparto por noches en el email (RF-61, B-08 en parte) | 14–18 h | 🔍 Implementado, validado en la demo y subido a `/dev` el 2026-10-03; falta *Reparar hojas*, implementar y el smoke (ACC-08, ACC-11) |
+| **S37** | DD-04: tarifas, análisis de precios y experimentos | F-50 (hoja `Tarifas`, modelo por canal, D-53) · F-51 (pestaña Precios) · F-52 (experimentos por canal, DI-27; semilla de agosto 2026) | 12–16 h | ⏳ Tras S36 |
 | **S29** | SES: verificación en producción | ACC-06: comprobar con la primera reserva real la comunicación de la reserva (RH), el parte (PV) y la consulta del lote; la anulación, en la primera cancelación · B-26 (mensaje de los errores 5xx) · corregir lo que salga | 2–3 h | ⏳ Con la primera reserva real de la Habitación |
-| **S30** | Calidad: trazabilidad y E2E pendientes | T-09 (script de verificación en `npm test`; en la revisión del 2026-10-03 se hizo a mano y salió un descuadre) · T-10 (E2E de F-27, F-29 y F-30; F-28 ya cubierto por los de DD-03) · B-25 (`describirFormulario` y las fechas obligatorias) · TD-05 (funciones largas del cliente) | 8–11 h | ⏳ Listo para empezar (aprobado; TD-05 pendiente de OK) |
+| **S30** | Calidad: trazabilidad y E2E pendientes | T-09 (script de verificación en `npm test`; en la revisión de cierre del 2026-10-03 se hizo con un script provisional: sin enlaces rotos ni descuadres) · T-10 (E2E de F-27, F-29, F-30, F-48 y F-49; F-28 ya cubierto por los de DD-03) · B-25 (`describirFormulario` y las fechas obligatorias) · TD-05 (funciones largas del cliente) | 8–11 h | ⏳ Listo para empezar (aprobado; TD-05 pendiente de OK) |
 | **S24** | Vídeos grandes | D-27: ADR + subida reanudable directa a Drive + parámetro de tamaño (mín. 500 MB) | 5–6 h | ⏳ Listo para empezar |
-| **S19** | Informe Técnico y chequeo de salud | F-16 · chequeo de salud en real (T-04) · prueba de viabilidad del scraping (F-17) | ~10 h | ⏳ Listo para empezar |
-| **S20** | Precios de la competencia | F-17: ADR + lectores por web + aviso de rotura + reconstrucción | 8–12 h | ⏳ Tras S19 |
+| **S19** | Informe Técnico y chequeo de salud | F-16 · chequeo de salud en real (T-04) · prueba de viabilidad del scraping (F-17) desde **otra cuenta de Google** (D-52; la elige el usuario) | ~10 h | ⏳ Listo para empezar (la prueba de scraping, tras elegir la cuenta) |
+| **S20** | Precios de la competencia | F-17: ADR + lectores por web + aviso de rotura + reconstrucción; alimenta la columna "competencia" de S37 (DD-04) | 8–12 h | ⏳ Tras S19 |
 | **S17** | Registro de gastos | F-19: formulario de tres preguntas + clasificación por pieza y tipo | 7–9 h | ⏳ Bloqueado por D-18 |
-| **S18** | Informe de Gestión | F-15 (bloque mensual + análisis de precios) · B-08 y F-05 (ocupación, métricas por zona) | 12–14 h | ⏳ Bloqueado por D-13 |
+| **S18** | Informe de Gestión (resto) | F-15 (bloque mensual del email) · B-08 (canceladas en el email) · F-05 (métricas que falten tras S36); el análisis de precios pasa a S37 | 6–8 h | ⏳ Listo para empezar (D-13 resuelta en S36) |
 | **S21** | Informe del IRPF | F-20: informe por copropietario y agregado, con casillas; valida D-15 | 12–16 h | ⏳ Tras S17 + EXT-01 |
 | **S13** | Mejoras "Could" | HU-38/RF-80 (editar fechas y canal hasta el check-in) · reconciliación automática de Calendar (F-04); los recordatorios pasan a S34 (F-37, F-40) | 8–12 h | ⏳ Listo para empezar |
 
@@ -93,7 +104,7 @@ Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los pun
 | B-05 | Posible XSS con datos del huésped | RNF-26 | 1 | M | ✅ S8 |
 | B-06 | Comentarios obsoletos en `auth.gs` y `gestion.gs` | CLAUDE.md §4.9 | — | XS | ✅ S7 |
 | B-07 | La poda de vídeos no borraba las carpetas de reserva vacías | HU-30, RF-70 | 4 | S | ✅ S8 |
-| B-08 | Informes sin % de ocupación ni completadas frente a canceladas | HU-32, RF-62 | 4 | M | S18 (tras D-13) |
+| B-08 | Informes sin % de ocupación ni completadas frente a canceladas. **S36:** ocupación en Estadísticas y en el email; canceladas en Estadísticas. Falta: canceladas en el email | HU-32, RF-62 | 4 | S | 🟡 S36 (resto en S18) |
 | B-09 | El evento de Calendar no se actualizaba al editar el nombre del huésped | HU-19, RF-41 | 4 | S | ✅ S8 |
 | B-10 | Nombres de espacio e IDs en el código | RNF-23, RNF-27 | 5 | M | ✅ S8 |
 | B-11 | Evento de Calendar huérfano si fallaba la escritura | RF-36, RNF-14 | 2 | XS | ✅ S8 |
@@ -113,6 +124,7 @@ Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los pun
 | B-25 | `describirFormulario` (script del Form) no marca con `*` las preguntas obligatorias de tipo fecha; el informe parece decir que no lo son | ADR-0021 | 6 | XS | S30 |
 | B-27 | "Ver calendario" sacaba de la app sin forma de volver (D-44: app de Calendar en Android) | RF-12, HU-07 | 4 | XS | ✅ S31 (falta el smoke en Android, ACC-09) |
 | B-28 | En Apps Script, Gestionar y Estadísticas no cargaban: Google quita como comentario lo que sigue a `//` dentro de las cadenas con comillas invertidas y el enlace `intent://` rompía el script. Corregido + test de plantillas + la ventana de "trabajando" ya no se queda abierta si una llamada falla | RF-12, RNF-13 | 1 | S | ✅ 2026-10-03 (en `/dev`; producción tras ACC-08) |
+| B-30 | `conIcono_` escribía en `Errores` en cada apertura de la app ("No se admite el tipo de imagen de icono de página", ~70 desde el 27/09): `setFaviconUrl` rechaza `Config.Icono_Url` y la pestaña nunca ha tenido icono. Corregido: se quita `setFaviconUrl` (nunca funcionó); el icono de la cabecera no cambia | RF-07, F-53 | 6 | XS | ✅ 2026-10-03 (en `/dev`; producción tras ACC-08) |
 | B-26 | La comprobación de conexión con SES dice "respuesta inesperada" ante un error 5xx; debería decir que SES está fallando y que no es cosa de las credenciales, y guardar en `Logs` el inicio de la respuesta | RF-96 | 5 | XS | S29 |
 
 ### Tests (T)
@@ -128,7 +140,7 @@ Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los pun
 | T-07 | ESLint (aprobado 2026-10-02): `devDependency`, `eslint.config.js`, `npm run lint`, en la CI; apartado en DEVELOPMENT.md. **Hecho (2026-10-02)**; no analiza el JS de los `.html` | RNF-28 | 3 | S | **S9** ✅ |
 | T-08 | clasp: `.clasp.json` y comparación hechos (2026-09-27); scripts `npm run push` (tests + lint + push) y `npm run deploy` (ID en `KAF_RENT_ID_IMPLEMENTACION`). **Hecho (2026-10-02)** | ADR-0015, RNF-27 | 3 | S | **S9** ✅ |
 | T-09 | Script de verificación de trazabilidad (regla global; referencia `kaf_finance/docs_work/scripts/verificar_trazabilidad.mjs`): reciprocidad HU↔RF↔RNF, huérfanos, estados sin decisión, enlaces y anclas rotos; dentro de `npm test`. **Aprobado (2026-10-02, antes D-36)** | Revisión de cierre 2026-10-02 | 3 | S | S30 |
-| T-10 | E2E de las pantallas nuevas de la v2 (DoD de release, CLAUDE.md §8.3): registro de viajeros (F-28), mensaje al huésped (F-27), ventana de "trabajando" (F-29) y comprobar conexión (F-30). Se implementó sin ellos (revisión de cierre 2026-10-02); el escenario `/__test/viajeros` del servidor E2E ya existe | RNF-29, CLAUDE.md §8.3 | 3 | M | S30 |
+| T-10 | E2E de las pantallas nuevas (DoD de release, CLAUDE.md §8.3): registro de viajeros (F-28), mensaje al huésped (F-27), ventana de "trabajando" (F-29), comprobar conexión (F-30) y, desde S36, Cerrar días y Estadísticas por canal (F-48, F-49; ya entran en los barridos de móvil y accesibilidad). Se implementó sin ellos (revisión de cierre 2026-10-02); el escenario `/__test/viajeros` del servidor E2E ya existe | RNF-29, CLAUDE.md §8.3 | 3 | M | S30 |
 
 ### Deuda técnica (REF / TD) — detalle en [arc42 §11.2](../docs_dev/solution/arc42.md#112-deuda-técnica)
 
@@ -175,6 +187,12 @@ Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los pun
 | F-28 | Validación presencial de identidades en Gestionar (Habitación) → comunicación a SES. **Hecho (2026-10-02, RF-94)** | ADR-0018, DD-02, HU-35, HU-36 | 4 | L | ✅ S28 (verificación en producción: S29) |
 | F-29 | Ventana de "trabajando" en toda la app mientras espera al servidor (usuario, 2026-10-02). **Hecho (RF-95)** | RNF-09 | 4 | S | **S28** ✅ |
 | F-30 | Comprobar la conexión con SES (solo lectura): menú del Sheet + botón de Inicio solo para Admin (usuario, 2026-10-02). **Hecho (RF-96)**; desde S31, en el menú Admin | ADR-0018 | 4 | S | **S28** ✅ |
+| F-48 | Cerrar días de un espacio (D-13): bloquean reservas, salen en Calendar y no cuentan como abiertos | DD-04, HU-44, RF-104 a RF-106 | 4 | M | 🔍 **S36** (en `/dev`) |
+| F-49 | Estadísticas por canal con ocupación (noches u horas), ingreso por unidad abierta y evolución; ocupación y reparto por noches en el email | DD-04, HU-31, RF-61, RF-107, RF-108 | 4 | L | 🔍 **S36** (en `/dev`) |
+| F-50 | Historial de tarifas publicadas con un modelo por canal (hoja `Tarifas`, `Catálogo_Canales.Modelo_Tarifa`; D-53) y semilla de Cocopool, Swimmy y Airbnb | DD-04 §3.4 | 4 | M | S37 |
+| F-51 | Pestaña Precios: tarifa vigente frente a ocupación por mes, día de la semana, canal y antelación | DD-04 §3.5 | 4 | M | S37 |
+| F-52 | Experimentos de precio por canal (DI-27), con el de agosto de 2026 en Cocopool como experimento pasado | DD-04 §3.6 | 4 | M | S37 |
+| F-53 | Icono del acceso directo del móvil con una página puente (D-23, aprobada y aparcada por el usuario: "no renta" por ahora) y dónde alojarla (D-51: recomendada GitHub Pages en este repo, con ADR nuevo); falta un icono de 512 px; permitiría volver a poner el icono de la pestaña (B-30) | D-23, D-51 | 6 | S | Backlog (aparcado) |
 | F-31 a F-45 | Rediseño de Reservas (DD-03): menú Admin, Inicio "de un vistazo", barra de Reservas, filtros y tarjetas paginadas, ficha propia, funciones Checklist / Identidades / Contrato / Extras, avisos de cobro y de check-in/out, contrato en fotos (ADR-0023), cobro de servicios (plataforma o presencial), puesta al día. Detalle en [mejoras_2026-10-03](docs_mejoras/mejoras_2026-10-03.md) | DD-03, HU-41 a HU-43, RF-97 a RF-103 | 4 | L×4 | ✅ S31–S34 (producción tras ACC-08) |
 
 ### Tareas externas (EXT)
@@ -212,6 +230,7 @@ Orden propuesto: implementar y probar DD-03 (ACC-08, ACC-09), seguir con los pun
 | S23 | Interfaz móvil como KAF Finance (F-24, F-25, F-26) | 2.0.0 (implementada 2026-10-02) | — |
 | S9 | Calidad estática y despliegue (T-06, T-07 ESLint, T-08 scripts de clasp, TD-04) | 2.0.0 (implementada 2026-10-02) | — |
 | S26–S28 | SES.Hospedajes: dominio, conexión, Form con script propio (ADR-0021), anulación al cancelar (ADR-0022), validación presencial (F-28), WhatsApp (F-27), ventana de "trabajando" (F-29), comprobar conexión (F-30), emails con plantilla (D-35, D-41) | 2.0.0 (implementada 2026-10-02; SES activo en producción) | M5 ✅ |
+| S35 | Puntos 2 a 5 del 2026-10-03: orden del repo y hojas del Sheet sin cambios (D-47, D-48); copias del Form como `.xlsx`, rastro en `Logs` y restauración escrita (D-49, D-50, ADR-0024); B-30; informes → DD-04 | 3.x (subido a `/dev` el 2026-10-03) | — |
 | S31–S34 | Rediseño de Reservas (DD-03): navegación y menú Admin, Inicio, Gestionar en tarjetas, ficha, funciones de la barra, avisos, contrato en fotos, cobro de servicios, puesta al día; B-27, B-28, D-45; `npm run demo` | 3.x (subido a `/dev` y probado el 2026-10-03; implementación pendiente, ACC-08) | — |
 
 ---

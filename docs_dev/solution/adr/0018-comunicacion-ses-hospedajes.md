@@ -1,5 +1,5 @@
 ---
-status: accepted; "sin anulaciones automáticas" (D-31) sustituido por ADR-0022
+status: accepted; "sin anulaciones automáticas" (D-31) sustituido por ADR-0022; "una sola copia" en las copias de seguridad sustituido por ADR-0024
 date: 2026-10-02
 decision-makers: Copropietario desarrollador (PER-01)
 consulted: —
@@ -17,7 +17,7 @@ El RD 933/2021 (Art. 6.3) obliga a comunicar a SES.Hospedajes la reserva (`RH`) 
 ## Factores de decisión
 
 * Que el huésped no cambie nada: el Form ya funciona.
-* Una sola copia de los datos personales (RGPD, RNF-34, RNF-38).
+* Una sola copia de los datos personales (RGPD, RNF-34, RNF-38). Excepción: las copias de seguridad ([ADR-0024](0024-copias-de-seguridad-del-form-de-viajeros.md)).
 * Nada se comunica sin que una persona haya visto el documento (verificación presencial).
 * Coste cero y todo dentro de Apps Script (RNF-33).
 * Fallos visibles: nunca un parte sin comunicar sin que nadie lo sepa.

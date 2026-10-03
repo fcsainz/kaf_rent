@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const { irA, reiniciar, prueba, rpc, datosHabitacion } = require('./ayudas');
 
-const SECCIONES = ['Inicio', 'Crear Reservas', 'Gestionar Reservas', 'Estadísticas', 'Gastos'];
+const SECCIONES = ['Inicio', 'Crear Reservas', 'Gestionar Reservas', 'Cerrar días', 'Estadísticas', 'Gastos'];
 
 test('RNF-11 · sin desbordamiento horizontal en ninguna sección', async ({ page, request }) => {
   await reiniciar(request);

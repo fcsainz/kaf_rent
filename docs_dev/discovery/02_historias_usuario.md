@@ -59,8 +59,8 @@
 | HU-28 | US-017 | Firmar el contrato de Exterior con fotos en Drive | E-06 | P-07 | M | L | S4 → S8 ✔ · **S33** (F-41) | 🔍 |
 | HU-29 | US-029 | Checklists digitales de check-in/check-out (F-14) | E-06 | P-07 | S | L | S4 → **S16** · **S22** (B-18, B-19, TD-02) | ✅ |
 | HU-30 | US-030 | Subir vídeos de entrada/salida a Drive | E-06 | P-07 | S | M | S4 → S8 ✔ | ✅ |
-| HU-31 | US-024 | Estadísticas por espacio | E-07 | P-08 | S | L | S5 | ✅ |
-| HU-32 | US-021 | Informes mensual y trimestral por email | E-07 | P-08 | S | L | S5 → **S12** | 🟡 |
+| HU-31 | US-024 | Estadísticas por espacio y canal con su ocupación | E-07 | P-08 | S | L | S5 · **S36** | 🔍 |
+| HU-32 | US-021 | Informes mensual y trimestral por email | E-07 | P-08 | S | L | S5 → **S36** | 🟡 |
 | HU-33 | US-027 | Registrar gastos con justificante | E-08 | P-09 | S | L | S6 | ✅ |
 | HU-34 | US-028 | Resumen fiscal por ejercicio a tercios | E-08 | P-09 | S | L | S6 | ✅ |
 | HU-35 | *(ADR-0007, ADR-0018)* | Comunicar los viajeros de la Habitación a SES.Hospedajes | E-09 | P-10 | W (Fase 2) | XL | **S26**–S29 | 🟡 |
@@ -72,6 +72,7 @@
 | HU-41 | *(DD-03, F-38/F-39/F-41)* | Tareas de la reserva desde la barra de Reservas (checklist, identidades, contrato) | E-05 | P-04, P-07 | M | L | **S33** | 🔍 |
 | HU-42 | *(DD-03, F-43)* | Cobro de los servicios extra (plataforma o presencial) | E-05 | P-08 | S | M | **S33** | 🔍 |
 | HU-43 | *(DD-03, F-40)* | Aviso de check-in y check-out sin hacer | E-04 | P-04, P-07 | S | M | **S34** | 🔍 |
+| HU-44 | *(DD-04, F-48)* | Cerrar días de un espacio | E-07 | P-08 | S | M | **S36** | 🔍 |
 
 ---
 
@@ -999,33 +1000,68 @@ Scenario: Poda a los 180 días
 
 ## E-07 — Estadísticas e informes
 
-### HU-31 — Estadísticas por espacio
-**Antes:** US-024 · **MoSCoW:** S · **Talla:** L · **Estado:** ✅  
-**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-59, RF-60 · **↓ RNF:** RNF-04, RNF-05 · **↓ Sprint:** S5
+### HU-31 — Estadísticas por espacio y canal con su ocupación
+**Antes:** US-024 · **MoSCoW:** S · **Talla:** L · **Estado:** 🔍 (rehecha en S36 según [DD-04](../solution/design-docs/DD-04-ocupacion-tarifas-y-experimentos.md), pendiente de validar)  
+**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-107, RF-108 (antes RF-59, RF-60, retirados) · **↓ RNF:** RNF-04, RNF-05, RNF-11 · **↓ Sprint:** S5 · **S36**
 
-Como copropietario, quiero ver un resumen anual por espacio para conocer el rendimiento sin generar nada a mano.
+Como copropietario, quiero ver por espacio y canal los días abiertos frente a los ocupados y lo que deja cada unidad abierta para decidir precios y canales con datos.
+
+> **Revisión 2026-10-03 (DD-04, D-13):** sustituye el resumen anual por zonas leído de `Estadisticas_Cache`. Cada espacio se mide como se cobra: por noches (Interior) o por horas (Exterior).
 
 ```gherkin
-Scenario: Zonas
+Scenario: Ocupación por canal
+  Given un espacio y un periodo (mes, trimestre o año)
   When entra en "Estadísticas"
-  Then ve "Todos" y una zona por espacio activo, cada una con el nº de reservas no canceladas del año natural y sus ingresos netos
+  Then ve una tarjeta de total y una por canal con reservas, canceladas, neto, cobrado por unidad e ingreso por unidad abierta
+  And los días cerrados (HU-44) no cuentan como abiertos
 
-Scenario: Datos cacheados
-  Then los valores se leen de Estadisticas_Cache
-  And se muestra "Las estadísticas se actualizan cada 24 horas" con la fecha de la última actualización
+Scenario: Lo primero que se ve
+  Then en Interior ve la ocupación de noches y el € por noche
+  And en Exterior ve los días con reserva frente a los abiertos y el € por hora, con las horas abiertas de Config (09:00–02:00)
 
-Scenario: Recálculo diario
-  When se ejecuta el trigger de las 03:00
-  Then se recalculan los agregados y se sobrescribe el cache
+Scenario: Reserva que cruza de mes
+  Given una reserva de Interior con noches en dos meses
+  Then cada noche cuenta en su mes y el importe se reparte en proporción a las noches
+
+Scenario: Evolución
+  Then ve los 12 meses del año con su ocupación y su ingreso por unidad abierta, con la cifra escrita junto a la barra
+```
+
+### HU-44 — Cerrar días de un espacio
+**Antes:** *(DD-04, F-48, D-13)* · **MoSCoW:** S · **Talla:** M · **Estado:** 🔍 (implementado el 2026-10-03, pendiente de validar)  
+**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-104, RF-105, RF-106 · **↓ RNF:** RNF-05, RNF-11, RNF-16 · **↓ Sprint:** **S36**
+
+Como copropietario, quiero apuntar los días en que un espacio no se alquila para que nadie lo reserve esos días y la ocupación se calcule sobre los días abiertos de verdad.
+
+> Las plataformas no dejan leer sus bloqueos (D-13 D descartada): el cierre se apunta en la plataforma y en la app.
+
+```gherkin
+Scenario: Cerrar días
+  Given Reservas → Cerrar días
+  When indica espacio, desde, hasta (incluido) y motivo
+  Then el cierre se guarda y aparece en el calendario como evento gris "Cerrado · {espacio} · {motivo}"
+
+Scenario: No pisar reservas ni otros cierres
+  Given ya hay una reserva no cancelada o un cierre del mismo espacio en esas fechas
+  Then el cierre se rechaza con un mensaje que dice cuál es
+
+Scenario: No se reserva un día cerrado
+  Given un día cerrado
+  When se crea una reserva que lo ocupa (una noche en Interior; el día de inicio en Exterior)
+  Then se rechaza explicando el motivo y que se quite el cierre si hay que abrir
+
+Scenario: Quitar un cierre
+  When pulsa "Quitar" y lo confirma
+  Then el cierre y su evento desaparecen y esos días se pueden reservar
 ```
 
 ### HU-32 — Informes mensual y trimestral por email
 **Antes:** US-021 · **MoSCoW:** S · **Talla:** L · **Estado:** 🟡  
-**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-61, RF-62 · **↓ RNF:** RNF-05 · **↓ Sprint:** S5 → **S12**
+**↑ Problema:** P-08 · **↑ JTBD:** JTBD-08 · **↓ RF:** RF-61, RF-62 · **↓ RNF:** RNF-05 · **↓ Sprint:** S5 → **S36**
 
 Como copropietario, quiero recibir informes mensuales y trimestrales automáticos para seguir el rendimiento sin elaborarlos.
 
-> 🟡 **Hueco:** faltan el % de ocupación y la comparación completadas/canceladas (B-08).
+> 🟡 **Hueco:** desde S36 (DD-04) el email lleva la ocupación de cada espacio · canal y reparte las noches entre meses; las canceladas se ven en Estadísticas, pero aún no en el email (B-08).
 
 ```gherkin
 Scenario: Informe mensual

@@ -1,6 +1,6 @@
   <script>
     // Gestionar Reservas (DD-03): listado en tarjetas, ficha en pantalla propia (consultar y modificar), funciones de la
-    // barra de Reservas, Estadísticas y enlace al calendario. Reutiliza $, servidor, mostrarMensaje, mostrarExito,
+    // barra de Reservas y enlace al calendario (Estadísticas está en ocupacion_interfaz.html, DD-04). Reutiliza $, servidor, mostrarMensaje, mostrarExito,
     // crearDialogo, confirmarAccion, formatearEuros, crearTarjetaReserva, navegar y guardiaNavegacion
     // de cliente.html (mismo ámbito global de la página). Los datos se pintan siempre con textContent (RNF-26).
 
@@ -715,54 +715,6 @@
       llamarExtras('Añadiendo el servicio…', 'Servicio añadido: queda pendiente de cobro.', 'anadirServicioReserva', nombre, $('extras-cantidad').value);
     };
 
-    // ----- Estadísticas (HU-31) -----
-    const inicializarEstadisticas = () => {
-      servidor('Cargando las estadísticas…')
-        .withSuccessHandler((res) => { if (res.success) renderEstadisticas(res.data); })
-        .withFailureHandler(() => {})
-        .cargarEstadisticas();
-      const btnRecalcular = $('btn-recalcular-stats');
-      if (btnRecalcular) btnRecalcular.addEventListener('click', forzarRecalculoEstadisticas);
-    };
-
-    const restaurarBotonStats = (b) => { b.disabled = false; b.textContent = 'Recalcular ahora'; };
-
-    const forzarRecalculoEstadisticas = () => {
-      const b = $('btn-recalcular-stats');
-      b.disabled = true;
-      b.textContent = 'Calculando…';
-      servidor('Recalculando las estadísticas…')
-        .withSuccessHandler((resRecalculo) => {
-          if (resRecalculo && !resRecalculo.success) { restaurarBotonStats(b); mostrarMensaje(resRecalculo.error, 'error'); return; }
-          servidor('Cargando las estadísticas…')
-            .withSuccessHandler((res) => {
-              restaurarBotonStats(b);
-              if (res.success) renderEstadisticas(res.data);
-              mostrarMensaje('Estadísticas actualizadas.', 'exito');
-            })
-            .withFailureHandler(() => restaurarBotonStats(b))
-            .cargarEstadisticas();
-        })
-        .withFailureHandler(() => { restaurarBotonStats(b); mostrarMensaje('No se pudieron recalcular las estadísticas.', 'error'); })
-        .recalcularEstadisticas();
-    };
-
-    const renderEstadisticas = (data) => {
-      const cont = $('stats-zonas');
-      cont.innerHTML = '';
-      if (!data || data.length === 0) {
-        cont.appendChild(nuevoEl('p', 'ayuda-campo', 'Aún no hay estadísticas calculadas. Se generan de madrugada automáticamente; para verlas ya, pulsa «Recalcular ahora».'));
-        return;
-      }
-      data.forEach((z) => {
-        const card = nuevoEl('div', 'stat-card');
-        card.append(nuevoEl('h3', '', z.zona), nuevoEl('div', 'stat-num', z.totalReservas), nuevoEl('div', 'stat-label', 'reservas este año'),
-          nuevoEl('div', 'stat-num', formatearEuros(z.ingresosNetos)), nuevoEl('div', 'stat-label', 'ingresos netos'));
-        cont.appendChild(card);
-      });
-      if (data[0]) $('stats-actualizado').textContent = 'Última actualización: ' + data[0].actualizado;
-    };
-
     // ----- Enlace al calendario de ocupación (ADR-0010, D-44 B) -----
     // En Android abre la app de Google Calendar (se vuelve a KAF Rent con Atrás); si no está, el navegador.
     // En el resto, otra pestaña.
@@ -838,7 +790,6 @@
 
     inicializarEspacios();
     inicializarGestion();
-    inicializarEstadisticas();
     inicializarCalendario();
     // Tras cargar todos los scripts: la checklist y el registro de viajeros se definen en ficheros posteriores.
     window.addEventListener('load', ejecutarAccionInicial);

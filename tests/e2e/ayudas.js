@@ -21,7 +21,7 @@ const datosHabitacion = (cambios = {}) => ({
 
 // Navega con la barra inferior (F-25, F-31, F-33): Gestionar y Crear están en el segundo piso de "Reservas";
 // Checklists y Conexión SES, en el de "Admin". Desde la barra de Reservas se vuelve antes con "Inicio".
-const SUBSECCIONES = { 'Gestionar Reservas': 'Reservas', 'Crear Reservas': 'Reservas', Checklists: 'Admin', 'Conexión SES': 'Admin' };
+const SUBSECCIONES = { 'Gestionar Reservas': 'Reservas', 'Crear Reservas': 'Reservas', 'Cerrar días': 'Reservas', Checklists: 'Admin', 'Conexión SES': 'Admin' };
 const irA = async (page, seccion) => {
   if (await page.locator('#nav-reservas').isVisible()) await page.locator('#btn-nav-volver-inicio').click();
   const boton = page.locator('.nav-inferior').getByRole('button', { name: seccion, exact: true });

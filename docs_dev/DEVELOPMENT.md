@@ -49,6 +49,15 @@ Pasos seguidos el 2026-10-02, con la versión implementada (cuenta `operaciontan
 
 Seguimiento: cada comunicación queda en `Comunicaciones_SES` con su estado (Pendiente → Enviada → Comunicada; o Rechazada / Manual con el motivo en `Error`). Al comunicarse, se marca en el Sheet del Form igual que a mano, con `Tipo_Comunicación` = "Automática".
 
+## Restaurar desde una copia de seguridad (D-49)
+
+Las copias están en `KAF. KAF Rent/KAF. Backup - KAF Rent` (`Config.Carpeta_Backups_Id`), en la cuenta operativa: `BBDD_KAF_Rent — backup AAAA-MM-DD` (Sheet) y `{Sheet del Form} — backup AAAA-MM-DD.xlsx` (respuestas del Form de viajeros). Cada copia hecha queda en `Logs` con tipo `COPIA`; un fallo, en `Errores` (`tarea:copiaSeguridadSheet`). Rotación: RF-68, ADR-0016.
+
+1. **Primero, el historial de versiones** (*Archivo → Historial de versiones*) del Sheet afectado: para un cambio reciente es más fino que una copia de un día.
+2. **Una hoja de `BBDD_KAF_Rent` borrada o estropeada:** abre la copia del día que quieras, clic derecho en la pestaña → *Copiar en → Hoja de cálculo existente* → `BBDD_KAF_Rent`. En el original, borra la hoja dañada y renombra la copiada con el nombre exacto (sin "Copia de"). Lo registrado después de esa copia se pierde: revisa `Historial_Cambios` y `Logs` de esos días para rehacerlo.
+3. **Respuestas del Form de viajeros:** en el Sheet del Form, *Archivo → Importar → Subir* el `.xlsx` → *Insertar hojas nuevas*, y copia las filas que falten a `Respuestas de formulario 1`. **No sustituyas** esa hoja: es la vinculada al Form.
+4. **`BBDD_KAF_Rent` perdido entero** (no probado): la copia lleva dentro su propio proyecto de Apps Script, pero con otro ID. Haz una copia de la copia, llámala `BBDD_KAF_Rent`, pon su `scriptId` en `.clasp.json`, `npm run push`, vuelve a poner las Propiedades del script (contraseña de SES), `instalarTriggers` y una implementación nueva; la URL de la app cambia y hay que avisar a todos.
+
 ## Emergencia: copia/pega manual
 
 Si clasp no está disponible, se pega cada fichero de `docs_dev/src/` en el editor de Apps Script como en la v1 (pasos 3–4 de la puesta en marcha).
@@ -67,12 +76,14 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 ├── api_reservas.gs                 API: crear reserva, reservas de un vistazo, buscador
 ├── api_gestion.gs                  API: lista paginada, ficha, edición auditada, cobro, cancelación, funciones de la barra de Reservas (DD-03)
 ├── api_documentos.gs               API: contrato y vídeos a Drive
-├── api_estadisticas.gs             API: estadísticas (y su recálculo) y enlace al calendario
+├── api_estadisticas.gs             API: estadísticas por canal con su ocupación (DD-04) y enlace al calendario
+├── api_cierres.gs                  API: Cerrar días (DD-04)
 ├── api_gastos.gs                   API: gastos y resumen fiscal
 ├── api_sistema.gs                  API: triggers, menú del Sheet y utilidades de editor (protegidas)
 │
 ├── dominio_reservas.gs             DOMINIO (puro): validaciones, importes, solapamiento, IDs, ciclo de vida
-├── dominio_informes.gs             DOMINIO (puro): agregados de estadísticas e informes
+├── dominio_informes.gs             DOMINIO (puro): agregados del informe por email
+├── dominio_ocupacion.gs            DOMINIO (puro): días cerrados, reparto por noches y métricas de ocupación (DD-04)
 ├── dominio_fiscal.gs               DOMINIO (puro): gastos, amortización, resumen a tercios
 │
 ├── infra_esquema.gs                INFRA: hojas y campos (fuente única), semillas
@@ -81,7 +92,8 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 ├── infra_catalogo.gs               INFRA: catálogos
 ├── infra_repositorio_reservas.gs   INFRA: Reservas, líneas de servicio, historial
 ├── infra_repositorio_gastos.gs     INFRA: Gastos y Resumen_Fiscal
-├── infra_repositorio_informes.gs   INFRA: Estadisticas_Cache e Historico_Informes
+├── infra_repositorio_informes.gs   INFRA: Historico_Informes
+├── infra_repositorio_cierres.gs    INFRA: Dias_Cerrados (DD-04)
 ├── infra_drive.gs                  INFRA: carpetas y archivos en Drive
 ├── infra_calendario.gs             INFRA: eventos de Calendar
 ├── infra_correo.gs                 INFRA: emails (avisos, confirmación, informes)
@@ -90,7 +102,8 @@ docs_dev/src/                       Capa (ver CLAUDE.md §3.3 y arc42 §5.2)
 ├── index.html                      PRESENTACIÓN: shell de la app
 ├── estilos.html                    PRESENTACIÓN: tokens del sistema de diseño (ADR-0011)
 ├── cliente.html                    PRESENTACIÓN: navegación, Crear Reserva, Inicio, Buscar
-├── gestion_interfaz.html           PRESENTACIÓN: Gestionar (tarjetas), ficha, funciones de la barra de Reservas, Estadísticas, calendario
+├── gestion_interfaz.html           PRESENTACIÓN: Gestionar (tarjetas), ficha, funciones de la barra de Reservas, calendario
+├── ocupacion_interfaz.html         PRESENTACIÓN: Cerrar días y Estadísticas por canal (DD-04)
 ├── gastos_interfaz.html            PRESENTACIÓN: Gastos y resumen fiscal
 └── acceso-denegado.html            PRESENTACIÓN: pantalla de acceso denegado
 ```
@@ -140,6 +153,14 @@ Pasos, en este orden, al publicar la versión con S31–S34:
 3. Editor → ejecutar **`instalarTriggers`**: añade `avisosDeCobro` (9:00 diario) y `avisosDeChecklist` (cada 15 min).
 4. Editor → ejecutar **`ponerAlDiaReservas`** (F-45; **obligatorio antes de implementar**, DI-03) y revisar su resultado: reservas cambiadas, códigos del canal asignados y filas del Form para revisar a mano. Hacerlo **antes** de que pase el primer `avisosDeCobro`, para no avisar de reservas antiguas ya cobradas que constan como "No ingresado" (ver DI-08).
 5. Publicar (`npm run deploy`) y hacer el smoke (abajo, apartado DD-03).
+
+## Despliegue de DD-04 S36 (Cerrar días y Estadísticas por canal; 2026-10-03)
+
+1. `npm run push` (con OK del usuario) y probar en `/dev`.
+2. Sheet → **KAF Rent → Inicializar / reparar hojas**: crea la hoja `Dias_Cerrados` y añade a `Config` `Exterior_Hora_Apertura` (09:00) y `Exterior_Hora_Cierre` (02:00). **Sin este paso fallan Cerrar días, Estadísticas, el informe mensual y Crear Reserva** ("Falta la hoja…").
+3. Cerrar en la app la temporada baja de Exterior (p. ej. del 1/10 al 30/04, motivo "Fuera de temporada") y los días ya bloqueados en las plataformas.
+4. `Estadisticas_Cache` deja de usarse: se puede ocultar; no se borra (solo cambios aditivos).
+5. Publicar (`npm run deploy`) y comprobar en el smoke: cerrar y quitar un día (aparece y desaparece en Calendar), que Crear Reserva rechaza ese día y que Estadísticas carga en los dos espacios.
 
 ## Demo local para validar la interfaz
 

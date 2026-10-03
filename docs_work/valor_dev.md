@@ -1,6 +1,6 @@
 # Valor de KAF Rent a precio de mercado
 
-**Versión:** 1.2 · **Fecha:** 2026-10-03 · **Método:** comparables de mercado (decisión del usuario, 2026-10-02) + coste de reposición y análisis con amortización (decisión del usuario, 2026-10-03)
+**Versión:** 1.3 · **Fecha:** 2026-10-03 · **Método:** comparables de mercado (decisión del usuario, 2026-10-02) + coste de reposición y análisis con amortización (decisión del usuario, 2026-10-03)
 **Preguntas que responde:**
 1. ¿Cuánto costaría cubrir lo que hace KAF Rent con las herramientas que se venden hoy? (secciones 1–3: **valor de uso**, en cuotas anuales)
 2. ¿Cuánto costaría encargar la app entera a precio de mercado? (sección 4: **valor de reposición**)
@@ -12,7 +12,7 @@
 - El coste de desarrollarlo (reposición) se calcula aparte en la sección 4, con tarifas de mercado consultadas el 2026-10-03; el usuario lo pidió el 2026-10-03 tras descartarlo el 2026-10-02.
 - **Límite del método:** que una herramienta "cubra" una función no significa que encaje igual. La columna *Cobertura* indica cuánto se parece.
 
-**Corte temporal:** "hasta ayer" es todo lo que está en el repositorio hasta el commit `v2.4` (c89ab4e). La sección 2 son los cambios de la sesión del 2026-10-02 (commit `v3 SES`) y la 2 bis, los de la sesión del 2026-10-03.
+**Corte temporal:** "hasta ayer" es todo lo que está en el repositorio hasta el commit `v2.4` (c89ab4e). La sección 2 son los cambios de la sesión del 2026-10-02 (commit `v3 SES`); la 2 bis, los de la mañana del 2026-10-03 (DD-03, commit `Commit reinicio`), y la 2 ter, los de la tarde del 2026-10-03 (S35–S36, sin commit aún).
 
 > **Revisión 1.1 (2026-10-03).** La versión 1.0 se quedaba corta por dos huecos de método, no por los precios:
 > 1. **Faltaba la Piscina por horas.** Smoobu y Lodgify venden noches; para una piscina por horas haría falta además una agenda de reservas por horas (SimplyBook.me). Se suma.
@@ -93,6 +93,23 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 
 **Valor de mercado de lo del 2026-10-03: ≈ 0 € al año más.** Es trabajo de **usabilidad y encaje**, no de funciones nuevas que el mercado cobre aparte. Su valor está en el uso diario: una reserva se abre en 3 toques sin desplazarse de lado en el móvil (90 % del uso), y la app recuerda lo que antes dependía de la memoria.
 
+## 2 ter. Lo hecho el 2026-10-03 por la tarde (S35 y S36; subido a `/dev`, pendiente de implementar)
+
+| Bloque | Qué se ha hecho |
+|---|---|
+| Copias (D-49, D-50, ADR-0024) | La copia nocturna guarda también las respuestas del Form de viajeros (foto `.xlsx`), cada origen con su rotación; cada copia queda en `Logs`; procedimiento de restauración escrito |
+| Cerrar días (F-48, D-13) | Días en que un espacio no se alquila: bloquean reservas, salen en gris en Calendar y no cuentan como abiertos |
+| Estadísticas por canal (F-49) | Ocupación por espacio y canal en su unidad (noches o horas), ingreso por unidad abierta, evolución de 12 meses; el email mensual añade la ocupación y reparte las noches entre meses |
+| Errores y diseño | B-30 (fuera el error del icono en cada apertura) y DD-04, que diseña también tarifas, análisis de precios y experimentos (S37) |
+| Tamaño | ≈ 8.700 líneas de código y ≈ 5.230 de tests (389 unitarios y 61 E2E), 1 ADR nuevo (24), 1 design doc nuevo (4), 44 HU y 108 RF trazados (medido el 2026-10-03) |
+
+| Función nueva | Comparable de mercado | Coste anual para KAF | Cobertura |
+|---|---|---|---|
+| Ocupación por canal y días cerrados | Incluido en los PMS de la sección 1 (Smoobu y Lodgify traen informes de ocupación y bloqueo de fechas), ya contados | 0 € adicional | Media: venden noches; no miden por horas la Piscina ni reparten por tramos |
+| Copia del Form de viajeros | Incluido en Chekin/Partee (guardan los partes), ya contado | 0 € adicional | — |
+
+**Valor de mercado de lo de esta tarde: ≈ 0 € al año más.** Adelanta parte del Informe de Gestión (S18), que ya se contaba a 0 €. Su valor es poder decidir precios y canales con datos propios.
+
 ## 3. Suma y lo que vendrá
 
 | Bloque | Valor de mercado anual |
@@ -100,14 +117,15 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 | Idea y trabajo hasta v2.4 (revisión 1.1) | 1.135–1.610 € |
 | 2026-10-02: SES.Hospedajes | 20–60 € |
 | 2026-10-03: DD-03 | 0 € (usabilidad y encaje) |
+| 2026-10-03 tarde: copias, cerrar días y ocupación (S35–S36) | 0 € (incluido en los PMS) |
 | **Total actual** | **≈ 1.155–1.670 € al año** (≈ 5.775–8.350 € en 5 años, a precios de hoy). *Versión 1.0: 750–1.210 €.* |
 
 **Lo que vendrá** (sprints pendientes en [PROXIMOS_PASOS](PROXIMOS_PASOS.md)):
 
 | Sprint | Función | Comparable | Valor anual |
 |---|---|---|---|
-| S20 (+ S19) | Precios de la competencia | Precios dinámicos de Smoobu: 12,99 €/mes por propiedad | ≈ 310 € (2 propiedades). Cobertura parcial: KAF Rent leerá precios, no los fijará solo |
-| S18 | Informe de gestión: ocupación y métricas por zona | Incluido en los PMS | 0 € adicional |
+| S20 (+ S19) y S37 | Precios de la competencia, historial de tarifas, análisis de precios y experimentos (DD-04) | Precios dinámicos de Smoobu: 12,99 €/mes por propiedad | ≈ 310 € (2 propiedades). Cobertura parcial: KAF Rent leerá precios y medirá experimentos, no los fijará solo |
+| S18 | Informe de gestión: el resto (canceladas en el email, análisis de precios) | Incluido en los PMS | 0 € adicional |
 | S17 | Registro de gastos más rápido | Rentger (gratis) | 0 € |
 | S21 | Informe del IRPF por copropietario, con casillas | Sin comparable consultado: es trabajo de gestoría | Sin cifra (no buscado) |
 | S24, S13 | Vídeos grandes, edición de reservas, reconciliación de Calendar | Incluido en PMS y herramientas de operaciones | 0 € adicional |
@@ -127,34 +145,34 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 
 **Método (estimación por módulos, contrastada con el tamaño real):**
 1. Horas por módulo para un perfil con experiencia, incluyendo análisis, diseño, código, tests y documentación (tabla de abajo).
-2. Contraste con el tamaño del repositorio: ≈ 8.000 líneas de código, ≈ 4.700 de tests (349 unitarios y 59 E2E) y ≈ 4.900 de documentación (43 HU, 103 RF, 38 RNF, arc42, 23 ADR, 3 design docs). Las horas resultantes salen a ≈ 10–15 líneas de código y test por hora, un ritmo normal en un proyecto pequeño, documentado y con tests (orden de magnitud, no medido).
+2. Contraste con el tamaño del repositorio (medido el 2026-10-03, tras S36): ≈ 8.700 líneas de código, ≈ 5.230 de tests (389 unitarios y 61 E2E) y ≈ 5.230 de documentación (44 HU, 108 RF, 38 RNF, arc42, 24 ADR, 4 design docs). Las horas resultantes salen a ≈ 10–15 líneas de código y test por hora, un ritmo normal en un proyecto pequeño, documentado y con tests (orden de magnitud, no medido).
 3. Tarifas de mercado en España en 2026, sin IVA (fuentes al final).
 
 | Módulo | Horas |
 |---|---|
-| Descubrimiento, requisitos y arquitectura (problema y JTBD, 43 HU, 103 RF, 38 RNF, arc42, 23 ADR, 3 design docs) | 80–120 |
+| Descubrimiento, requisitos y arquitectura (problema y JTBD, 44 HU, 108 RF, 38 RNF, arc42, 24 ADR, 4 design docs) | 85–125 |
 | Base: Apps Script en capas, esquema del Sheet, autorización y roles, `Config`, registro de errores | 60–90 |
 | Crear reserva: catálogos en cascada, importes, solapes, Calendar, avisos de canales | 60–90 |
 | Gestionar: listado, filtros, ficha, edición auditada, cancelación, historial, servicios y cobros | 70–100 |
 | Documentos y vídeos en Drive, contrato en fotos, retención | 30–45 |
 | Checklists digitales con editor para Admin | 50–70 |
-| Estadísticas, informes con comparativa y plantilla de emails (20 maquetas) | 50–70 |
+| Estadísticas por canal con ocupación, cerrar días, informes con comparativa y plantilla de emails (20 maquetas) | 75–105 |
 | Gastos y resumen fiscal a tercios con amortización | 30–45 |
 | SES.Hospedajes: Form con script propio, XML de reserva y parte, reintentos, anulación, validación presencial, catálogos oficiales | 120–180 |
-| Avisos automáticos, triggers, copias abuelo-padre-hijo y purgas | 40–60 |
+| Avisos automáticos, triggers, copias abuelo-padre-hijo (Sheet y Form) y purgas | 45–65 |
 | Interfaz móvil, sistema de diseño y accesibilidad | 50–80 |
-| Tests y calidad: dobles de Google, servidor E2E, 349 + 59 tests, integración continua, lint | 100–150 |
+| Tests y calidad: dobles de Google, servidor E2E, 389 + 61 tests, integración continua, lint | 105–155 |
 | Gestión del proyecto, despliegues y soporte a la prueba con usuarios (≈ 10 %) | 80–120 |
-| **Total** | **≈ 820–1.220 h** (central: ≈ 1.000 h) |
+| **Total** | **≈ 860–1.270 h** (central: ≈ 1.040 h; antes de S35–S36: 820–1.220 h) |
 
-| Quién lo hace | Tarifa (2026) | Coste (820–1.220 h) | Escenario central (1.000 h) |
+| Quién lo hace | Tarifa (2026) | Coste (860–1.270 h) | Escenario central (1.040 h) |
 |---|---|---|---|
-| Freelance de nivel medio | 35–55 €/h | 28.700–67.100 € | ≈ 45.000 € (45 €/h) |
-| Freelance sénior | 55–90 €/h | 45.100–109.800 € | ≈ 70.000 € (70 €/h) |
-| Empresa de desarrollo | 55–95 €/h | 45.100–115.900 € | ≈ 75.000 € (75 €/h) |
+| Freelance de nivel medio | 35–55 €/h | 30.100–69.850 € | ≈ 47.000 € (45 €/h) |
+| Freelance sénior | 55–90 €/h | 47.300–114.300 € | ≈ 73.000 € (70 €/h) |
+| Empresa de desarrollo | 55–95 €/h | 47.300–120.650 € | ≈ 78.000 € (75 €/h) |
 
-**Valor de reposición de KAF Rent: ≈ 45.000–75.000 €** (escenario central; ≈ 60.000 € como cifra de referencia), sin IVA.
-**Mantenimiento si fuera un encargo:** ≈ 15–20 % del desarrollo al año (regla habitual del sector, no verificada con fuentes): ≈ 9.000–12.000 € al año sobre 60.000 €.
+**Valor de reposición de KAF Rent: ≈ 47.000–78.000 €** (escenario central; ≈ 62.000 € como cifra de referencia), sin IVA. Lo de la tarde del 2026-10-03 añade ≈ 40 h (≈ 2.000 € en el escenario central).
+**Mantenimiento si fuera un encargo:** ≈ 15–20 % del desarrollo al año (regla habitual del sector, no verificada con fuentes): ≈ 9.300–12.400 € al año sobre 62.000 €.
 
 ---
 
@@ -162,27 +180,27 @@ Su valor práctico es mayor que su precio. Cumple una **obligación legal** (RD 
 
 **Amortización del desarrollo.** Un programa informático se amortiza, a efectos fiscales, con un coeficiente máximo del 33 % anual, es decir, en 3 años como mínimo (tabla de coeficientes de la Ley 27/2014 del Impuesto sobre Sociedades, aplicable también a los rendimientos de actividades en el IRPF). Como vida útil razonable se toman 3 y 5 años. No es asesoramiento fiscal: solo sirve para repartir el coste en años y compararlo.
 
-| Sobre 60.000 € de desarrollo | Amortización anual | + Mantenimiento (15 %) | Coste anual de tenerla | Frente a las cuotas del mercado (≈ 1.155–1.670 €/año) |
+| Sobre 62.000 € de desarrollo | Amortización anual | + Mantenimiento (15 %) | Coste anual de tenerla | Frente a las cuotas del mercado (≈ 1.155–1.670 €/año) |
 |---|---|---|---|---|
-| Vida útil 3 años | 20.000 € | 9.000 € | **≈ 29.000 €** | ≈ 17–25 veces más cara |
-| Vida útil 5 años | 12.000 € | 9.000 € | **≈ 21.000 €** | ≈ 13–18 veces más cara |
+| Vida útil 3 años | ≈ 20.700 € | 9.300 € | **≈ 30.000 €** | ≈ 18–26 veces más cara |
+| Vida útil 5 años | 12.400 € | 9.300 € | **≈ 21.700 €** | ≈ 13–19 veces más cara |
 
 **Periodo de recuperación** (lo que tarda el ahorro en cuotas en pagar el desarrollo):
-- Con lo que hace hoy (≈ 1.410 €/año, punto medio): 60.000 / 1.410 ≈ **43 años**.
-- Con lo que vendrá (≈ 1.720 €/año): ≈ **35 años**.
-- Para recuperarse en 5 años, las cuotas sustituidas tendrían que valer ≈ 12.000 € al año, unas 8 veces más de lo que valen.
+- Con lo que hace hoy (≈ 1.410 €/año, punto medio): 62.000 / 1.410 ≈ **44 años**.
+- Con lo que vendrá (≈ 1.720 €/año): ≈ **36 años**.
+- Para recuperarse en 5 años, las cuotas sustituidas tendrían que valer ≈ 12.400 € al año, unas 9 veces más de lo que valen.
 
 **Qué significa:**
 - **Como compra, no compensaría.** Encargar KAF Rent a precio de mercado equivale a unos 40 años de las suscripciones equivalentes. Ningún pequeño propietario lo haría solo por ahorrarse cuotas.
 - **Como desarrollo propio, sí.** El coste en dinero ha sido ≈ 0 € (Google y las herramientas son gratuitas): el trabajo ha sido propio, no pagado a un tercero. Por eso el ahorro de ≈ 1.150–1.700 € al año es neto desde el primer año.
 - **Lo que el mercado no vende sigue fuera de las dos cifras:** un solo sitio para la Piscina por horas y la Habitación por noches, SES automatizado, reparto a tercios, sin comisiones y con los datos propios (sección 1). Con herramientas comerciales habría que combinar 3 o 4 y aun así no encajarían.
-- **Para qué sirve el valor de reposición:** dice cuánto vale el trabajo hecho (≈ 60.000 € a precio de mercado) y cuánto costaría rehacerlo si se perdiera. Por eso importan las copias, los tests y la documentación: protegen ese valor.
+- **Para qué sirve el valor de reposición:** dice cuánto vale el trabajo hecho (≈ 62.000 € a precio de mercado) y cuánto costaría rehacerlo si se perdiera. Por eso importan las copias, los tests y la documentación: protegen ese valor.
 
 | Cifra | Qué mide | Valor |
 |---|---|---|
 | Valor de uso | Cuotas anuales que no se pagan | ≈ 1.155–1.670 €/año (≈ 1.465–1.980 € con lo que vendrá) |
-| Valor de reposición | Lo que costaría encargarla hoy | ≈ 45.000–75.000 € (referencia: 60.000 €) |
-| Coste anual si se hubiera encargado | Amortización + mantenimiento | ≈ 21.000–29.000 €/año |
+| Valor de reposición | Lo que costaría encargarla hoy | ≈ 47.000–78.000 € (referencia: 62.000 €) |
+| Coste anual si se hubiera encargado | Amortización + mantenimiento | ≈ 21.700–30.000 €/año |
 | Coste real en dinero | Lo pagado | ≈ 0 € (trabajo propio) |
 
 ---

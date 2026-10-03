@@ -33,8 +33,9 @@ Al retomar el trabajo, **antes de nada**, Claude:
 ├── .clasp.json.example     # Plantilla de configuración de clasp (ADR-0015)
 ├── package.json            # Solo herramientas de desarrollo (tests, lint, clasp); nada se despliega
 ├── eslint.config.js        # ESLint para los .gs (T-07)
+├── playwright.config.js    # E2E con Playwright (escritorio y móvil, T-05)
 ├── .github/workflows/      # CI gratuita: tests en cada push
-├── tests/                  # Tests: soporte/ (cargador vm + dobles de Google), dominio/, endpoints/
+├── tests/                  # Tests: soporte/ (cargador vm + dobles de Google), dominio/, endpoints/, interfaz/, e2e/ (+ servidor de la demo), form_checkin/
 ├── docs_dev/               # Desarrollo del producto: código y su documentación
 │   ├── src/                # Código Apps Script (.gs + HTML Service); rootDir de clasp
 │   ├── src_form_checkin/   # Script propio del Google Form de viajeros (ADR-0021), proyecto aparte
@@ -44,6 +45,7 @@ Al retomar el trabajo, **antes de nada**, Claude:
 └── docs_work/              # Carpeta de trabajo, fuera del núcleo (docs_dev): material que entra y sale según su utilidad, más lo permanente
     ├── PROXIMOS_PASOS.md   # Decisiones pendientes, sprints, backlog e histórico (se regenera cada sesión)
     ├── valor_dev.md        # Valoración del proyecto: valor de uso (comparables), valor de reposición y amortización
+    ├── Tarifas_exterior_031026.jpeg  # Nota del usuario con las tarifas de Cocopool y Swimmy (entrada de DD-04 §3.4, S37)
     ├── docs_mejoras/       # Registro de mejoras de cada sesión (mejoras_AAAA-MM-DD.md, §5.1)
     ├── emails_propuesta/   # Maquetas aprobadas del rediseño de emails (D-35, S28): referencia para implementarlo
     ├── docs_ses/           # Apoyo técnico: SES.Hospedajes
@@ -398,7 +400,7 @@ Entrada → acción → confirmación → retorno claro; siempre hay salida visi
 
 **Objetivo:** que ningún cambio rompa en silencio lo que funcionaba (RNF-29, riesgo R-17), **sin coste** (RNF-33). Las herramientas de test son de desarrollo: **nunca se copian a Apps Script**.
 
-> **Estado actual (v2):** unitarios del dominio, tests de los 37 endpoints y de las entradas del sistema, del script del Form de viajeros, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm run lint`, `npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). ESLint sobre los `.gs` desde S9 (T-07). Pendiente: integración contra Google (T-04, PROXIMOS_PASOS S19).
+> **Estado actual (v2):** unitarios del dominio, tests de los 39 endpoints y de las entradas del sistema, del script del Form de viajeros, contrastes AA, y **E2E con Playwright** (journeys J-1 a J-6, avisos, seguridad, móvil y áreas táctiles, en escritorio y móvil) con CI en GitHub Actions **funcionando** (`npm run lint`, `npm test`, `npm run test:e2e`, cobertura ≈ 99 % de líneas). ESLint sobre los `.gs` desde S9 (T-07). Pendiente: integración contra Google (T-04, PROXIMOS_PASOS S19).
 
 ### 7.1 Pirámide y dónde se ejecuta cada nivel
 

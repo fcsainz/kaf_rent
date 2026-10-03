@@ -29,6 +29,10 @@ const horasPorDefecto_ = () => ({
   salida: obtenerConfigHora_('Hora_CheckOut_Default', '12:00'),
 });
 
+// DD-04: horas abiertas al día del espacio que se alquila por horas (09:00 → 02:00 por defecto).
+const horasAbiertasPorDiaConfig_ = () =>
+  horasAbiertasPorDia_(obtenerConfigHora_('Exterior_Hora_Apertura', '09:00'), obtenerConfigHora_('Exterior_Hora_Cierre', '02:00'));
+
 const obtenerConfigNumero_ = (clave, porDefecto) => Number(obtenerConfig_(clave, porDefecto)) || porDefecto;
 
 // Tamaños máximos de archivo (MB); el valor por defecto coincide con la semilla de Config.

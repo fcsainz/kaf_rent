@@ -121,6 +121,9 @@ const periodoLegible_ = (periodo, corto = false) => {
 const eurosEnteros_ = (n) => formatearImporte_(Math.round(numero_(n))).replace(',00 €', ' €');
 
 // "▲ 18 %", "▼ 5 %", "= 0 %"; "—" sin base con la que comparar.
+// DD-04: ocupación principal del espacio · canal (días con reserva o noches); '—' si no hubo días abiertos.
+const ocupacionEmail_ = (v) => (v === null || v === undefined ? '—' : `${Math.round(v * 100)} %`);
+
 const variacionEmail_ = (v) => {
   if (v === null) return '—';
   const pct = Math.round(Math.abs(v) * 100);
@@ -142,9 +145,9 @@ const enviarInforme_ = (periodo, { filas, total }, comparados) => {
   const legible = periodoLegible_(periodo.periodo);
   const [anterior, anyoAnterior] = [comparados.anterior.periodo, comparados.anyoAnterior.periodo];
   const tabla = filas.length === 0 ? null : {
-    cabeceras: ['Espacio · canal', 'Reservas', 'Neto', `vs. ${periodoLegible_(anterior, true)}`, `vs. ${periodoLegible_(anyoAnterior, true)}`], numericas: [1, 2, 3, 4],
-    filas: filas.map((a) => [`${a.espacio} · ${a.canal}`, a.numReservas, eurosEnteros_(a.netos), variacionEmail_(a.vsAnterior), variacionEmail_(a.vsAnyoAnterior)]),
-    total: ['Total', total.numReservas, eurosEnteros_(total.netos), variacionEmail_(total.vsAnterior), variacionEmail_(total.vsAnyoAnterior)],
+    cabeceras: ['Espacio · canal', 'Reservas', 'Ocupación', 'Neto', `vs. ${periodoLegible_(anterior, true)}`, `vs. ${periodoLegible_(anyoAnterior, true)}`], numericas: [1, 2, 3, 4, 5],
+    filas: filas.map((a) => [`${a.espacio} · ${a.canal}`, a.numReservas, ocupacionEmail_(a.ocupacion), eurosEnteros_(a.netos), variacionEmail_(a.vsAnterior), variacionEmail_(a.vsAnyoAnterior)]),
+    total: ['Total', total.numReservas, '—', eurosEnteros_(total.netos), variacionEmail_(total.vsAnterior), variacionEmail_(total.vsAnyoAnterior)],
   };
   const esTrimestre = periodo.tipo === 'Trimestral';
   const comparativa = `${fraseVariacion_(total.vsAnterior, periodoLegible_(anterior), esTrimestre)} y ${fraseVariacion_(total.vsAnyoAnterior, periodoLegible_(anyoAnterior), esTrimestre)}`;

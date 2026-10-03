@@ -1,25 +1,10 @@
-// Capa: DOMINIO — agregados de estadísticas e informes, como funciones PURAS (reciben las reservas y la fecha).
-// Ver ADR-0009 y HU-31/HU-32.
+// Capa: DOMINIO — agregados de los informes por email, como funciones PURAS (reciben las reservas y la fecha).
+// Ver ADR-0009 y HU-32; la ocupación y el reparto por noches están en dominio_ocupacion.gs (DD-04).
 
-const ZONA_TODOS = 'Todos';
 const MESES_POR_TRIMESTRE = 3;
 const MESES_INICIO_TRIMESTRE = [0, 3, 6, 9];
 
 const noCanceladas_ = (reservas) => reservas.filter((r) => r.estado !== ESTADO_RESERVA.CANCELADA);
-
-// Por zona ("Todos" + cada espacio): nº de reservas no canceladas que empiezan en el año y suma de su neto (RF-59).
-const agregadosEstadisticas_ = (reservas, espacios, anyo, ahora) => {
-  const delAnyo = noCanceladas_(reservas).filter((r) => r.inicio.getFullYear() === anyo);
-  return [ZONA_TODOS, ...espacios].map((zona) => {
-    const subconjunto = zona === ZONA_TODOS ? delAnyo : delAnyo.filter((r) => r.espacio === zona);
-    return {
-      zona,
-      totalReservas: subconjunto.length,
-      ingresosNetos: subconjunto.reduce((s, r) => s + numero_(r.neto), 0),
-      actualizado: ahora,
-    };
-  });
-};
 
 const dosDigitos_ = (n) => String(n).padStart(2, '0');
 
@@ -36,9 +21,6 @@ const periodoTrimestral_ = (ahora) => {
 };
 
 const esInicioDeTrimestre_ = (ahora) => MESES_INICIO_TRIMESTRE.includes(ahora.getMonth());
-
-const reservasDelPeriodo_ = (reservas, { inicio, fin }) =>
-  noCanceladas_(reservas).filter((r) => r.inicio >= inicio && r.inicio < fin);
 
 // Agregados por espacio y canal para el informe (RF-61).
 const agregarPorEspacioCanal_ = (reservas) => {

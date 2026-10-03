@@ -117,7 +117,7 @@ Formato del JTBD (*job story*): **Cuando** [situación], **quiero** [motivación
 | **JTBD-05** | P-05 | **Cuando** quiero saber qué hay reservado, **quiero** verlo de un vistazo (últimas reservas, buscador, lista de activas, calendario), **para** contestar rápido a un huésped o a otro copropietario. | HU-04, HU-06, HU-07, HU-18, HU-19, HU-21, HU-39 |
 | **JTBD-06** | P-06 | **Cuando** se cancela una reserva, **quiero** que se me recuerde qué canales reabrir, **para** no perder la oportunidad de volver a alquilar esa franja. | HU-20, HU-26 |
 | **JTBD-07** | P-07 | **Cuando** empieza o termina una estancia, **quiero** guardar el contrato, los vídeos y el checklist vinculados a la reserva, **para** tener pruebas localizables ante una disputa. | HU-22, HU-28, HU-29, HU-30, HU-41, HU-43 |
-| **JTBD-08** | P-08 | **Cuando** reviso cómo va el negocio, **quiero** conocer reservas, ingresos brutos y netos y comisiones por espacio y canal, **para** decidir precios y canales con datos. | HU-12, HU-14, HU-24, HU-31, HU-32, HU-42 |
+| **JTBD-08** | P-08 | **Cuando** reviso cómo va el negocio, **quiero** conocer reservas, ingresos brutos y netos y comisiones por espacio y canal, **para** decidir precios y canales con datos. | HU-12, HU-14, HU-24, HU-31, HU-32, HU-42, HU-44 |
 | **JTBD-09** | P-09 | **Cuando** llega la declaración de la renta, **quiero** tener los ingresos, los gastos deducibles con justificante y el tercio de cada copropietario, **para** declarar bien y deducir todo lo que la ley permite. | HU-33, HU-34 |
 | **JTBD-10** | P-10 | **Cuando** un huésped se aloja en la Habitación, **quiero** que él mismo aporte sus datos de viajero de forma sencilla, **para** cumplir con el registro obligatorio sin perseguirle. | HU-35, HU-36 |
 | **JTBD-11** | P-11 | **Cuando** tengo que registrar una reserva, **quiero** un formulario que me guíe, solo me ofrezca opciones válidas y calcule los importes, **para** hacerlo sin ayuda y sin errores. | HU-05, HU-08, HU-09, HU-10, HU-11, HU-12, HU-13, HU-14, HU-39, HU-40 |
@@ -137,7 +137,7 @@ Formato del JTBD (*job story*): **Cuando** [situación], **quiero** [motivación
 | Estado de la reserva | Sin seguimiento | Ciclo de vida automático (Abierta → Completada / Cancelada) |
 | Contratos y evidencias | Dispersos | En Drive, por espacio y reserva, enlazados desde la reserva |
 | Auditoría | Inexistente | Registro campo a campo de cada cambio |
-| Economía | Sin datos | Estadísticas diarias e informes mensual y trimestral |
+| Economía | Sin datos | Estadísticas por canal con ocupación (DD-04) e informes mensual y trimestral |
 | Fiscalidad | Recopilación anual manual | Gastos con justificante y resumen fiscal a tercios |
 | Coordinación | Mensajería | Datos compartidos en tiempo real |
 

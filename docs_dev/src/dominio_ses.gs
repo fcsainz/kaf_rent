@@ -584,17 +584,19 @@ const codigoReservaHuesped_ = (reserva) => texto_(reserva.refCanal) || referenci
 // Enlace prerrellenado del Form: la plantilla de Config lleva {codigo} en el lugar del código de reserva.
 const enlaceFormHuesped_ = (plantilla, codigo) => texto_(plantilla).replace(MARCA_CODIGO_ENLACE, encodeURIComponent(codigo));
 
-// Texto aprobado por el usuario (2026-10-02): sin saludo, porque se envía con la conversación ya empezada.
+// Texto aprobado por el usuario (2026-10-03): sin saludo (la conversación ya está empezada), sin emojis
+// (WhatsApp los mostraba como "�") y un párrafo por línea, separados por una línea en blanco.
 const mensajeHuesped_ = ({ reserva, plantillaEnlace }) => {
   const codigo = codigoReservaHuesped_(reserva);
-  const personas = numero_(reserva.adultos) + numero_(reserva.menores);
   return [
     `Antes de tu llegada el ${fechaParaHuesped_(reserva.inicio)}, la ley española (RD 933/2021) nos obliga a registrar a todos los huéspedes ante el Ministerio del Interior.`,
-    `📝 Rellena un formulario por persona (${personas} en total, menores incluidos; el de un menor lo rellena un adulto):`,
-    `👉 ${enlaceFormHuesped_(plantillaEnlace, codigo)}`,
-    `El código de tu reserva (${codigo}) ya viene puesto. Tarda unos 3 minutos y necesitarás vuestro DNI, NIE o pasaporte.`,
-    'Al llegar comprobaremos los documentos en persona. Cualquier duda, escríbenos por aquí.',
-  ].join('\n');
+    'Rellena un formulario por persona (menores incluidos; el de un menor lo rellena un adulto):',
+    enlaceFormHuesped_(plantillaEnlace, codigo),
+    `El código de tu reserva (${codigo}).`,
+    'Tardas unos 3 minutos.',
+    'Al llegar comprobaremos los documentos en persona.',
+    'Cualquier duda, me dices.',
+  ].join('\n\n');
 };
 
 // Enlace de WhatsApp con el texto escrito; '' si la reserva no tiene teléfono (entonces se copia el texto).
@@ -632,6 +634,12 @@ const estadoSESDeReserva_ = (comunicaciones) => {
 const parteComunicadoEnForm_ = (respuestasCasadas) => {
   const comunicada = respuestasCasadas.find((r) => esVerdadero_(r.comunicado));
   return comunicada ? { comunicado: true, codigo: texto_(comunicada.codigoComunicacion) } : { comunicado: false, codigo: '' };
+};
+
+// D-45: el parte comunicado a mano cuenta como comunicado en toda la app, salvo que la app ya lo haya comunicado.
+const parteConManual_ = (parteApp, manual) => {
+  if ((parteApp && parteApp.estado === ESTADO_COMUNICACION_SES.COMUNICADA) || !manual.comunicado) return parteApp;
+  return { estado: ESTADO_COMUNICACION_SES.COMUNICADA, codigo: manual.codigo, error: '', manual: true };
 };
 
 // Un parte enviado o comunicado no se vuelve a comunicar desde la app (si falla, se avisa y se decide).

@@ -1,9 +1,9 @@
 <script>
   // Navegación entre secciones (HTML Service no tiene enrutado nativo, ver ADR-0008).
-  // Barra inferior (F-25, F-31): Gestionar y Crear cuelgan de "Reservas"; Checklists y Conexión SES, de "Admin".
+  // Barra inferior (F-25, F-31): Gestionar, Crear y Cerrar días (DD-04) cuelgan de "Reservas"; Checklists y Conexión SES, de "Admin".
   // F-33: en Gestionar, la ficha y las funciones, la barra general se cambia por la de Reservas.
   const SUBPISOS = {
-    reservas: { secciones: ['gestionar', 'crear', 'ficha', 'funcion'], boton: 'btn-nav-reservas', piso: 'nav-subpiso-reservas' },
+    reservas: { secciones: ['gestionar', 'crear', 'cierres', 'ficha', 'funcion'], boton: 'btn-nav-reservas', piso: 'nav-subpiso-reservas' },
     admin: { secciones: ['checklists', 'conexion-ses'], boton: 'btn-nav-admin', piso: 'nav-subpiso-admin' },
   };
   const SECCIONES_BARRA_RESERVAS = ['gestionar', 'ficha', 'funcion'];

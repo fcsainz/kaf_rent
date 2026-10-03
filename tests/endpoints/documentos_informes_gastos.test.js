@@ -69,27 +69,6 @@ test.describe('RF-54..RF-58 · documentos en Drive', () => {
   });
 });
 
-test.describe('RF-59/RF-60 · estadísticas', () => {
-  test('recalcula por zona y el endpoint lee el cache', () => {
-    const e = crearEntornoConDatos();
-    e.llamar('crearReserva', datosReservaPiscina());
-    e.llamar('crearReserva', datosReservaHabitacion());
-    const r = e.llamar('recalcularEstadisticas');
-    const datos = e.llamar('cargarEstadisticas').data;
-    // Solo cuentan las del año en curso (las reservas de prueba pueden caer en el siguiente a final de año).
-    const esteAnyo = (espacio) => e.hoja('Reservas').registros().filter((r) => (!espacio || r.Espacio === espacio) && r.Fecha_Hora_Inicio.getFullYear() === new Date().getFullYear()).length;
-    assert.deepEqual(datos.map((z) => [z.zona, z.totalReservas]),
-      [['Todos', esteAnyo()], ['Piscina / Jardín', esteAnyo('Piscina / Jardín')], ['Habitación Interior', esteAnyo('Habitación Interior')]]);
-    assert.ok(r === undefined || r.success !== false);
-  });
-
-  test('un usuario no autorizado no puede forzar el recálculo', () => {
-    const e = crearEntornoConDatos({ usuarioActivo: 'intruso@test.com' });
-    const r = e.llamar('recalcularEstadisticas');
-    assert.equal(r && r.success, false);
-  });
-});
-
 test.describe('RF-63..RF-66 · gastos y resumen fiscal', () => {
   const anyo = new Date().getFullYear();
   const gasto = (cambios = {}) => ({ fecha: `${anyo}-03-10`, concepto: 'IBI', categoria: 'Tributos y tasas no estatales', espacio: 'Común', importe: '200', deducible: 'Sí', pagadoPor: 'A', notas: '', ...cambios });
@@ -141,7 +120,11 @@ test.describe('RF-61 · informes', () => {
     const informe = e.correos.find((c) => /Informe de \S+ \d{4} · /.test(c.subject));
     assert.ok(informe, 'se envía el informe mensual');
     assert.ok(!informe.htmlBody.includes('<b>Raro</b>'), 'el HTML se escapa');
-    assert.match(informe.body, /Espacio · canal \| Reservas \| Neto \| vs\. \S+ \d{4} \| vs\. \S+ \d{4}/, 'comparativa con el periodo anterior y el del año anterior (D-41)');
+    assert.match(informe.body, /Espacio · canal \| Reservas \| Ocupación \| Neto \| vs\. \S+ \d{4} \| vs\. \S+ \d{4}/, 'comparativa con el periodo anterior y el del año anterior (D-41) y ocupación (DD-04)');
+    const diasMes = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+    const pct = `${Math.round(100 / diasMes)} %`;
+    assert.ok(informe.body.includes(`| 1 | ${pct} |`), 'por horas, la ocupación es de días con reserva: 1 de los días del mes');
+    assert.ok(e.hoja('Historico_Informes').registros().some((r) => Math.abs(r.Ocupacion - 1 / diasMes) < 1e-9), 'se archiva la ocupación');
     assert.match(informe.body, /sin datos de .* para comparar/);
     assert.ok(e.hoja('Historico_Informes').filas().length >= 1);
   });
@@ -158,7 +141,7 @@ test.describe('RF-67..RF-70 · mantenimiento nocturno', () => {
     const f = reservaVieja.createFile({ nombre: 'Video In.mp4' });
     f.creado = viejo;
     e.comoPropietario(() => e.llamar('tareasNocturnas'));
-    assert.equal(e.hoja('Logs').filas().length, 1);
+    assert.deepEqual(e.hoja('Logs').registros().map((r) => r.Tipo), ['ACCESO', 'COPIA'], 'purga el antiguo y anota la copia');
     assert.equal(e.carpetas.backups.ficheros.length, 1);
     assert.equal(f.isTrashed(), true);
     assert.equal(reservaVieja.isTrashed(), true, 'la carpeta de reserva vacía se elimina');
@@ -169,16 +152,48 @@ test.describe('RF-67..RF-70 · mantenimiento nocturno', () => {
     const backups = e.carpetas.backups;
     const hace = (dias) => new Date(Date.now() - dias * 24 * 3600 * 1000);
     const antiguas = Array.from({ length: 60 }, (_, i) => {
-      const f = backups.createFile({ nombre: `copia ${i + 1}` });
+      const f = backups.createFile({ nombre: `BBDD_KAF_Rent — backup antigua ${i + 1}` });
       f.creado = hace(i + 1);
       return f;
     });
+    const ajeno = backups.createFile({ nombre: 'Nota manual' });
+    ajeno.creado = hace(90);
     e.comoPropietario(() => e.llamar('tareasNocturnas'));
     e.comoPropietario(() => e.llamar('tareasNocturnas'));
-    const vivas = backups.ficheros.filter((f) => !f.isTrashed());
+    const vivas = backups.ficheros.filter((f) => !f.isTrashed() && f !== ajeno);
     assert.equal(vivas.filter((f) => !antiguas.includes(f)).length, 1, 'una sola copia de hoy aunque se ejecute dos veces');
     assert.ok(vivas.length > 7 && vivas.length <= 7 + 4 + 12, `quedan ${vivas.length}`);
     assert.ok(antiguas.some((f) => f.isTrashed()), 'las que no son de ningún periodo van a la papelera');
+    assert.equal(ajeno.isTrashed(), false, 'lo que no es una copia no se poda (D-49)');
+    assert.equal(e.hoja('Logs').registros().filter((r) => r.Tipo === 'COPIA').length, 1, 'cada copia hecha queda en Logs (D-49)');
+  });
+
+  test('RF-68 · copia también el Sheet del Form como .xlsx y lo rota aparte (D-49, D-50)', () => {
+    const e = crearEntornoConDatos();
+    const backups = e.carpetas.backups;
+    e.hoja('Config').datos.forEach((f) => { if (f[0] === 'Sheet_Viajeros_Id') f[1] = 'FORM-1'; });
+    e.drive.ficheros.set('FORM-1', new e.FicheroFalso('Respuestas viajeros'));
+    const hace = (dias) => new Date(Date.now() - dias * 24 * 3600 * 1000);
+    const antiguasForm = Array.from({ length: 40 }, (_, i) => {
+      const f = backups.createFile({ nombre: `Respuestas viajeros — backup antigua ${i + 1}.xlsx` });
+      f.creado = hace(i + 1);
+      return f;
+    });
+    e.ses.respuestas.push({ cuerpo: 'XLSX' });
+    e.comoPropietario(() => e.llamar('tareasNocturnas'));
+    e.comoPropietario(() => e.llamar('tareasNocturnas'));
+
+    assert.equal(e.ses.peticiones.length, 1, 'una sola exportación al día');
+    const [peticion] = e.ses.peticiones;
+    assert.equal(peticion.url, 'https://docs.google.com/spreadsheets/d/FORM-1/export?format=xlsx');
+    assert.equal(peticion.opciones.headers.Authorization, 'Bearer TOKEN-TEST');
+    const vivas = backups.ficheros.filter((f) => !f.isTrashed());
+    const hoyForm = vivas.filter((f) => /^Respuestas viajeros — backup \d{4}-\d{2}-\d{2}\.xlsx$/.test(f.getName()));
+    assert.equal(hoyForm.length, 1, 'la foto del Form es un .xlsx con la fecha');
+    assert.equal(vivas.filter((f) => f.getName().startsWith('BBDD_KAF_Rent — backup ')).length, 1, 'el Sheet principal se copia aparte');
+    assert.ok(antiguasForm.some((f) => f.isTrashed()) && antiguasForm.some((f) => !f.isTrashed()), 'las del Form rotan con su propia cuenta');
+    assert.equal(e.hoja('Logs').registros().filter((r) => r.Tipo === 'COPIA').length, 2);
+    assert.equal(e.hoja('Errores').filas().length, 0);
   });
 });
 

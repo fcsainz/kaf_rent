@@ -89,7 +89,7 @@ Webapp única para gestionar el alquiler de **Piscina/Jardín** (por franjas hor
 | Estado coherente | Un único `Estado_Reserva` calculado | 0004 |
 | Trazabilidad | Auditoría campo a campo en `Historial_Cambios` | 0005 |
 | Usabilidad | Formulario guiado por catálogos; hub + secciones; sistema de diseño propio mobile-first | 0003, 0008, 0011 |
-| Rendimiento | Lecturas en bloque; estadísticas cacheadas; mantenimiento nocturno | 0009, 0013 |
+| Rendimiento | Lecturas en bloque; estadísticas calculadas al abrir con una lectura por hoja (ADR-0025, *proposed*); mantenimiento nocturno | 0009, 0013, 0025 |
 | Configurabilidad | Catálogos y `Config` en el Sheet | 0003 |
 | Evidencias | Drive por espacio/reserva, convivencia con la estructura manual | 0014 |
 
@@ -126,12 +126,14 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | API | `api_gestion.gs` | Lista filtrada y paginada, ficha (con servicios, checklists, identidades e historial), edición auditada con servicios, marcar ingresada, cancelación y funciones de la barra de Reservas (DD-03) | `listarReservasGestion`, `obtenerFichaReserva`, `actualizarReserva`, `marcarIngresado`, `cancelarReserva`, `buscarReservasPara`, `cargarServiciosCobro`, `registrarCobroServicio`, `anadirServicioReserva` | 0004, 0005 |
 | API | `api_documentos.gs` | Fotos del contrato y vídeos | `subirContrato`, `subirVideo` | 0014, 0023 |
 | API | `api_checklist.gs` | Checklists por reserva, fotos de desperfectos y editor del catálogo (Admin) | `cargarChecklist`, `guardarChecklist`, `confirmarChecklist`, `subirFotoDesperfecto`, `cargarCatalogoChecklist`, `guardarPuntoChecklist` | — |
-| API | `api_estadisticas.gs` | Estadísticas y enlace al calendario | `cargarEstadisticas`, `recalcularEstadisticas`, `obtenerEnlaceCalendario` | 0009, 0010 |
+| API | `api_estadisticas.gs` | Estadísticas por espacio y canal con su ocupación, calculadas al abrir (DD-04), y enlace al calendario | `cargarInformeOcupacion`, `obtenerEnlaceCalendario` | 0009, 0010 |
+| API | `api_cierres.gs` | Cerrar días (DD-04, F-48): alta, baja y bloqueo de reservas en días cerrados | `cargarCierres`, `cerrarDias`, `quitarCierre` | 0010 |
 | API | `api_gastos.gs` | Gastos y resumen fiscal | `cargarCategoriasGasto`, `registrarGasto`, `calcularResumenFiscal` | 0012 |
 | API | `api_sistema.gs` | Triggers, menú y utilidades de editor (protegidas) | `tareasNocturnas`, `informesProgramados`, `avisosDeCobro` (F-37), `avisosDeChecklist` (F-40), `instalarTriggers`, `sincronizarReservasCalendario`, `corregirHorasReservas` (D-28), `ponerAlDiaReservas` (F-45), `inicializarBaseDeDatos`, `onOpen` | 0009, 0013 |
 | API | `api_ses.gs` | SES.Hospedajes: al llegar un Form programa la reserva (RH) y actualiza el registro; cada 10 min envía, consulta lotes y reintenta; refresca catálogos (S27) | `alEnviarFormularioViajeros`, `procesarComunicacionesSES`, `actualizarCatalogosSES`, `comprobarConexionSES` (menú); endpoints `mensajeHuesped`, `cargarViajeros`, `validarViajero`, `deshacerValidacionViajero`, `comunicarParte`, `comprobarSES`, `probarConexionSES` (S28) | 0018 |
 | Dominio | `dominio_reservas.gs` | Validaciones, fechas, importes (fórmula única), solapamiento, IDs, ciclo de vida, edición, filtros | — | 0003–0005, 0014 |
-| Dominio | `dominio_informes.gs` | Agregados de estadísticas e informes, periodos | — | 0009 |
+| Dominio | `dominio_informes.gs` | Agregados y comparativa del informe por email, periodos | — | 0009 |
+| Dominio | `dominio_ocupacion.gs` | Días cerrados (validación, solapes), días de cada reserva, reparto por noches, horas abiertas, periodos y métricas de ocupación por canal (DD-04) | — | — |
 | Dominio | `dominio_fiscal.gs` | Validación e ID de gastos, amortización, resumen a tercios | — | 0012 |
 | Dominio | `dominio_roles.gs` | Roles (Admin, Gestión, Soporte, Sistema) y sus permisos; rol vacío o antiguo = Gestión (F-11) | — | 0001 |
 | Infra | `infra_esquema.gs` | Hojas y campos lógico → columna (fuente única), semillas | — | — |
@@ -145,7 +147,7 @@ Tres capas con dependencias solo hacia dentro ([CLAUDE.md §3.3](../../CLAUDE.md
 | Dominio | `dominio_checklist.gs` | Puntos aplicables, lista resuelta (tipo Daños, B-19), días hasta la siguiente reserva, validación del editor (F-14) | — | 0020 |
 | Dominio | `dominio_mantenimiento.gs` | Reglas de las copias: ¿toca copia?, clave de semana, rotación abuelo-padre-hijo (TD-04) | — | 0013, 0016 |
 | Dominio | `dominio_ses.gs` | SES.Hospedajes: lectura del Form de viajeros, casado por código, viajero con códigos de SES, validación de `PV`/`RH`, XML, errores y reintentos (S26) | — | 0018 |
-| Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` | Gastos y resumen fiscal · cache de estadísticas e histórico de informes | — | 0009, 0012 |
+| Infra | `infra_repositorio_gastos.gs` · `infra_repositorio_informes.gs` · `infra_repositorio_cierres.gs` | Gastos y resumen fiscal · histórico de informes · días cerrados (DD-04) | — | 0009, 0012 |
 | Infra | `infra_catalogo.gs` | Catálogos (espacios, canales, servicios, categorías) | — | 0003 |
 | Infra | `infra_drive.gs` · `infra_calendario.gs` · `infra_correo.gs` · `infra_plantilla_email.gs` | Adaptadores de Drive, Calendar y correo (no bloquean la operación principal); plantilla HTML común de los emails (D-35) | — | 0006, 0010, 0014 |
 | Infra | `infra_mantenimiento.gs` | Copias (rotación abuelo-padre-hijo), purgas, poda de vídeos y de fotos del contrato | — | 0013, 0014, 0016, 0023 |
@@ -188,7 +190,7 @@ Cliente ──crearReserva(datos)──► ejecutarEndpoint_ (autorización, try
 `cancelarReserva` → bloqueo → `cancelar_` (pura) → `guardarReserva_` → `registrarHistorial_` → `eliminarEventoReserva_` → `notificarReaperturaCanales_`.
 
 ### 6.5 Mantenimiento nocturno (03:00)
-`tareasNocturnas(e)` → `ejecutarTareaDelSistema_` (valida `e.triggerUid`) → `ejecutarTarea_` × {`recalcularEstadisticas_`, `copiaSeguridadSheet_`, `purgarPorAntiguedad_` (Logs, Errores), `purgarVideosAntiguos_`, `purgarContratosAntiguos_` (ADR-0023)}; cada fallo va a `Errores` sin detener las demás.
+`tareasNocturnas(e)` → `ejecutarTareaDelSistema_` (valida `e.triggerUid`) → `ejecutarTarea_` × {`copiaSeguridadSheet_`, `purgarPorAntiguedad_` (Logs, Errores), `purgarVideosAntiguos_`, `purgarContratosAntiguos_` (ADR-0023)}; cada fallo va a `Errores` sin detener las demás.
 
 ### 6.5 bis Avisos (DD-03 §3.7)
 `avisosDeCobro(e)` (diario, 09:00) → `tocaAvisoIngreso_` (sin guardar estado: a los 10, 20, 30… días de la salida) → `enviarRecordatorioIngreso_` a Admin y Gestión, con el botón `?accion=ingreso&id=…`. `avisosDeChecklist(e)` (cada 15 min, bajo bloqueo) → `tocaAvisoCheckin_` / `tocaAvisoCheckout_` → `enviarAvisoChecklist_` → anota `Aviso_*_Enviado` solo si el email sale. El enlace del email entra por `doGet(e)` → `accionInicial_` (lista cerrada de acciones e ID con formato) → el cliente abre la ficha o la checklist y pide confirmación.
@@ -281,8 +283,9 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 | `Logs` | Fecha_Hora, Tipo, Email, Detalle | Accesos (90 días) | 0001, 0013 |
 | `Errores` | Fecha_Hora, Funcion, Mensaje, Contexto (JSON; incluye `pila` técnica desde v2) | Errores (365 días) | 0013 |
 | `Historial_Cambios` | Fecha_Hora, Usuario, ID_Reserva, Campo, Valor_Anterior, Valor_Nuevo | Auditoría de negocio | 0005 |
-| `Historico_Informes` | Periodo, Tipo, Espacio, Canal, Num_Reservas, Ingresos_Brutos, Comisiones, Ingresos_Netos, Ocupacion | Archivo de informes (append-only; `Ocupacion` vacía, B-08) | 0009 |
-| `Estadisticas_Cache` | Zona, Total_Reservas_Anyo, Ingresos_Netos, Fecha_Actualizacion | Snapshot diario | 0009 |
+| `Historico_Informes` | Periodo, Tipo, Espacio, Canal, Num_Reservas, Ingresos_Brutos, Comisiones, Ingresos_Netos, Ocupacion | Archivo de informes (append-only; `Ocupacion` desde S36: días con reserva por horas, noches por días; DD-04) | 0009 |
+| `Estadisticas_Cache` | Zona, Total_Reservas_Anyo, Ingresos_Netos, Fecha_Actualizacion | **Sin uso desde S36** (Estadísticas se calcula al abrir, DD-04); se conserva por la regla de cambios solo aditivos | 0009 |
+| `Dias_Cerrados` | ID_Cierre, Espacio, Desde, Hasta (incluido), Motivo, Calendar_Event_Id, Registrado_Por, Fecha_Registro | Días en que un espacio no se alquila: bloquean reservas y no cuentan como abiertos (F-48) | DD-04 |
 | `Gastos` | ID_Gasto, Fecha, Ejercicio, Concepto, Categoria, Espacio, Importe, Deducible, Pagado_Por, Justificante, Notas | Gastos | 0012 |
 | `Resumen_Fiscal` | Ejercicio, Espacio, Ingresos_Integros, Gastos_Deducibles, Rendimiento_Neto, Tercio_Comunero | Resumen persistido | 0012 |
 | ~~`Registro_Viajeros`~~ | — | Retirada del esquema (D-39, 2026-10-02): del diseño de ADR-0007, copiaba datos de huéspedes; con ADR-0018 no se copian. Borrada del Sheet real por el usuario | — |
@@ -325,7 +328,7 @@ Hojas y campos se definen una sola vez en `infra_esquema.gs` (campo lógico → 
 - Un fallo secundario que el usuario debe conocer vuelve en la respuesta como `aviso` (y, si procede, `incidencia`); el cliente lo muestra en ventana modal con opción de enviarlo a las cuentas `Admin` (F-21, RF-82).
 
 ### 8.7 Configuración (`Config`)
-Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default` (prerrellenan las horas de la Habitación, ADR-0019; se leen como `HH:mm` aunque Sheets las guarde como hora), `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (D-23), `Sheet_Viajeros_Id`, `Sheet_Viajeros_Hoja`, `Form_Viajeros_Enlace` (enlace prerrellenado con `{codigo}`, F-27), `SES_Url`, `SES_Codigo_Arrendador`, `SES_Codigo_Establecimiento`, `SES_Aplicacion`, `SES_Tipo_Pago`, `SES_Reintento_Minutos`, `SES_Max_Intentos` (S27), `SES_Web_Url` (S28, botón "Abrir SES.Hospedajes" de los emails), `Dias_Aviso_Ingreso` (F-37), `Horas_Aviso_Checkin` (F-40), `Anios_Retencion_Contrato` (F-41, ADR-0023). `Tamano_Max_Contrato_MB` vale 15 por defecto (DI-10). *Reparar hojas* añade al final las claves que falten sin tocar las existentes. Se leen una vez por ejecución (`leerConfig`).
+Claves sembradas por `infra_esquema.gs`: `Dias_Office_Reponer` (F-14), `Emails_Notificacion`, `Mensaje_Solapamiento`, `Hora_CheckIn_Default`, `Hora_CheckOut_Default` (prerrellenan las horas de la Habitación, ADR-0019; se leen como `HH:mm` aunque Sheets las guarde como hora), `Tamano_Max_Contrato_MB`, `Tamano_Max_Video_MB`, `Valor_Construccion`, `Proporcion_Alquilada`, `Carpeta_Raiz_Id`, `Carpeta_Videos_Id`, `Carpeta_Documentos_Id`, `Carpeta_Backups_Id`, `Backup_Diarias`, `Backup_Semanales`, `Backup_Mensuales`, `Retencion_Logs_Dias`, `Retencion_Errores_Dias`, `Retencion_Videos_Dias`, `Calendar_Id`, `Calendar_Url`, `Icono_Url` (cabecera, F-24; el icono de la pestaña se quitó en B-30), `Sheet_Viajeros_Id`, `Sheet_Viajeros_Hoja`, `Form_Viajeros_Enlace` (enlace prerrellenado con `{codigo}`, F-27), `SES_Url`, `SES_Codigo_Arrendador`, `SES_Codigo_Establecimiento`, `SES_Aplicacion`, `SES_Tipo_Pago`, `SES_Reintento_Minutos`, `SES_Max_Intentos` (S27), `SES_Web_Url` (S28, botón "Abrir SES.Hospedajes" de los emails), `Dias_Aviso_Ingreso` (F-37), `Horas_Aviso_Checkin` (F-40), `Anios_Retencion_Contrato` (F-41, ADR-0023), `Exterior_Hora_Apertura` y `Exterior_Hora_Cierre` (DD-04: horas abiertas al día del espacio por horas; 09:00–02:00). `Tamano_Max_Contrato_MB` vale 15 por defecto (DI-10). *Reparar hojas* añade al final las claves que falten sin tocar las existentes. Se leen una vez por ejecución (`leerConfig`).
 
 ### 8.8 Concurrencia
 `LockService.getScriptLock()` (espera de 20 s) en crear, editar, cancelar, servicios y gastos.
@@ -337,7 +340,7 @@ Respuesta siempre `{ success: boolean, data?, error? }` (algunos endpoints usan 
 Hub + secciones (ADR-0008); barra general, segundos pisos (Reservas, Admin) y barra de Reservas en Gestionar, la ficha y las funciones (DD-03); mobile-first, tokens de [design-system.md](design-system.md) (ADR-0011), estándares de UX de CLAUDE.md §6.
 
 ### 8.11 Almacenamiento en Drive
-`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado, salvo la subcarpeta `Contrato`, que se borra a los 5 años de la salida, ADR-0023), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (rotación abuelo-padre-hijo: 7 diarias, 4 semanales, 12 mensuales). ADR-0013, ADR-0014, ADR-0016.
+`KAF. KAF Rent/` → `Documentos/{Espacio}/{reserva}/` (sin borrado, salvo la subcarpeta `Contrato`, que se borra a los 5 años de la salida, ADR-0023), `Documentos/Gastos/{Ejercicio}/`, vídeos `{Espacio}/{reserva}/` (180 días), `Backups/` (rotación abuelo-padre-hijo: 7 diarias, 4 semanales, 12 mensuales, aparte para cada origen: el Sheet y, como `.xlsx`, el Sheet del Form de viajeros, D-49/D-50; restauración en [DEVELOPMENT.md](../DEVELOPMENT.md#restaurar-desde-una-copia-de-seguridad-d-49)). ADR-0013, ADR-0014, ADR-0016.
 
 ### 8.12 Testabilidad
 Ver CLAUDE.md §7. **Implantado en v2:** `npm test` carga los `.gs` en un contexto `vm` (un ámbito global, como Apps Script) con dobles en memoria de Sheets, Drive, Calendar, Mail, Lock, Session y ScriptApp (`tests/soporte/`). Hay tests unitarios del dominio y tests de los 20 endpoints y de las entradas del sistema; cobertura ≈ 98 % de líneas; CI en GitHub Actions. Pendiente (S11): E2E de la interfaz con Playwright e integración contra un Sheet de pruebas.
@@ -362,7 +365,7 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | QS-01 | Dos usuarios guardan a la vez la misma franja | Solo una se guarda; la otra ve el mensaje de solapamiento | RNF-15 |
 | QS-02 | Una cuenta Google ajena abre la URL y llama a funciones desde la consola | Pantalla de acceso denegado; toda llamada responde `success:false` sin tocar datos | RNF-20 |
 | QS-03 | Calendar no responde al guardar | La reserva se guarda en < 5 s; el fallo queda en `Errores`; se reconcilia después | RNF-16 |
-| QS-04 | Se borra por error la hoja `Reservas` | Se restaura desde la copia de ≤ 2 días | RNF-17 |
+| QS-04 | Se borra por error la hoja `Reservas` | Se restaura desde la copia de ≤ 1 día (copia diaria, ADR-0016) | RNF-17 |
 | QS-05 | Luis registra una reserva desde el móvil sin ayuda | La completa en < 5 min | RNF-08, RNF-11 |
 | QS-06 | Se añade un canal nuevo | Basta una fila en `Catálogo_Canales` | RNF-27 |
 | QS-07 | Un huésped se llama `<img src=x onerror=alert(1)>` | Se muestra como texto, sin ejecutarse | RNF-26 |
@@ -382,11 +385,11 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-05 | Emails automáticos en spam | M | B | Baja | Añadir el remitente a contactos; asuntos consistentes | Abierto |
 | R-06 | Único desarrollador (punto único de fallo) | A | A | **Alta** | Documentación, trazabilidad, arquitectura simple, tests; emergencia: usar el Sheet directamente | Aceptado |
 | R-07 | Google depreca funciones de Apps Script | B | A | **Media** | Código modular; datos exportables (RNF-32) | Abierto |
-| R-08 | Pérdida o corrupción de datos del Sheet | B | A | **Media** | Copias automáticas con rotación abuelo-padre-hijo (ADR-0013, ADR-0016) + historial de versiones | Mitigado |
+| R-08 | Pérdida o corrupción de datos del Sheet | B | A | **Media** | Copias automáticas con rotación abuelo-padre-hijo del Sheet y del Sheet del Form (ADR-0013, ADR-0016, D-49) + historial de versiones + procedimiento de restauración (DEVELOPMENT) | Mitigado |
 | R-09 | Compromiso de una cuenta autorizada | B | A | **Media** | 2FA; revocación inmediata en `Usuarios_Autorizados`; revisión de `Logs` | Abierto |
 | R-10 | Baja adopción por usuarios no técnicos | M | M | **Media** | UAT con journeys; simplicidad; recoger feedback | Mitigado (D-07: los tres usan la app solos con reservas reales) |
-| R-11 | Formulario de viajeros con documentos de identidad | M | A | **Alta** | Sin fotos del documento y una sola copia de los datos (el Sheet del Form, acceso restringido a los copropietarios; ADR-0018); casar con reserva real; política de borrado; aviso de privacidad; revisión legal previa (EXT-02) | Abierto (Fase 2) |
-| R-12 | El trigger nocturno no se ejecuta | B | B | Baja | Fecha de actualización visible; fallos en `Errores`; recálculo manual | Abierto |
+| R-11 | Formulario de viajeros con documentos de identidad | M | A | **Alta** | Sin fotos del documento y una sola copia de trabajo de los datos (el Sheet del Form, acceso restringido a los copropietarios; ADR-0018), más sus copias de seguridad `.xlsx` en la carpeta de copias de la cuenta operativa, ≤ ~12 meses por la rotación (D-49); casar con reserva real; política de borrado; aviso de privacidad; revisión legal previa (EXT-02) | Abierto (Fase 2) |
+| R-12 | El trigger nocturno no se ejecuta | B | B | Baja | Fallos en `Errores`; desde S36 la copia deja rastro en `Logs` (`COPIA`) y Estadísticas ya no depende del trigger (ADR-0025) | Abierto |
 | R-13 | Cuenta operativa única comprometida o perdida | B | A | **Media** | 2FA, custodia de credenciales y códigos de recuperación, copias | Abierto |
 | R-14 | Ventana de copia limitada (~30 días) | B | M | Baja | Rotación abuelo-padre-hijo: ~12 meses (ADR-0016); queda la copia fuera de Google (F-09) | Mitigado |
 | R-15 | Borrado de vídeos elimina la prueba ante daños | B | M | Baja | `Retencion_Videos_Dias` configurable; conservar a mano los vídeos con incidencia | Abierto |
@@ -400,6 +403,7 @@ Seguridad (RNF-19 a RNF-26) · Fiabilidad (RNF-13 a RNF-18) · Usabilidad (RNF-0
 | R-23 | SES se activó en producción sin probar antes el alta de la reserva (`RH`), el parte (`PV`), la consulta del lote y la anulación contra SES real, porque pre-ses respondía HTTP 502 (2026-10-02). Un formato no aceptado haría fallar esas comunicaciones | M | B | Baja | Conexión y catálogo comprobados en producción; tests con la especificación v3.1.3; cada fallo da un email ✕ y se comunica a mano; verificación con la primera reserva real (S29, ACC-06) | Abierto |
 | R-24 | Dos triggers frecuentes (SES cada 10 min y avisos de checklist cada 15 min, DD-03) más los diarios suman tiempo de ejecución contra la cuota gratuita de triggers (90 min/día en cuentas personales; no medido en real) | B | M | Baja | Cada pasada lee `Reservas` una vez y termina en segundos; vigilar el panel de ejecuciones en `/dev` tras implementar; si se acerca, pasar los avisos de checklist a cada 30 min | Abierto |
 | R-25 | "Ver calendario" en Android abre la app de Google Calendar con un enlace `intent://` (D-44 B); no verificado en los móviles reales (Motorola G85, Pixel 10, Redmi 9) ni dentro del marco de Apps Script | M | B | Baja | Si la app no se abre, el enlace lleva la web como alternativa; smoke en los 3 móviles tras implementar | Abierto |
+| R-26 | Un cierre bloqueado en la plataforma pero no apuntado en la app (o al revés) falsea la ocupación y deja reservar un día cerrado (DD-04) | M | M | Media | Aviso en la pantalla de Cerrar días y en DEVELOPMENT; mejora futura: contrastar con el iCal de Airbnb | Abierto |
 
 *P/I:* A = alta · M = media · B = baja.
 

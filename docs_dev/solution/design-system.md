@@ -176,7 +176,7 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 ### Cabecera y navegación (F-24, F-25)
 - **Cabecera:** icono de la app (`Config.Icono_Url`, 36 px, `--radius-md`; si no hay, no se muestra) + "KAF Rent" a la izquierda; usuario a la derecha en `--c-text-muted`.
 - **Barra inferior fija** (al alcance del pulgar, patrón de KAF Finance): fondo `--c-surface`, borde superior `--c-border`, respeta `safe-area-inset-bottom`. Botones con icono SVG (22 px, trazo 2) encima del texto (0.8125rem, peso 600), alto ≥ 48 px. Activo: `aria-current="page"`, texto `--c-primary-700` sobre `--c-primary-50`.
-- **Segundo piso:** "Reservas" abre encima de la barra una fila con "Gestionar Reservas" y "Crear Reservas"; "Admin" (icono de persona, solo rol Admin, F-31) abre "Checklists" y "Conexión SES" (fondo `--c-surface-alt`). Solo hay un segundo piso abierto a la vez y se cierra al ir a otra sección. Las dos barras ocupan unos 120 px; el cuerpo reserva ese espacio para no tapar contenido.
+- **Segundo piso:** "Reservas" abre encima de la barra una fila con "Gestionar Reservas" y "Crear Reservas"; "Admin" (icono de persona, solo rol Admin, F-31) abre "Checklists" y "Conexión SES". El segundo piso va sobre `--c-primary-100` con borde `--c-primary-300` y texto `--c-primary-900` (10,4:1), para que se distinga de la barra general; la opción activa, sobre `--c-surface` con texto `--c-primary-700` (7,1:1). Solo hay un segundo piso abierto a la vez y se cierra al ir a otra sección. Las dos barras ocupan unos 120 px; el cuerpo reserva ese espacio para no tapar contenido.
 - **Barra de Reservas (F-33, DD-03):** en Gestionar, la ficha y las funciones, la barra general se sustituye por: ← Inicio · Checklist · Identidades · Contrato · Extras (mismo estilo; 5 botones de unos 72 px en 360 px). La función activa lleva `aria-current="page"`.
 - **Cabecera de pantalla:** botón secundario pequeño "← Volver" / "← Reservas" a la izquierda y el título a su lado (sin partir el botón). En móvil (≤ 600 px) la cabecera de la app se compacta (padding 8/16 px, título 1.25rem, icono 28 px).
 
@@ -205,6 +205,11 @@ Aplican a todo elemento interactivo (botones, enlaces, filas, inputs):
 
 ### Selector segmentado (F-38)
 - Dos botones a partes iguales ("IN · Check-in" / "OUT · Check-out"), ≥ 48 px, con `aria-pressed`; el elegido, relleno `--c-primary-500`.
+
+### Estadísticas por canal y evolución (DD-04, F-49)
+- **Tarjeta de canal** (`.stat-card`): título del canal, cifra principal (`.stat-num`), segunda cifra (`.stat-num-2`) y líneas etiqueta/valor (`.stat-linea`). La **tarjeta de total** va primero y destacada (`.stat-card-total`: `--c-primary-50` con borde `--c-primary-300`).
+- **Evolución de 12 meses** (`.evolucion`): barra (`--c-primary-500` sobre `--c-surface-alt`) con la cifra escrita debajo; el color nunca es lo único que informa (§2.6).
+- **Tarjeta de cierre** (`.tarjeta-cierre`, Cerrar días): texto a la izquierda y botón secundario *Quitar* a la derecha, con confirmación.
 
 ### Ficha de la reserva (F-42)
 - Secciones con título h3 (0.95rem) y una rejilla de datos en 2 columnas sobre `--c-surface-alt`. En modificación, cada dato editable pasa a ser su control (etiqueta asociada) en la misma posición.

@@ -191,6 +191,13 @@ class CalendarioFalso {
     this.eventos.push(e);
     return e;
   }
+  // Evento de día completo (DD-04, cierres): el fin no se incluye, como en Calendar.
+  createAllDayEvent(titulo, inicio, fin) {
+    if (this.fallar) throw new Error('Calendar no disponible (simulado)');
+    const e = new EventoFalso(this, titulo, inicio, fin, { diaCompleto: true });
+    this.eventos.push(e);
+    return e;
+  }
   getEventById(id) { return this.eventos.find((e) => e.id === id) || null; }
 }
 
@@ -222,7 +229,10 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
         const r = ses.respuestas.shift();
         if (!r) throw new Error('UrlFetchApp: sin respuesta simulada');
         if (r.errorRed) throw new Error(r.errorRed);
-        return { getResponseCode: () => r.http || 200, getContentText: () => r.cuerpo || '' };
+        return {
+          getResponseCode: () => r.http || 200, getContentText: () => r.cuerpo || '',
+          getBlob: () => ({ bytes: r.cuerpo || '', setName(nombre) { this.nombre = nombre; return this; } }),
+        };
       },
     },
     DriveApp: drive,
@@ -264,6 +274,7 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
     },
     ScriptApp: {
       getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/APP/exec' }),
+      getOAuthToken: () => 'TOKEN-TEST',
       getProjectTriggers: () => disparadores.slice(),
       deleteTrigger: (t) => { const i = disparadores.indexOf(t); if (i >= 0) disparadores.splice(i, 1); },
       newTrigger: (funcion) => {
@@ -279,7 +290,7 @@ const crearServicios = ({ usuarioActivo = 'ana@test.com', usuarioEfectivo = 'ope
     },
     HtmlService: {
       createTemplateFromFile: (nombre) => ({ nombre, evaluate() {
-        // HtmlService rechaza una URL de favicon no válida: el doble lo simula con 'url-invalida'.
+        // Como HtmlService, rechaza una URL de favicon no válida ('url-invalida'), por si se vuelve a usar (D-23).
         const s = { vista: nombre, datos: this.datos, setFaviconUrl(url) { if (url === 'url-invalida') throw new Error('Invalid argument: faviconUrl'); this.icono = url; return this; } };
         return { setTitle: () => ({ addMetaTag: () => s }) };
       } }),

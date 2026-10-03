@@ -13,7 +13,7 @@ Sustituye una gestión dispersa (mensajería, hojas sueltas, sincronización man
 - **Cero overbooking:** bloqueo automático de solapamientos al crear una reserva.
 - **Ciclo de vida con auditoría:** estado calculado (`Abierta` / `Cerrada` / `Cancelada`) e historial campo a campo.
 - **Sincronización de canales:** avisos por email para cerrar y reabrir disponibilidad (sin *channel manager* de pago).
-- **Visibilidad:** Inicio con las próximas o últimas reservas, buscador y calendario de ocupación; Gestionar en tarjetas pensado para el móvil; estadísticas e informes mensuales y trimestrales.
+- **Visibilidad:** Inicio con las próximas o últimas reservas, buscador y calendario de ocupación; Gestionar en tarjetas pensado para el móvil; estadísticas por espacio y canal con su ocupación, días cerrados e informes mensuales y trimestrales.
 - **Tareas de cada estancia:** checklists digitales de entrada y salida, validación de identidades con comunicación a **SES.Hospedajes**, contrato firmado en fotos y cobro de servicios extra, con avisos por email de cobros y checklists pendientes.
 - **Evidencias:** contratos y vídeos de entrada y salida en Drive, por espacio y reserva.
 - **Fiscalidad:** gastos con justificante y resumen del IRPF a tercios.

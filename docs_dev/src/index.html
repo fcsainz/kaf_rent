@@ -310,14 +310,53 @@
       </div>
     </section>
 
-    <section id="seccion-estadisticas" class="seccion">
-      <div class="panel">
-        <h2>Estadísticas</h2>
-        <p class="ayuda-campo">Las estadísticas se actualizan cada 24 horas. <span id="stats-actualizado"></span></p>
-        <div class="form-acciones" style="justify-content:flex-start;margin-bottom:var(--space-4)">
-          <button type="button" class="btn btn-secundario" id="btn-recalcular-stats">Recalcular ahora</button>
+    <!-- DD-04 §3.2 (F-48): días en que un espacio no se alquila. -->
+    <section id="seccion-cierres" class="seccion">
+      <div class="panel panel-compacto">
+        <h2>Cerrar días</h2>
+        <p class="ayuda-campo">Marca los días en que un espacio no se alquila. Esos días no se pueden reservar en la app y no cuentan como abiertos en Estadísticas. Recuerda bloquearlos también en la plataforma.</p>
+        <form id="form-cierre" novalidate>
+          <div class="form-grupo"><label for="cierre-espacio">Espacio <span class="obligatorio">*</span></label>
+            <select id="cierre-espacio"><option value="">Selecciona…</option></select></div>
+          <div class="campo-fila">
+            <div class="form-grupo"><label for="cierre-desde">Desde <span class="obligatorio">*</span></label><input type="date" id="cierre-desde"></div>
+            <div class="form-grupo"><label for="cierre-hasta">Hasta (incluido) <span class="obligatorio">*</span></label><input type="date" id="cierre-hasta"></div>
+          </div>
+          <div class="form-grupo"><label for="cierre-motivo">Motivo <span class="obligatorio">*</span></label>
+            <input type="text" id="cierre-motivo" list="cierre-motivos" maxlength="60" autocomplete="off">
+            <datalist id="cierre-motivos"><option value="Fuera de temporada"><option value="Uso familiar"><option value="Mantenimiento"></datalist></div>
+          <div class="form-acciones">
+            <button type="submit" class="btn btn-primario" id="btn-cerrar-dias">Cerrar días</button>
+          </div>
+        </form>
+      </div>
+      <div class="panel panel-compacto">
+        <h2>Días cerrados</h2>
+        <ul class="lista-tarjetas" id="lista-cierres"><li class="vacio">Cargando…</li></ul>
+        <div class="form-acciones">
+          <button type="button" class="btn btn-secundario" id="btn-cierres-anteriores" aria-pressed="false">Ver también los anteriores</button>
         </div>
-        <div id="stats-zonas" class="stats-zonas"></div>
+      </div>
+    </section>
+
+    <!-- DD-04 §3.3 (F-49): ocupación por espacio y canal, calculada al abrir. -->
+    <section id="seccion-estadisticas" class="seccion">
+      <div class="panel panel-compacto">
+        <h2>Estadísticas</h2>
+        <div class="filtros">
+          <div class="form-grupo"><label for="stats-espacio">Espacio</label><select id="stats-espacio"></select></div>
+          <div class="form-grupo"><label for="stats-anyo">Año</label><select id="stats-anyo"></select></div>
+          <div class="form-grupo"><label for="stats-periodo">Periodo</label>
+            <select id="stats-periodo">
+              <option value="anyo">Año completo</option>
+              <optgroup label="Trimestre"><option value="T1">1.er trimestre</option><option value="T2">2.º trimestre</option><option value="T3">3.er trimestre</option><option value="T4">4.º trimestre</option></optgroup>
+              <optgroup label="Mes"><option value="M1">Enero</option><option value="M2">Febrero</option><option value="M3">Marzo</option><option value="M4">Abril</option><option value="M5">Mayo</option><option value="M6">Junio</option><option value="M7">Julio</option><option value="M8">Agosto</option><option value="M9">Septiembre</option><option value="M10">Octubre</option><option value="M11">Noviembre</option><option value="M12">Diciembre</option></optgroup>
+            </select></div>
+        </div>
+        <p class="ayuda-campo" id="stats-resumen" aria-live="polite"></p>
+        <div id="stats-canales" class="stats-zonas"></div>
+        <h3 class="stats-subtitulo" id="stats-evolucion-titulo">Evolución del año</h3>
+        <ul class="evolucion" id="stats-evolucion"></ul>
       </div>
     </section>
 
@@ -390,6 +429,7 @@
     <div class="nav-subpiso" id="nav-subpiso-reservas" hidden>
       <button type="button" class="nav-sub btn-nav" data-seccion="gestionar">Gestionar Reservas</button>
       <button type="button" class="nav-sub btn-nav" data-seccion="crear">Crear Reservas</button>
+      <button type="button" class="nav-sub btn-nav" data-seccion="cierres">Cerrar días</button>
     </div>
     <div class="nav-subpiso" id="nav-subpiso-admin" hidden>
       <button type="button" class="nav-sub btn-nav" data-seccion="checklists">Checklists</button>
@@ -436,5 +476,6 @@
   <?!= include('gastos_interfaz'); ?>
   <?!= include('checklist_interfaz'); ?>
   <?!= include('ses_interfaz'); ?>
+  <?!= include('ocupacion_interfaz'); ?>
 </body>
 </html>

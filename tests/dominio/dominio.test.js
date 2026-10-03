@@ -209,18 +209,13 @@ test.describe('RF-11, RF-43 · filtros', () => {
   });
 });
 
-test.describe('RF-59, RF-61 · estadísticas e informes', () => {
+test.describe('RF-61 · informes', () => {
   const reservas = [
     reservaBase(),
     reservaBase({ id: '2030-002', espacio: 'Piscina / Jardín', canal: 'Cocopool', neto: 100, bruto: 120, comision: 20 }),
     reservaBase({ id: '2030-003', estado: 'Cancelada' }),
     reservaBase({ id: '2029-001', inicio: d(2029, 12, 30), fin: d(2030, 1, 2) }),
   ];
-  test('agregados por zona del año natural sin canceladas', () => {
-    const a = fn('agregadosEstadisticas_')(reservas, ['Piscina / Jardín', 'Habitación Interior'], 2030, HOY);
-    assert.deepEqual(plano(a).map((z) => [z.zona, z.totalReservas, z.ingresosNetos]),
-      [['Todos', 2, 402.4], ['Piscina / Jardín', 1, 100], ['Habitación Interior', 1, 302.4]]);
-  });
   test('periodos: en enero, el mensual es diciembre y el trimestral el T4 del año anterior', () => {
     const enero = d(2031, 1, 1, 7);
     assert.equal(fn('periodoMensual_')(enero).periodo, '2030-12');
